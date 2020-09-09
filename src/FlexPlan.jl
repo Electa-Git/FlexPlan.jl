@@ -8,6 +8,7 @@ import Memento
 import PowerModels
 import PowerModelsACDC
 const _PM = PowerModels
+const _PMACDC = PowerModelsACDC
 import InfrastructureModels
 # import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
 const _IM = InfrastructureModels
@@ -25,4 +26,5 @@ __init__() = Memento.register(_LOGGER)
 
 include("prob/flexible_tnep.jl")
 include("prob/storage_tnep.jl")
+include("io/profile_data.jl")
 end
