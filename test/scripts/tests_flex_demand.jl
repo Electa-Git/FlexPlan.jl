@@ -23,7 +23,7 @@ juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= 
 
 
 dim = 4
-file = "./test/data/case6_strg.m"
+file = "./test/data/case6_flex.m"
 # Test 1: Line vs storage: Base case
 data = _PM.parse_file(file)
 _PMACDC.process_additional_data!(data)
