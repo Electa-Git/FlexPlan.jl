@@ -122,9 +122,9 @@ for arg in ARGS
     project = Dict(
         "name" => name,
         "uuid" => uuid(name),
-        "autors" => ["Hakan Ergun", "Frederik Geth", "Jay Dave"],
-        "repo" => "https://github.com/hakanergun/PowerModelsACDC.jl",
-        "version" => "0.3.2",
+        "autors" => ["Hakan Ergun"],
+        "repo" => "https://github.com/electa-git/FlexPlan.jl",
+        "version" => "0.0.0",
         "deps" => Dict{String,String}(),
         "compat" => Dict{String,String}(),
         "extras" => Dict{String,String}(),
