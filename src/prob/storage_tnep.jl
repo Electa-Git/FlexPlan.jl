@@ -2,16 +2,17 @@ export strg_tnep
 
 ""
 function strg_tnep(data::Dict{String,Any}, model_type::Type, solver; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
-    # if setting["process_data_internally"] == true
-    #     process_additional_data!(data)
-    # end
     s = setting
     return _PM.run_model(data, model_type, solver, post_strg_tnep; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
 end
 
+# Here the problem is defined, which is then sent to the solver.
+# It is basically a declarion of variables and constraint of the problem
+
 ""
 function post_strg_tnep(pm::_PM.AbstractPowerModel)
-    for (n, networks) in pm.ref[:nw]
+# VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: see further down    
+for (n, networks) in pm.ref[:nw]
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -37,7 +38,9 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
         _PMACDC.variable_dcbranch_current_ne(pm; nw = n)
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
     end
+#OBJECTIVE
     objective_min_cost_storage(pm)
+#CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: see further down 
     for (n, networks) in pm.ref[:nw]
         _PM.constraint_model_voltage(pm; nw = n)
         _PM.constraint_ne_model_voltage(pm; nw = n)
@@ -213,9 +216,9 @@ end
 
 
 
-####################################################
-############### Variable Definitions
-###################################################
+##################################################################################
+#### DEFINTION OF NEW VARIABLES FOR STORAGE INVESTMENTS ACCODING TO FlexPlan MODEL
+##################################################################################
 function variable_absorbed_energy(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool = true, report::Bool=true)
     e_abs = _PM.var(pm, nw)[:e_abs] = JuMP.@variable(pm.model,
     [i in _PM.ids(pm, nw, :storage)], base_name="$(nw)_e_abs",
@@ -249,9 +252,6 @@ end
 
 function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
     variable_storage_power_real_ne(pm; kwargs...)
-    # variable_storage_power_imaginary_ne(pm; kwargs...)
-    # variable_storage_power_control_imaginary_ne(pm; kwargs...)
-    # variable_storage_current_ne(pm; kwargs...)
     variable_storage_energy_ne(pm; kwargs...)
     variable_storage_charge_ne(pm; kwargs...)
     variable_storage_discharge_ne(pm; kwargs...)
@@ -387,9 +387,10 @@ function variable_storage_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw,
     report && _IM.sol_component_value(pm, nw, :ne_storage, :isbuilt, _PM.ids(pm, nw, :ne_storage), z)
  end
 
-####################################################
-############### Constraint Templates
-###################################################
+# ####################################################
+# Constraint Templates: They are used to do all data manipuations and return a function with the same name, 
+# this way the constraint itself only containts the mathematical formulation
+# ###################################################
 function constraint_storage_thermal_limit_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
     storage = _PM.ref(pm, nw, :ne_storage, i)
     constraint_storage_thermal_limit_ne(pm, nw, i, storage["thermal_rating"])
@@ -477,14 +478,6 @@ function constraint_storage_state_final_ne(pm::_PM.AbstractPowerModel, i::Int; n
     storage = _PM.ref(pm, nw, :ne_storage, i)
     constraint_storage_state_final_ne(pm, nw, i, storage["energy"])
 end
-
-# function constraint_storage_investment(pm::_PM.AbstractPowerModel, i::Int, nw_1::Int, nw_2::Int)
-#     n_1 = nw_1
-#     n_2 = nw_2
-#     print(n_1,"\n")
-#     print(n_2,"\n")
-#     constraint_storage_investment(pm, n_1, n_2, i)
-# end
 
 function constraint_storage_excl_slack(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
     constraint_storage_excl_slack(pm, nw, i)

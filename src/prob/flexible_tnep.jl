@@ -6,8 +6,12 @@ function flex_tnep(data::Dict{String,Any}, model_type::Type, solver; ref_extensi
     return _PM.run_model(data, model_type, solver, post_flex_tnep; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
 end
 
+# Here the problem is defined, which is then sent to the solver.
+# It is basically a declarion of variables and constraint of the problem
+
 ""
 function post_flex_tnep(pm::_PM.AbstractPowerModel)
+# VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: see further down    
     for (n, networks) in pm.ref[:nw]
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
@@ -35,7 +39,9 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
         _PMACDC.variable_dcbranch_current_ne(pm; nw = n)
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
     end
+#OBJECTIVE
     objective_min_cost_flex(pm)
+#CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: see further down 
     for (n, networks) in pm.ref[:nw]
         _PM.constraint_model_voltage(pm; nw = n)
         _PM.constraint_ne_model_voltage(pm; nw = n)
@@ -238,6 +244,9 @@ end
          )
  end
 
+##################################################################################
+#### DEFINTION OF NEW VARIABLES FOR STORAGE INVESTMENTS ACCODING TO FlexPlan MODEL
+##################################################################################
 function variable_flexible_demand(pm::_PM.AbstractPowerModel; kwargs...)
     variable_total_flex_demand(pm; kwargs...)
     variable_demand_reduction(pm; kwargs...)
@@ -355,7 +364,8 @@ function variable_flexible_demand_investment(pm::_PM.AbstractPowerModel; nw::Int
     report && _IM.sol_component_value(pm, nw, :load, :isflex, _PM.ids(pm, nw, :load), z)
  end
 # ####################################################
-# ############### Constraint Templates
+# Constraint Templates: They are used to do all data manipuations and return a function with the same name, 
+# this way the constraint itself only containts the mathematical formulation
 # ###################################################
 function constraint_fixed_demand(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
     constraint_fixed_demand(pm, nw, i)
@@ -592,7 +602,7 @@ function constraint_shift_duration_up(pm, n_2, n_idx, i, t_grace)
     pshift_up = _PM.var(pm, n_2, :pshift_up, i)
     pshift_up_max = JuMP.upper_bound(pshift_up)
     t = max(1, n_2 - t_grace)
-    # JuMP.@constraint(pm.model, pshift_up <= pshift_up_max - sum(_PM.var(pm, n, :pshift_up_tot, i) for n in n_idx[n_2 - t_grace:n_2-1]))
+    # JuMP.@constraint(pm.model, pshift_up <= pshift_up_max - sum(_PM.var(pm, n, :pshift_up_tot, i) for n in n_idx[n_2 - t_grace:n_2-1])) #ToDo verify that shiting constraint is correct
     JuMP.@constraint(pm.model, pshift_up <= pshift_up_max - _PM.var(pm, t, :pshift_up_tot, i))
 end
 
@@ -600,6 +610,6 @@ function constraint_shift_duration_down(pm, n_2, n_idx, i, t_grace)
     pshift_down = _PM.var(pm, n_2, :pshift_down, i)
     pshift_down_max = JuMP.upper_bound(pshift_down)
     t = max(1, n_2 - t_grace)
-    # JuMP.@constraint(pm.model, pshift_down <= pshift_down_max - sum(_PM.var(pm, n, :pshift_down_tot, i) for n in n_idx[n_2 - t_grace:n_2-1]))
+    # JuMP.@constraint(pm.model, pshift_down <= pshift_down_max - sum(_PM.var(pm, n, :pshift_down_tot, i) for n in n_idx[n_2 - t_grace:n_2-1])) #ToDo verify that shiting constraint is correct
     JuMP.@constraint(pm.model, pshift_down <= pshift_down_max - _PM.var(pm, t, :pshift_down_tot, i))
 end
