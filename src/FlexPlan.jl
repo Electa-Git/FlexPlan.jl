@@ -26,5 +26,12 @@ __init__() = Memento.register(_LOGGER)
 
 include("prob/flexible_tnep.jl")
 include("prob/storage_tnep.jl")
+
 include("io/profile_data.jl")
+
+include("core/flexible_demand.jl")
+include("core/storage.jl")
+include("core/objective.jl")
+include("core/model_references.jl")
+include("core/shared_constraints.jl")
 end
