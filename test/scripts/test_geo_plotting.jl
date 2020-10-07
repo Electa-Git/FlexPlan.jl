@@ -54,7 +54,7 @@ extradata = _FP.create_profile_data(dim, data, loadprofile) # create a dictionar
 # Create data dictionary where time series data is included at the right place
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
 
-plot_settings = Dict("add_nodes" => true)
+plot_settings = Dict("add_nodes" => true, "plot_result_only" => false)
 plot_filename = "./test/data/output_files/test_plot.kml"
 
 _FP.plot_geo_data(mn_data, plot_filename, plot_settings)
@@ -66,3 +66,8 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 
 result_test1 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+
+
+plot_settings = Dict("add_nodes" => true, "plot_solution_only" => true)
+plot_filename = "./test/data/output_files/test_plot_result.kml"
+_FP.plot_geo_data(mn_data, plot_filename, plot_settings; solution = result_test1)
