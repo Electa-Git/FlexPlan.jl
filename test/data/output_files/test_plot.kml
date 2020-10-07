@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://earth.google.com/kml/2.1">
+<Document>
+<Placemark> 
+<name>Node4</name> 
+<description>drawOrder=1</description>
+<ExtendedData> 
+<SimpleData name="Name">Node 1</SimpleData>
+<SimpleData name="Description"></SimpleData> 
+<SimpleData name="Latitude">40.5228</SimpleData>
+<SimpleData name="Longitude">16.2155</SimpleData>
+<SimpleData name="Icon"></SimpleData> 
+</ExtendedData>
+<Point> 
+<coordinates>16.2155,40.5228,0</coordinates>
+</Point> 
+<Style id="downArrowIcon">
+<IconStyle> 
+<Icon> 
+<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>
+</Icon> 
+</IconStyle> 
+</Style> 
+</Placemark> 
+<Placemark> 
+<name>Node1</name> 
+<description>drawOrder=2</description>
+<ExtendedData> 
+<SimpleData name="Name">Node 1</SimpleData>
+<SimpleData name="Description"></SimpleData> 
+<SimpleData name="Latitude">45.3411</SimpleData>
+<SimpleData name="Longitude">9.9489</SimpleData>
+<SimpleData name="Icon"></SimpleData> 
+</ExtendedData>
+<Point> 
+<coordinates>9.9489,45.3411,0</coordinates>
+</Point> 
+<Style id="downArrowIcon">
+<IconStyle> 
+<Icon> 
+<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>
+</Icon> 
+</IconStyle> 
+</Style> 
+</Placemark> 
+<Placemark> 
+<name>Node5</name> 
+<description>drawOrder=3</description>
+<ExtendedData> 
+<SimpleData name="Name">Node 1</SimpleData>
+<SimpleData name="Description"></SimpleData> 
+<SimpleData name="Latitude">37.4844</SimpleData>
+<SimpleData name="Longitude">14.1568</SimpleData>
+<SimpleData name="Icon"></SimpleData> 
+</ExtendedData>
+<Point> 
+<coordinates>14.1568,37.4844,0</coordinates>
+</Point> 
+<Style id="downArrowIcon">
+<IconStyle> 
+<Icon> 
+<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>
+</Icon> 
+</IconStyle> 
+</Style> 
+</Placemark> 
+<Placemark> 
+<name>Node2</name> 
+<description>drawOrder=4</description>
+<ExtendedData> 
+<SimpleData name="Name">Node 1</SimpleData>
+<SimpleData name="Description"></SimpleData> 
+<SimpleData name="Latitude">43.4894</SimpleData>
+<SimpleData name="Longitude">11.7946</SimpleData>
+<SimpleData name="Icon"></SimpleData> 
+</ExtendedData>
+<Point> 
+<coordinates>11.7946,43.4894,0</coordinates>
+</Point> 
+<Style id="downArrowIcon">
+<IconStyle> 
+<Icon> 
+<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>
+</Icon> 
+</IconStyle> 
+</Style> 
+</Placemark> 
+<Placemark> 
+<name>Node6</name> 
+<description>drawOrder=5</description>
+<ExtendedData> 
+<SimpleData name="Name">Node 1</SimpleData>
+<SimpleData name="Description"></SimpleData> 
+<SimpleData name="Latitude">40.1717</SimpleData>
+<SimpleData name="Longitude">9.0738</SimpleData>
+<SimpleData name="Icon"></SimpleData> 
+</ExtendedData>
+<Point> 
+<coordinates>9.0738,40.1717,0</coordinates>
+</Point> 
+<Style id="downArrowIcon">
+<IconStyle> 
+<Icon> 
+<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>
+</Icon> 
+</IconStyle> 
+</Style> 
+</Placemark> 
+<Placemark> 
+<name>Node3</name> 
+<description>drawOrder=6</description>
+<ExtendedData> 
+<SimpleData name="Name">Node 1</SimpleData>
+<SimpleData name="Description"></SimpleData> 
+<SimpleData name="Latitude">41.8218</SimpleData>
+<SimpleData name="Longitude">13.8302</SimpleData>
+<SimpleData name="Icon"></SimpleData> 
+</ExtendedData>
+<Point> 
+<coordinates>13.8302,41.8218,0</coordinates>
+</Point> 
+<Style id="downArrowIcon">
+<IconStyle> 
+<Icon> 
+<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>
+</Icon> 
+</IconStyle> 
+</Style> 
+</Placemark> 
+<Placemark> 
+<name>Line4</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+11.7946,43.48940
+13.8302,41.82180
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FFF00014</color>
+<description>drawOrder=7</description>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
+<name>Line1</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+9.9489,45.34110
+11.7946,43.48940
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FFF00014</color>
+<description>drawOrder=7</description>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
+<name>Line5</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+11.7946,43.48940
+16.2155,40.52280
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FFF00014</color>
+<description>drawOrder=7</description>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
+<name>Line2</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+9.9489,45.34110
+16.2155,40.52280
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FFF00014</color>
+<description>drawOrder=7</description>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
+<name>Line6</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+13.8302,41.82180
+14.1568,37.48440
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FFF00014</color>
+<description>drawOrder=7</description>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
+<name>Line3</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+9.9489,45.34110
+14.1568,37.48440
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FFF00014</color>
+<description>drawOrder=7</description>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
+<name>Candidate Line1</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+14.1568,37.48440
+9.0738,40.17170
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FF14F000</color>
+<description>drawOrder=7</description>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+</Document>
+</kml>
