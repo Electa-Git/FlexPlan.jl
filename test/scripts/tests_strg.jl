@@ -9,27 +9,27 @@ import InfrastructureModels; const _IM = InfrastructureModels
 
 # Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
-import Ipopt
-import SCS
-import Juniper
-import Mosek
-import MosekTools
+#import Ipopt
+#import SCS
+#import Juniper
+#import Mosek
+#import MosekTools
 import JuMP
-import Gurobi
-import Cbc
+#import Gurobi
+#import Cbc
 import CPLEX
 
 # Solver configurations
-scs = JuMP.with_optimizer(SCS.Optimizer, max_iters=100000)
-ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1e-4, print_level=0)
+#scs = JuMP.with_optimizer(SCS.Optimizer, max_iters=100000)
+#ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1e-4, print_level=0)
 cplex = JuMP.with_optimizer(CPLEX.Optimizer)
-cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
-gurobi = JuMP.with_optimizer(Gurobi.Optimizer)
-mosek = JuMP.with_optimizer(Mosek.Optimizer)
-juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
+#cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
+#gurobi = JuMP.with_optimizer(Gurobi.Optimizer)
+#mosek = JuMP.with_optimizer(Mosek.Optimizer)
+#juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
 
 
-# TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments 
+# TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 # Input parameters
 dim = 4 # Number of time points
 file = "./test/data/case6_strg.m"  #Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines and candidate storage
@@ -52,7 +52,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 
-result_test1 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+result_test1 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cplex, multinetwork=true; setting = s)
 
 # Test 2: Line vs storage: Load at bus 5 [100, 100, 100 , 240] MW over time
 data = _PM.parse_file(file) # Create PowerModels data dictionary (AC networks and storage)
@@ -71,7 +71,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-result_test2 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+result_test2 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cplex, multinetwork=true; setting = s)
 
 # Test 3: Line vs storage: Storage investment -> existing storage is out of service "status" = 0
 data = _PM.parse_file(file) # Create PowerModels data dictionary (AC networks and storage)
@@ -91,4 +91,4 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-result_test3 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+result_test3 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cplex, multinetwork=true; setting = s)
