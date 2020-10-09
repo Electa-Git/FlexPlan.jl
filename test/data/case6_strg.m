@@ -24,6 +24,9 @@ mpc.gen = [
 	6	 0.0	 -4  183.0	 -10.0	 0.9	     100.0	 1	 600.0	 0.0	 0.0	 0.0	 0.0	 0.0	 0.0	 0.0	 0.0	 0.0	 0.0	 0.0	 0.0;
 ];
 
+%% genration costs
+% model (1 - piecewise linear, 2 - polynomial)	startup cost in US dollars	shutdown cost in US dollars
+% number of cost coefficients coefficients
 mpc.gencost = [
 	2	 0.0	 0.0	 3	   0	   0.01	   0;
 	2	 0.0	 0.0	 3	   0	   0.01    0;
