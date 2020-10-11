@@ -2,16 +2,13 @@ function mpc = CIGRE_MV_benchmark_network
 % CIGRE_MV_BENCHMARK_NETWORK Returns MATPOWER case for the CIGRE medium-voltage benchmark network
 % 
 % References:
-% [1] K. Strunz, Ehsan Abbasi, Robert Fletcher, Nikos D. Hatziargyriou, Reza Iravani, and Géza Joos, 
-% "TF C6.04.02?: TB 575 -- Benchmark Systems for Network Integration of Renewable and Distributed 
-% Energy Resources", CIGRE, TF C6.04.02, 2014.
+% [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed 
+% Energy Resources", CIGRE, Technical Brochure 575, 2014.
 % [2] K. Rudion, A. Orths, Z. A. Styczynski, and K. Strunz, "Design of benchmark of medium voltage 
 % distribution network for investigation of DG integration", in 2006 IEEE Power Engineering 
 % Society General Meeting, Jun. 2006. DOI: 10.1109/PES.2006.1709447.
 % [3] Fraunhofer IEE and University of Kassel, "CIGRE Networks", pandapower v2.4.0, 2020. 
 % https://pandapower.readthedocs.io/en/v2.4.0/networks/cigre.html (accessed Oct. 07, 2020).
-%
-% TODO: Verify provenance of data set and consistency with original data set
 
 %% MATPOWER Case Format : Version 2
 mpc.version = '2';
