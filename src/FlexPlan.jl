@@ -4,6 +4,8 @@ module FlexPlan
 
 # import Compat
 import JuMP
+import JSON
+import CSV
 import Memento
 import PowerModels
 import PowerModelsACDC
