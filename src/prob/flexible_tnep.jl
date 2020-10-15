@@ -81,7 +81,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
         end
 
         for i in _PM.ids(pm, n, :branchdc)
-            _PMACDC.onstraint_ohms_dc_branch(pm, i; nw = n)
+            _PMACDC.constraint_ohms_dc_branch(pm, i; nw = n)
         end
         for i in _PM.ids(pm, :branchdc_ne)
             _PMACDC.constraint_ohms_dc_branch_ne(pm, i; nw = n)

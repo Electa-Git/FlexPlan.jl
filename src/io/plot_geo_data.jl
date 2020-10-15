@@ -152,25 +152,25 @@ function plot_dc_branch(io, branch, b, data; color_in = "yellow", name = "DC Lin
     println(io, string("<LineString>"))
     println(io, string("<tessellate>1</tessellate>"))
     println(io, string("<coordinates>"))
-    fbus = branch["fbusdc"]
-    tbus = branch["tbusdc"]
+    fbusdc = branch["fbusdc"]
+    tbusdc = branch["tbusdc"]
     if haskey(data, "convdc")
         for (c, conv) in data["convdc"]
-            if conv["busdc_i"] == fbus
-                fbus = conv["busac_i"]
+            if conv["busdc_i"] == fbusdc
+                global fbus = conv["busac_i"]
             end
-            if conv["busdc_i"] == tbus
-                tbus = conv["busac_i"]
+            if conv["busdc_i"] == tbusdc
+                global tbus = conv["busac_i"]
             end
         end
     end
     if haskey(data, "convdc_ne")
         for (c, conv) in data["convdc_ne"]
-            if conv["busdc_i"] == fbus
-                fbus = conv["busac_i"]
+            if conv["busdc_i"] == fbusdc
+                global fbus = conv["busac_i"]
             end
-            if conv["busdc_i"] == tbus
-                tbus = conv["busac_i"]
+            if conv["busdc_i"] == tbusdc
+                global tbus = conv["busac_i"]
             end
         end
     end
