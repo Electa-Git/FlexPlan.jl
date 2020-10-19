@@ -26,46 +26,6 @@
 <ExtendedData> 
 <SimpleData name="Name">Node 1</SimpleData>
 <SimpleData name="Description"></SimpleData> 
-<SimpleData name="Latitude">45.3411</SimpleData>
-<SimpleData name="Longitude">9.9489</SimpleData>
-<SimpleData name="Icon"></SimpleData> 
-</ExtendedData>
-<Point> 
-<coordinates>9.9489,45.3411,0</coordinates>
-</Point> 
-<Style id="downArrowIcon">
-<IconStyle> 
-<Icon> 
-<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>
-</Icon> 
-</IconStyle> 
-</Style> 
-</Placemark> 
-<Placemark> 
-<name>Node5</name> 
-<ExtendedData> 
-<SimpleData name="Name">Node 1</SimpleData>
-<SimpleData name="Description"></SimpleData> 
-<SimpleData name="Latitude">37.4844</SimpleData>
-<SimpleData name="Longitude">14.1568</SimpleData>
-<SimpleData name="Icon"></SimpleData> 
-</ExtendedData>
-<Point> 
-<coordinates>14.1568,37.4844,0</coordinates>
-</Point> 
-<Style id="downArrowIcon">
-<IconStyle> 
-<Icon> 
-<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>
-</Icon> 
-</IconStyle> 
-</Style> 
-</Placemark> 
-<Placemark> 
-<name>Node2</name> 
-<ExtendedData> 
-<SimpleData name="Name">Node 1</SimpleData>
-<SimpleData name="Description"></SimpleData> 
 <SimpleData name="Latitude">43.4894</SimpleData>
 <SimpleData name="Longitude">11.7946</SimpleData>
 <SimpleData name="Icon"></SimpleData> 
@@ -82,7 +42,7 @@
 </Style> 
 </Placemark> 
 <Placemark> 
-<name>Node6</name> 
+<name>Node5</name> 
 <ExtendedData> 
 <SimpleData name="Name">Node 1</SimpleData>
 <SimpleData name="Description"></SimpleData> 
@@ -92,6 +52,46 @@
 </ExtendedData>
 <Point> 
 <coordinates>9.0738,40.1717,0</coordinates>
+</Point> 
+<Style id="downArrowIcon">
+<IconStyle> 
+<Icon> 
+<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>
+</Icon> 
+</IconStyle> 
+</Style> 
+</Placemark> 
+<Placemark> 
+<name>Node2</name> 
+<ExtendedData> 
+<SimpleData name="Name">Node 1</SimpleData>
+<SimpleData name="Description"></SimpleData> 
+<SimpleData name="Latitude">45.3411</SimpleData>
+<SimpleData name="Longitude">9.9489</SimpleData>
+<SimpleData name="Icon"></SimpleData> 
+</ExtendedData>
+<Point> 
+<coordinates>9.9489,45.3411,0</coordinates>
+</Point> 
+<Style id="downArrowIcon">
+<IconStyle> 
+<Icon> 
+<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>
+</Icon> 
+</IconStyle> 
+</Style> 
+</Placemark> 
+<Placemark> 
+<name>Node6</name> 
+<ExtendedData> 
+<SimpleData name="Name">Node 1</SimpleData>
+<SimpleData name="Description"></SimpleData> 
+<SimpleData name="Latitude">37.4844</SimpleData>
+<SimpleData name="Longitude">14.1568</SimpleData>
+<SimpleData name="Icon"></SimpleData> 
+</ExtendedData>
+<Point> 
+<coordinates>14.1568,37.4844,0</coordinates>
 </Point> 
 <Style id="downArrowIcon">
 <IconStyle> 
@@ -126,8 +126,8 @@
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
-11.7946,43.48940
-13.8302,41.82180
+9.9489,45.34110
+16.2155,40.52280
 </coordinates>
 </LineString>
 <Style>
@@ -142,24 +142,8 @@
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
+11.7946,43.48940
 9.9489,45.34110
-11.7946,43.48940
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FFF00014</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Line5</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-11.7946,43.48940
-16.2155,40.52280
 </coordinates>
 </LineString>
 <Style>
@@ -174,24 +158,8 @@
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
-9.9489,45.34110
+11.7946,43.48940
 16.2155,40.52280
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FFF00014</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Line6</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-13.8302,41.82180
-14.1568,37.48440
 </coordinates>
 </LineString>
 <Style>
@@ -207,7 +175,7 @@
 <tessellate>1</tessellate>
 <coordinates>
 9.9489,45.34110
-14.1568,37.48440
+13.8302,41.82180
 </coordinates>
 </LineString>
 <Style>
@@ -222,8 +190,8 @@
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
-14.1568,37.48440
-9.0738,40.17170
+11.7946,43.48940
+13.8302,41.82180
 </coordinates>
 </LineString>
 <Style>
@@ -234,17 +202,49 @@
 </Style>
 </Placemark>
 <Placemark> 
-<name>Candidate DC Line4</name> 
+<name>Candidate Line2</name> 
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
 13.8302,41.82180
-9.0738,40.17170
+16.2155,40.52280
 </coordinates>
 </LineString>
 <Style>
 <LineStyle>
-<color>#FF1400FF</color>
+<color>#FF14F000</color>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
+<name>DC Line1</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+9.0738,40.17170
+11.7946,43.48940
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FF14F0FF</color>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
+<name>DC Line2</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+9.0738,40.17170
+13.8302,41.82180
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FF14F0FF</color>
 <width>3</width>
 </LineStyle>
 </Style>
@@ -254,8 +254,8 @@
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
-11.7946,43.48940
 14.1568,37.48440
+13.8302,41.82180
 </coordinates>
 </LineString>
 <Style>
@@ -270,120 +270,8 @@
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
-11.7946,43.48940
-9.0738,40.17170
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FF1400FF</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Candidate DC Line6</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-16.2155,40.52280
 14.1568,37.48440
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FF1400FF</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Candidate DC Line11</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-14.1568,37.48440
-9.0738,40.17170
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FF1400FF</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Candidate DC Line5</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-13.8302,41.82180
-9.0738,40.17170
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FF1400FF</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Candidate DC Line7</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
 16.2155,40.52280
-14.1568,37.48440
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FF1400FF</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Candidate DC Line8</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-16.2155,40.52280
-9.0738,40.17170
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FF1400FF</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Candidate DC Line10</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-14.1568,37.48440
-9.0738,40.17170
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FF1400FF</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Candidate DC Line9</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-16.2155,40.52280
-9.0738,40.17170
 </coordinates>
 </LineString>
 <Style>
@@ -398,7 +286,7 @@
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
-11.7946,43.48940
+14.1568,37.48440
 9.0738,40.17170
 </coordinates>
 </LineString>
@@ -410,15 +298,91 @@
 </Style>
 </Placemark>
 <Placemark> 
+<name>DC Converter4</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+13.8802,41.87180
+13.8802,41.7718000000000060
+13.780199999999999,41.7718000000000060
+13.780199999999999,41.87180
+13.8802,41.87180
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FF14F0FF</color>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
+<name>DC Converter1</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+9.123800000000001,40.22170
+9.123800000000001,40.1217000000000040
+9.0238,40.1217000000000040
+9.0238,40.22170
+9.123800000000001,40.22170
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FF14F0FF</color>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
+<name>DC Converter2</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+9.123800000000001,40.22170
+9.123800000000001,40.1217000000000040
+9.0238,40.1217000000000040
+9.0238,40.22170
+9.123800000000001,40.22170
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FF14F0FF</color>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
+<name>DC Converter3</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+11.844600000000002,43.53940
+11.844600000000002,43.4394000000000060
+11.7446,43.4394000000000060
+11.7446,43.53940
+11.844600000000002,43.53940
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FF14F0FF</color>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
 <name>Candidate DC converter4</name> 
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
-16.2655,40.5727999999999940
-16.2655,40.47280
-16.165499999999998,40.47280
-16.165499999999998,40.5727999999999940
-16.2655,40.5727999999999940
+13.8802,41.87180
+13.8802,41.7718000000000060
+13.780199999999999,41.7718000000000060
+13.780199999999999,41.87180
+13.8802,41.87180
 </coordinates>
 </LineString>
 <Style>
@@ -430,25 +394,6 @@
 </Placemark>
 <Placemark> 
 <name>Candidate DC converter1</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-9.9989,45.3910999999999940
-9.9989,45.29110
-9.8989,45.29110
-9.8989,45.3910999999999940
-9.9989,45.3910999999999940
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FF1400FF</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Candidate DC converter5</name> 
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
@@ -467,15 +412,34 @@
 </Style>
 </Placemark>
 <Placemark> 
+<name>Candidate DC converter5</name> 
+<LineString>
+<tessellate>1</tessellate>
+<coordinates>
+16.2655,40.5727999999999940
+16.2655,40.47280
+16.165499999999998,40.47280
+16.165499999999998,40.5727999999999940
+16.2655,40.5727999999999940
+</coordinates>
+</LineString>
+<Style>
+<LineStyle>
+<color>#FF1400FF</color>
+<width>3</width>
+</LineStyle>
+</Style>
+</Placemark>
+<Placemark> 
 <name>Candidate DC converter2</name> 
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
-11.844600000000002,43.53940
-11.844600000000002,43.4394000000000060
-11.7446,43.4394000000000060
-11.7446,43.53940
-11.844600000000002,43.53940
+14.206800000000001,37.53440
+14.206800000000001,37.4344000000000040
+14.1068,37.4344000000000040
+14.1068,37.53440
+14.206800000000001,37.53440
 </coordinates>
 </LineString>
 <Style>
@@ -509,11 +473,11 @@
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
-13.8802,41.87180
-13.8802,41.7718000000000060
-13.780199999999999,41.7718000000000060
-13.780199999999999,41.87180
-13.8802,41.87180
+14.206800000000001,37.53440
+14.206800000000001,37.4344000000000040
+14.1068,37.4344000000000040
+14.1068,37.53440
+14.206800000000001,37.53440
 </coordinates>
 </LineString>
 <Style>
