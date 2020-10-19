@@ -67,8 +67,7 @@ function plot_geo_data(data_in, filename, settings; solution = Dict())
         end
      end
 
-
-    if haskey(data, "convdc_ne")
+     if haskey(data, "convdc_ne")
         for (cdc, convdc) in data["convdc_ne"]
             if haskey(settings, "plot_solution_only")
                 if  sol["convdc_ne"]["$cdc"]["isbuilt"] == 1
@@ -76,6 +75,24 @@ function plot_geo_data(data_in, filename, settings; solution = Dict())
                 end
             else
                 plot_dc_conv(io, convdc, cdc, data; color_in = "red", name = "Candidate DC converter")
+            end
+        end
+     end
+
+     if haskey(data, "storage")
+        for (s, storage) in data["storage"]
+             plot_storage(io, storage, s, data; color_in = "yellow")
+        end
+     end
+
+     if haskey(data, "ne_storage")
+        for (s, storage) in data["ne_storage"]
+            if haskey(settings, "plot_solution_only")
+                if  sol["ne_storage"]["$s"]["isbuilt"] == 1
+                    plot_storage(io, storage, s, data; color_in = "yellow", name = "Candidate storage")
+                end
+            else
+                plot_storage(io, storage, s, data; color_in = "red", name = "Candidate storage")
             end
         end
      end
@@ -222,6 +239,49 @@ function plot_dc_conv(io, conv, c, data; color_in = "yellow", name = "DC Convert
     println(io, string("$bus_lon1",",","$bus_lat1","0"))
     bus_lon1 = bus_lon + 0.05
     bus_lat1 = bus_lat + 0.05
+    println(io, string("$bus_lon1",",","$bus_lat1","0"))
+    println(io, string("</coordinates>"))
+    println(io, string("</LineString>"))
+    println(io, string("<Style>"))
+    println(io, string("<LineStyle>"))
+    if color_in == "red"
+        color = "#FF1400FF"
+    else
+        color = "#FF14F0FF"
+    end
+    println(io, string("<color>",color,"</color>"))
+    #println(io, string("<description>drawOrder=","$draw_order","</description>"))
+    println(io, string("<width>3</width>"))
+    println(io, string("</LineStyle>"))
+    println(io, string("</Style>"))
+    println(io, string("</Placemark>"))
+    return io
+end
+
+
+function plot_storage(io, storage, s, data; color_in = "yellow", name = "Storage")
+    println(io, string("<Placemark> "));
+    println(io, string("<name>",name,"$s","</name> "))
+    println(io, string("<LineString>"))
+    println(io, string("<tessellate>1</tessellate>"))
+    println(io, string("<coordinates>"))
+    bus = storage["storage_bus"]
+    bus_lat = data["bus"]["$bus"]["lat"]
+    bus_lon = data["bus"]["$bus"]["lon"]
+    bus_lon1 = bus_lon + 0.05
+    bus_lat1 = bus_lat + 0.05
+    println(io, string("$bus_lon1",",","$bus_lat1","0"))
+    bus_lon1 = bus_lon + 0.05
+    bus_lat1 = bus_lat - 0.05
+    println(io, string("$bus_lon1",",","$bus_lat1","0"))
+    bus_lon1 = bus_lon - 0.025
+    bus_lat1 = bus_lat - 0.025
+    println(io, string("$bus_lon1",",","$bus_lat1","0"))
+    bus_lon1 = bus_lon + 0.05
+    bus_lat1 = bus_lat + 0.05
+    # println(io, string("$bus_lon1",",","$bus_lat1","0"))
+    # bus_lon1 = bus_lon + 0.03
+    # bus_lat1 = bus_lat + 0.03
     println(io, string("$bus_lon1",",","$bus_lat1","0"))
     println(io, string("</coordinates>"))
     println(io, string("</LineString>"))
