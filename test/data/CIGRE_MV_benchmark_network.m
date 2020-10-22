@@ -33,6 +33,7 @@ mpc.bus = [
 ];
 
 %% generator data
+% The last generator (bus 15) is a fictitious units, requested when the data are processed by matpower tool. For the model adopted in FlexPlan, this generator (bus 15) is not needed.
 %	bus	Pg	Qg	Qmax	Qmin	Vg	mBase	status	Pmax	Pmin	Pc1	Pc2	Qc1min	Qc1max	Qc2min	Qc2max	ramp_agc	ramp_10	ramp_30	ramp_q	apf
 mpc.gen = [
 	3	0.012	0	-0.005	0.005	1	1	1	0.02	0	0	0	0	0	0	0	0	0	0	0	0;
@@ -49,13 +50,9 @@ mpc.gen = [
 	10	0.025	0	-0.011	0.011	1	1	1	0.04	0	0	0	0	0	0	0	0	0	0	0	0;
 	10	0.185	0	-0.081	0.081	1	1	1	0.2	0	0	0	0	0	0	0	0	0	0	0	0;
 	10	0.006	0	-0.003	0.003	1	1	1	0.014	0	0	0	0	0	0	0	0	0	0	0	0;
-	11	0.006	0	-0.003	0.003	1	1	1	0.01	0	0	0	0	0	0	0	0	0	0	0	0
+	11	0.006	0	-0.003	0.003	1	1	1	0.01	0	0	0	0	0	0	0	0	0	0	0	0;
+	15	0	0	-100	100	1	1	0	100	-100	0	0	0	0	0	0	0	0	0	0	0
 ];
-
-% In case the file needs to be launched with matpower, uncomment the next rows:
-%mpc.gen=[mpc.gen;
-%	15	0	0	-100	100	1	1	1	100	-100	0	0	0	0	0	0	0	0	0	0	0
-%];
 
 %% branch data
 %	fbus	tbus	r	x	b	rateA	rateB	rateC	ratio	angle	status	angmin	angmax	Pf	Qf	Pt	Qt	mu_Sf	mu_St	mu_angmin	mu_angmax
