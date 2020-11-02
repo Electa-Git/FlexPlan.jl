@@ -31,6 +31,7 @@ include("prob/storage_tnep.jl")
 
 include("io/profile_data.jl")
 include("io/plot_geo_data.jl")
+include("io/plot_flex_demand.jl")
 
 include("core/flexible_demand.jl")
 include("core/storage.jl")
