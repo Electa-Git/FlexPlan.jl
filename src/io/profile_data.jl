@@ -44,6 +44,9 @@ function add_flexible_demand_data!(data)
         data["load"]["$idx"]["cost_investment"] = load_extra["cost_inv"]
         data["load"]["$idx"]["flex"] = load_extra["flex"]
         data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
+        if haskey(load_extra, "co2_cost")
+            data["load"]["$idx"]["co2_cost"] = load_extra["co2_cost"]
+        end
         rescale_cost = x -> x*data["baseMVA"]
         rescale_power = x -> x/data["baseMVA"]
         _PM._apply_func!(data["load"]["$idx"], "cost_reduction", rescale_cost)
@@ -51,6 +54,17 @@ function add_flexible_demand_data!(data)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_curtailment", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "e_nce_max", rescale_power)
+    end
+    delete!(data, "load_extra")
+    return data
+end
+
+function add_generation_emission_data!(data)
+    for (e, em) in data["generator_emission_factors"]
+        idx = em["gen_id"]
+        data["gen"]["$idx"]["emission_factor"] = em["emission_factor"]
+        rescale_emission = x -> x * data["baseMVA"]
+        _PM._apply_func!(data["gen"]["$idx"], "emission_factor", rescale_emission)
     end
     delete!(data, "load_extra")
     return data
