@@ -67,16 +67,18 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
 
-# Plot exemplary branch flow
-p_flow = plot_branch_flow(result_test1,3,data)
-savefig(p_flow,"branch_flow")
+# Plot branch flows to bus 5
+p_flow_1 = plot_branch_flow(result_test1,1,data,"branchdc")
+p_flow_2 = plot_branch_flow(result_test1,2,data,"branchdc")
+savefig(p_flow_1,"branch_flow_1")
+savefig(p_flow_2,"branch_flow_2")
 
-# Check if new branch is built and plot flow
-p_flow_ne = plot_branch_flow(result_test1,1,data,"ne_branch")
-savefig(p_flow,"ne_branch_flow")
+# Check if new DC branch is built and plot flow
+p_flow_ne = plot_branch_flow(result_test1,3,data,"branchdc_ne")
+savefig(p_flow_ne,"ne_branch_flow")
 
-# Check if new DC branch is built
-plot_branch_flow(result_test1,1,data,"branchdc_ne")
+# Check if new AC branch is built
+plot_branch_flow(result_test1,1,data,"ne_branch")
 
 # Plot exemplary (flexible) load
 p_flex = plot_flex_demand(result_test1,5,data,extradata)
