@@ -7,8 +7,32 @@ Plot time series for power flow on a branch no. 'i_branch' in the network
 in the multi-period OPF solution 'results'. If input data Dict 'input_data'
 is provided, the branch flow is compared with the branch power ratings in
 the plots. If 'i_branch' is _not_ provided, all branches are plotted.
+The optional input argument 'branch_type' specifies which type of branch
+flow is tested for, either "branch" (i.e. AC branches; default), "branchdc"
+(DC branches), "ne_branch" (candidate AC branch), or "branchdc_ne" 
+(candidate DC branches).
 """
-function plot_branch_flow(results, i_branch_plot=[], input_data=[])
+function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type="branch")
+
+    # Handle different types of branches (different dictionary keys are used for
+    # different types of dictionaries...)
+    if branch_type == "branch"
+        flow_key = "pt"    
+        rate_key = "rate_a"    
+    elseif branch_type == "branchdc"
+        flow_key = "pt"    
+        rate_key = "rateA"    
+    elseif branch_type == "ne_branch"        
+        flow_key = "p_ne_to"
+        built_key = "built"
+        rate_key = "rate_a"
+    elseif branch_type == "branchdc_ne"
+        flow_key = "pt"
+        built_key = "isbuilt"
+        rate_key = "rateA"
+    else
+        error("Input argument 'branch type' needs to be 'branch', 'branchdc', 'ne_branch', or branchdc_ne")
+    end
 
     # Input argument checks
     if haskey(results, "solution")
@@ -18,15 +42,25 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[])
             error("Input argument results has to be the result of a multi-period OPF problem")
         end
     end
+    if !haskey(results["solution"]["nw"]["1"][branch_type], string(i_branch_plot))
+        error(string("Does not find #", i_branch_plot, " of ", branch_type))
+    end
+    if !isempty(i_branch_plot)
+        if branch_type == "ne_branch" || branch_type == "branchdc_ne"
+            if results["solution"]["nw"]["1"][branch_type][string(i_branch_plot)][built_key] != 1
+                println(string("Warning: ", branch_type, " #", string(i_branch_plot), " is not built"))
+            end
+        end
+    end
 
     # Number of branches in network
-    n_branches = length(sol_1["branch"])
+    n_branches = length(sol_1[branch_type])
     
     # Extract branch power flow rating (rate_a)
     if !isempty(input_data)
         rate_a = zeros(n_branches, 1)
         for i_branch = 1:n_branches
-            rate_a[i_branch] = data["branch"][string(i_branch)]["rate_a"]
+            rate_a[i_branch] = data[branch_type][string(i_branch)][rate_key]
         end
     else
         rate_a = []
@@ -40,7 +74,7 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[])
     pt = zeros(n_time_steps, n_branches)        
     for i_branch = 1:n_branches
         for t = 1:n_time_steps
-            pt[t,i_branch] = results["solution"]["nw"][string(t)]["branch"][string(i_branch)]["pt"]           
+            pt[t,i_branch] = results["solution"]["nw"][string(t)][branch_type][string(i_branch)][flow_key]           
         end
     end
 
@@ -48,12 +82,12 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[])
     p = plot(xlabel="Time step", ylabel="Power flow (p.u.)")
     if !isempty(i_branch_plot)
         pt_plot = pt[:,i_branch_plot]
-        plot!(p, t_vec, pt_plot, label=string("Flow on branch #", i_branch_plot), color=:red)
+        plot!(p, t_vec, pt_plot, label=string("Flow on ", branch_type, " #", i_branch_plot), color=:red)
         if !isempty(rate_a)
             # Plot branch power rating (if provided)
             rate_a_plot = ones(n_time_steps, 1) * rate_a[i_branch_plot,1]
-            plot!(p, t_vec, rate_a_plot, label=string("Rating of branch #", i_branch_plot), color=:black, line=:dash)
-            plot!(p, t_vec, -rate_a_plot, label=string("Rating of branch #", i_branch_plot), color=:black, line=:dash)
+            plot!(p, t_vec, rate_a_plot, label=string("Rating of ", branch_type, " #", i_branch_plot), color=:black, line=:dash)
+            plot!(p, t_vec, -rate_a_plot, label=string("Rating of ", branch_type, " #", i_branch_plot), color=:black, line=:dash)
         end
     else
         # Plot power flow for all branches if branch not specified
@@ -84,7 +118,7 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
     end
     isflex = input_data["load"][string(i_load_plot)]["flex"]
     if isflex == 0
-        print(string("Warning: Load at bus ", i_load_plot, " is not flexible"))
+        println(string("Warning: Load at bus ", i_load_plot, " is not flexible"))
     end
 
     # Find number and set of time steps

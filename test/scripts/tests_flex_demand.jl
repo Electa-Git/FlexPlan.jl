@@ -71,6 +71,13 @@ result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
 p_flow = plot_branch_flow(result_test1,3,data)
 savefig(p_flow,"branch_flow")
 
+# Check if new branch is built and plot flow
+p_flow_ne = plot_branch_flow(result_test1,1,data,"ne_branch")
+savefig(p_flow,"ne_branch_flow")
+
+# Check if new DC branch is built
+plot_branch_flow(result_test1,1,data,"branchdc_ne")
+
 # Plot exemplary (flexible) load
 p_flex = plot_flex_demand(result_test1,5,data,extradata)
 savefig(p_flex,"flex_demand")
