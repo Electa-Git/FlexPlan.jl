@@ -26,8 +26,8 @@ mpc.gen = [
 
 mpc.gencost = [
 	2	 0.0	 0.0	 3	   0	   0.01	   0;
-	2	 0.0	 0.0	 3	   0	   0.01    0;
-	2	 0.0	 0.0	 3	   0	   0.01	   0;
+	2	 0.0	 0.0	 3	   0	   0.0101    0;
+	2	 0.0	 0.0	 3	   0	   0.0102	   0;
 ];
 
 %% branch data
@@ -91,7 +91,7 @@ mpc.time_elapsed = 1.0
 %% storage data
 %   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status
 mpc.storage = [
-	 5	 0.0	 0.0	 0.0	 1000.0	 200.0	 250.0	 0.9	 0.9	 250.0	 -50.0	 70.0	 0.1	 0.0	 0.0	 0.0	 1;
+	 5	 0.0	 0.0	 0.0	 0.0	 0.0	 0.0	 0.9	 0.9	 250.0	 -50.0	 70.0	 0.1	 0.0	 0.0	 0.0	 1;
 ];
 
 %% storage additional data
