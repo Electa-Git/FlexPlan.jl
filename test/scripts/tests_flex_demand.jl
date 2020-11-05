@@ -7,6 +7,8 @@ import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
 import InfrastructureModels; const _IM = InfrastructureModels
 
+include("../../src/io/plot_flex_demand.jl")
+
 # Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
 #import Ipopt
@@ -43,7 +45,9 @@ loadprofile = 0.1 .* ones(n_loads, number_of_hours) # Create a load profile: In 
 t_vec = start_hour:start_hour+(number_of_hours-1)
 
 # Manipulate load profile: Load number 5 changes over time: Orignal load is 240 MW.
-loadprofile[i_load_mod,:] = ( 120 .+ 120 .* sin.(t_vec * 2*pi/24) )/240 
+load_mod_mean = 120
+load_mod_var = 120
+loadprofile[i_load_mod,:] = ( load_mod_mean .+ load_mod_var .* sin.(t_vec * 2*pi/24) )/240 
 
 # Data manipulation (per unit conversions and matching data models)
 data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
@@ -63,5 +67,10 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
 
-# Plot exemplary branch branch
-plot_branch_flow(result_test1,3,data)
+# Plot exemplary branch flow
+p_flow = plot_branch_flow(result_test1,3,data)
+savefig(p_flow,"branch_flow")
+
+# Plot exemplary (flexible) load
+p_flex = plot_flex_demand(result_test1,5,data,extradata)
+savefig(p_flex,"flex_demand")
