@@ -7,7 +7,7 @@ import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
 import InfrastructureModels; const _IM = InfrastructureModels
 
-# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
+# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP,
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
 import Ipopt
 import SCS
@@ -63,6 +63,13 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 result = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+
+# plot load and gen data + storage data
+p1 = _FP.plot_profile_data(extradata, number_of_hours, result["solution"], ["3","5","6"])
+p2,p3 = _FP.plot_storage_data(data,result["solution"])
+p = plot(p1,p2,p3,layout=(3,1),size=(1200,1050),xticks = 0:50:number_of_hours)
+#savefig(p,"./test/data/output_files/load_gen_strg.png")
+display(p)
 
 # Plot final topology
 plot_settings = Dict("add_nodes" => true, "plot_solution_only" => true)
