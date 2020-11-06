@@ -218,12 +218,12 @@
 </Style>
 </Placemark>
 <Placemark> 
-<name>Candidate DC Line2</name> 
+<name>Candidate DC Line3</name> 
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
 14.1568,37.48440
-16.2155,40.52280
+9.0738,40.17170
 </coordinates>
 </LineString>
 <Style>
@@ -310,7 +310,7 @@
 </Style>
 </Placemark>
 <Placemark> 
-<name>Candidate DC converter1</name> 
+<name>Candidate DC converter2</name> 
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
@@ -329,15 +329,15 @@
 </Style>
 </Placemark>
 <Placemark> 
-<name>Candidate DC converter5</name> 
+<name>Candidate DC converter6</name> 
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
-16.2655,40.5727999999999940
-16.2655,40.47280
-16.165499999999998,40.47280
-16.165499999999998,40.5727999999999940
-16.2655,40.5727999999999940
+9.123800000000001,40.22170
+9.123800000000001,40.1217000000000040
+9.0238,40.1217000000000040
+9.0238,40.22170
+9.123800000000001,40.22170
 </coordinates>
 </LineString>
 <Style>

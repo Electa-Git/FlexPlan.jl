@@ -26,6 +26,49 @@ function add_storage_data!(data)
     return data
 end
 
+function scale_cost_data!(data, scenario)
+    for (g, gen) in data["gen"]
+        gen["cost"] = gen["cost"] * 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
+    end
+    for (b, branch) in data["ne_branch"]
+        branch["construction_cost"] = branch["construction_cost"] / scenario["hours"]  # construction cost is given as total cost
+        if haskey(branch, "co2_cost")
+            branch["co2_cost"] = branch["co2_cost"] / scenario["hours"]  # co2 cost is given as total cost
+        end
+    end
+    for (b, branch) in data["branchdc_ne"]
+        branch["cost"] = branch["cost"] / scenario["hours"]  # construction cost is given as total cost
+        if haskey(branch, "co2_cost")
+            branch["co2_cost"] = branch["co2_cost"] / scenario["hours"]  # co2 cost is given as total cost
+        end
+    end
+    for (c, conv) in data["convdc_ne"]
+        conv["cost"] = conv["cost"] / scenario["hours"]  # construction cost is given as total cost
+        if haskey(conv, "co2_cost")
+            conv["co2_cost"] = conv["co2_cost"] / scenario["hours"]  # co2 cost is given as total cost
+        end
+    end
+    for (s, strg) in data["ne_storage"]
+        strg["eq_cost"] = strg["eq_cost"] / scenario["hours"]  # equipment cost is given as total cost
+        strg["inst_cost"] = strg["inst_cost"] / scenario["hours"]  # installation cost is given as total cost
+        if haskey(strg, "co2_cost")
+            strg["co2_cost"] = strg["co2_cost"] / scenario["hours"]  # co2 cost is given as total cost
+        end
+    end
+    for (l, load) in data["load"]
+        load["cost_investment"] = load["cost_investment"] / scenario["hours"]  # investment cost is given as total cost
+        load["cost_shift_up"] = load["cost_shift_up"] * 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
+        load["cost_shift_down"] = load["cost_shift_down"]* 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
+        load["cost_curtailment"] = load["cost_curtailment"]* 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
+        if haskey(load, "co2_cost")
+            load["co2_cost"] = load["co2_cost"] / scenario["hours"]  # co2 cost is given as total cost
+        end
+    end
+    if haskey(data, "emission_cost")
+        data["emission_cost"] = data["emission_cost"] * 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
+    end
+end
+
 function add_flexible_demand_data!(data)
     for (le, load_extra) in data["load_extra"]
         idx = load_extra["load_id"]
@@ -44,6 +87,9 @@ function add_flexible_demand_data!(data)
         data["load"]["$idx"]["cost_investment"] = load_extra["cost_inv"]
         data["load"]["$idx"]["flex"] = load_extra["flex"]
         data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
+        if haskey(load_extra, "co2_cost")
+            data["load"]["$idx"]["co2_cost"] = load_extra["co2_cost"]
+        end
         rescale_cost = x -> x*data["baseMVA"]
         rescale_power = x -> x/data["baseMVA"]
         _PM._apply_func!(data["load"]["$idx"], "cost_reduction", rescale_cost)
@@ -51,6 +97,17 @@ function add_flexible_demand_data!(data)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_curtailment", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "e_nce_max", rescale_power)
+    end
+    delete!(data, "load_extra")
+    return data
+end
+
+function add_generation_emission_data!(data)
+    for (e, em) in data["generator_emission_factors"]
+        idx = em["gen_id"]
+        data["gen"]["$idx"]["emission_factor"] = em["emission_factor"]
+        rescale_emission = x -> x * data["baseMVA"]
+        _PM._apply_func!(data["gen"]["$idx"], "emission_factor", rescale_emission)
     end
     delete!(data, "load_extra")
     return data
