@@ -37,6 +37,7 @@ scenario["sc_years"]["1"] = Dict{String, Any}()
 scenario["sc_years"]["1"]["year"] = 2019
 scenario["sc_years"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time  
 scenario["sc_years"]["1"]["probability"] = 1   # 01.01.2019:00:00 in epoch time  
+scenario["planning_horizon"] = 1 # in years, to scale generation cost  
 #############################################################
 
 data = _PM.parse_file(file) # Create PowerModels data dictionary (AC networks and storage)
@@ -46,8 +47,10 @@ _FP.add_storage_data!(data) # Add addtional storage data model
 _FP.add_flexible_demand_data!(data) # Add flexible data model
 _FP.add_generation_emission_data!(data) # Add flexible data model
 
-# Add emission cont
+
+# Add emission cost
 data["co2_emission_cost"] = 0.1
+_FP.scale_cost_data!(data, scenario) # Scale cost data
 # Put scenario data in right format
 dim = number_of_hours * length(data["scenario"])
 extradata = _FP.create_profile_data(dim, data, loadprofile, genprofile) # create a dictionary to pass time series data to data dictionary

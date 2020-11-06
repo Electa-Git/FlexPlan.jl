@@ -29,7 +29,7 @@ function objective_min_cost_storage(pm::_PM.AbstractPowerModel)
             +
             sum(branch["cost"]*_PM.var(pm, n, :branchdc_ne, i) for (i,branch) in nw_ref[:branchdc_ne])
             +
-            sum((storage["eq_cost"] + storage["inst_cost"] + storage["env_cost"])*_PM.var(pm, n, :z_strg_ne, i) for (i,storage) in nw_ref[:ne_storage])
+            sum((storage["eq_cost"] + storage["inst_cost"] + storage["co2_cost"])*_PM.var(pm, n, :z_strg_ne, i) for (i,storage) in nw_ref[:ne_storage])
             +
             sum( gen_cost[(n,i)] for (i,gen) in nw_ref[:gen] )
             for (n, nw_ref) in _PM.nws(pm)
@@ -95,7 +95,7 @@ function objective_stoch_flex(pm::_PM.AbstractPowerModel)
     return JuMP.@objective(pm.model, Min,
     sum(pm.ref[:scenario_prob][s] * 
         sum(
-            sum( gen_cost[(n,i)] for (i,gen) in pm.ref[:nw][n][:gen] ) + calculate_inv_cost(pm, n)
+            sum( gen_cost[(n,i)] for (i,gen) in pm.ref[:nw][n][:gen]) + calculate_inv_cost(pm, n)
             for (sc, n) in scenario
                 ) 
         for (s, scenario) in pm.ref[:scenario]
@@ -118,7 +118,7 @@ function calculate_inv_cost(pm::_PM.AbstractPowerModel, n::Int)
             +
             sum(branch["co2_cost"]*_PM.var(pm, n, :branchdc_ne, i) for (i,branch) in pm.ref[:nw][n][:branchdc_ne])
             +
-            sum((storage["eq_cost"] + storage["inst_cost"] + storage["env_cost"])*_PM.var(pm, n, :z_strg_ne, i) for (i,storage) in pm.ref[:nw][n][:ne_storage])
+            sum((storage["eq_cost"] + storage["inst_cost"] + storage["co2_cost"])*_PM.var(pm, n, :z_strg_ne, i) for (i,storage) in pm.ref[:nw][n][:ne_storage])
             +
             sum(load["cost_shift_up"]*_PM.var(pm, n, :pshift_up, i) for (i,load) in pm.ref[:nw][n][:load])
             +
@@ -140,7 +140,7 @@ function calculate_inv_cost(pm::_PM.AbstractPowerModel, n::Int)
         +
         sum(branch["cost"]*_PM.var(pm, n, :branchdc_ne, i) for (i,branch) in pm.ref[:nw][n][:branchdc_ne])
         +
-        sum((storage["eq_cost"] + storage["inst_cost"] + storage["env_cost"])*_PM.var(pm, n, :z_strg_ne, i) for (i,storage) in pm.ref[:nw][n][:ne_storage])
+        sum((storage["eq_cost"] + storage["inst_cost"] + storage["co2_cost"])*_PM.var(pm, n, :z_strg_ne, i) for (i,storage) in pm.ref[:nw][n][:ne_storage])
         +
         sum(load["cost_shift_up"]*_PM.var(pm, n, :pshift_up, i) for (i,load) in pm.ref[:nw][n][:load])
         +
