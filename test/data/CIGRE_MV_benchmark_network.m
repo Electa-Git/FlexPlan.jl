@@ -6,8 +6,8 @@ function mpc = CIGRE_MV_benchmark_network
 % Energy Resources", CIGRE, Technical Brochure 575, 2014.
 %
 % EDITS:
-% - branch data: angmin and angmax set to -60 and 60 degrees respectively to comply with a
-%   PowerModels limitation.
+% - branch data: angmin and angmax set to -60 and 60 degrees respectively to comply with
+%   PowerModels' requirements.
 
 %% MATPOWER Case Format : Version 2
 mpc.version = '2';
@@ -30,7 +30,7 @@ mpc.bus = [
      9    1    0.574    0.356    0    0    1    1    0     20    1    1.05    0.95;
     10    1    0.543    0.161    0    0    1    1    0     20    1    1.05    0.95;
     11    1    0.330    0.083    0    0    1    1    0     20    1    1.05    0.95;
-    12    1    20.01    4.693    0    0    1    1    0     20    1    1.05    0.95;
+    12    1   20.010    4.693    0    0    1    1    0     20    1    1.05    0.95;
     13    1    0.034    0.021    0    0    1    1    0     20    1    1.05    0.95;
     14    1    0.540    0.258    0    0    1    1    0     20    1    1.05    0.95;
     15    3    0.000    0.000    0    0    1    1    0    220    1    1.5     0.5 ;
