@@ -8,11 +8,12 @@ import JSON
 import CSV
 import Memento
 import PowerModels
+import PowerModels: _check_var_keys
 import PowerModelsACDC
 const _PM = PowerModels
 const _PMACDC = PowerModelsACDC
 import InfrastructureModels
-# import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
+import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
 const _IM = InfrastructureModels
 
 import JuMP: with_optimizer
@@ -40,4 +41,7 @@ include("core/storage.jl")
 include("core/objective.jl")
 include("core/model_references.jl")
 include("core/shared_constraints.jl")
+include("core/types.jl")
+
+include("form/lacrad.jl")
 end
