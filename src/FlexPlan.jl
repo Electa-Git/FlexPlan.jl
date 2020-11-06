@@ -16,8 +16,8 @@ import InfrastructureModels
 import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
 const _IM = InfrastructureModels
 
-import JuMP: with_optimizer
-export with_optimizer
+import JuMP: with_optimizer, optimizer_with_attributes
+export with_optimizer, optimizer_with_attributes
 
 # Create our module level logger (this will get precompiled)
 const _LOGGER = Memento.getlogger(@__MODULE__)
