@@ -122,7 +122,7 @@ mpc.storage_extra = [
 
 
 %% storage data
-%column_names%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status eq_cost inst_cost env_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow
+%column_names%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow
 mpc.ne_storage = [
 	 5	 0.0	 0.0	 0.0	 1000.0	 200.0	 250.0	 0.9	 0.9	 250	 -50.0	 70.0	 0.1	 0.0	 0.0	 0.0	  1 	250 	50 	100 2400 0 0;
 ];

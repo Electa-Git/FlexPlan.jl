@@ -18,6 +18,8 @@ const _IM = InfrastructureModels
 import JuMP: with_optimizer
 export with_optimizer
 
+import Plots
+
 # Create our module level logger (this will get precompiled)
 const _LOGGER = Memento.getlogger(@__MODULE__)
 
@@ -32,7 +34,7 @@ include("prob/storage_tnep.jl")
 
 include("io/profile_data.jl")
 include("io/plot_geo_data.jl")
-include("io/plot_flex_demand.jl")
+include("io/plots.jl")
 include("io/read_res_data.jl")
 include("io/read_demand_data.jl")
 
