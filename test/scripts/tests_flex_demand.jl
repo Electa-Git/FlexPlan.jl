@@ -7,7 +7,7 @@ import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
 import InfrastructureModels; const _IM = InfrastructureModels
 
-include("../../src/io/plot_flex_demand.jl")
+include("../../src/io/plots.jl")
 
 # Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
