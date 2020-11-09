@@ -198,7 +198,7 @@ function constraint_storage_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm
         Memento.warn(_LOGGER, "network data should specify time_elapsed, using 1.0 as a default")
         time_elapsed = 1.0
     end
-    constraint_storage_state_initial(pm, nw, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rate"], time_elapsed)
+    constraint_storage_state_initial(pm, nw, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
 end
 
 function constraint_storage_state_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
@@ -210,7 +210,7 @@ function constraint_storage_state_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int
         Memento.warn(_LOGGER, "network data should specify time_elapsed, using 1.0 as a default")
         time_elapsed = 1.0
     end
-    constraint_storage_state_initial_ne(pm, nw, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rate"], time_elapsed)
+    constraint_storage_state_initial_ne(pm, nw, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
 end
 
 function constraint_storage_state(pm::_PM.AbstractPowerModel, i::Int, nw_1::Int, nw_2::Int)
@@ -224,11 +224,11 @@ function constraint_storage_state(pm::_PM.AbstractPowerModel, i::Int, nw_1::Int,
     end
 
     if haskey(_PM.ref(pm, nw_1, :storage), i)
-        constraint_storage_state(pm, nw_1, nw_2, i, storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rate"], time_elapsed)
+        constraint_storage_state(pm, nw_1, nw_2, i, storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
     else
         # if the storage device has status=0 in nw_1, then the stored energy variable will not exist. Initialize storage from data model instead.
         Memento.warn(_LOGGER, "storage component $(i) was not found in network $(nw_1) while building constraint_storage_state between networks $(nw_1) and $(nw_2). Using the energy value from the storage component in network $(nw_2) instead")
-        constraint_storage_state_initial(pm, nw_2, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rate"], time_elapsed)
+        constraint_storage_state_initial(pm, nw_2, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
     end
 end
 
@@ -243,11 +243,11 @@ function constraint_storage_state_ne(pm::_PM.AbstractPowerModel, i::Int, nw_1::I
     end
 
     if haskey(_PM.ref(pm, nw_1, :ne_storage), i)
-        constraint_storage_state_ne(pm, nw_1, nw_2, i, storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rate"], time_elapsed)
+        constraint_storage_state_ne(pm, nw_1, nw_2, i, storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
     else
         # if the storage device has status=0 in nw_1, then the stored energy variable will not exist. Initialize storage from data model instead.
         Memento.warn(_LOGGER, "storage component $(i) was not found in network $(nw_1) while building constraint_storage_state between networks $(nw_1) and $(nw_2). Using the energy value from the storage component in network $(nw_2) instead")
-        constraint_storage_state_initial_ne(pm, nw_2, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rate"], time_elapsed)
+        constraint_storage_state_initial_ne(pm, nw_2, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
     end
 end
 
