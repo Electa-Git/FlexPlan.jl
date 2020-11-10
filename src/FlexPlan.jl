@@ -37,6 +37,7 @@ include("io/plot_geo_data.jl")
 include("io/plots.jl")
 include("io/read_res_data.jl")
 include("io/read_demand_data.jl")
+include("io/get_res.jl")
 
 include("core/flexible_demand.jl")
 include("core/storage.jl")

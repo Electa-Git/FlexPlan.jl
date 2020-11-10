@@ -302,3 +302,14 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
 
     return p
 end
+
+
+function plot_var(res_dict, utype, unit, var)
+
+    vars = get_vars(res_dict, utype, unit)
+    
+    time = select(vars, :time)
+    val = select(vars, Symbol(var))
+
+    plot(time, val)
+end

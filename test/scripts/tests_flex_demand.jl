@@ -1,3 +1,4 @@
+#%%
 # Import relevant pakcages:
 # FlexPlan uses PowerModelsACDC for the multi-period transmission expansion optimisation & DC grid
 # PowerModelsACDC uses PowerModels for the AC grid, and the optimisation create_profile_data
@@ -83,3 +84,9 @@ plot_branch_flow(result_test1,1,data,"ne_branch")
 # Plot exemplary (flexible) load
 p_flex = plot_flex_demand(result_test1,5,data,extradata)
 savefig(p_flex,"flex_demand")
+
+
+bus5 = get_vars(result_test1, "bus", "5")
+plot_var(result_test1, "bus", "5", "vm")
+
+plot_var(result_test1, "branch", "1","pt")
