@@ -171,16 +171,13 @@ end
 function _PM.constraint_thermal_limit_from(pm::LACRadPowerModel, n::Int, f_idx, rate_a)
     p_fr = var(pm, n, :p, f_idx)
     q_fr = var(pm, n, :q, f_idx)
-    sqrt2 = sqrt(2)
+    c_perp = 0.9238795325112867 # == cos(π/8)
+    c_diag = 1.3065629648763766 # == sin(π/8) + cos(π/8) == cos(π/8) * sqrt(2)
 
-    JuMP.@constraint(pm.model, p_fr <=  rate_a)
-    JuMP.@constraint(pm.model, p_fr >= -rate_a)
-    JuMP.@constraint(pm.model, q_fr <=  rate_a)
-    JuMP.@constraint(pm.model, q_fr >= -rate_a)
-    JuMP.@constraint(pm.model, p_fr + q_fr <=  sqrt2*rate_a)
-    JuMP.@constraint(pm.model, p_fr + q_fr >= -sqrt2*rate_a)
-    JuMP.@constraint(pm.model, p_fr - q_fr <=  sqrt2*rate_a)
-    JuMP.@constraint(pm.model, p_fr - q_fr >= -sqrt2*rate_a)
+    JuMP.@constraint(pm.model, -c_perp*rate_a <= p_fr        <= c_perp*rate_a)
+    JuMP.@constraint(pm.model, -c_perp*rate_a <= q_fr        <= c_perp*rate_a)
+    JuMP.@constraint(pm.model, -c_diag*rate_a <= p_fr + q_fr <= c_diag*rate_a)
+    JuMP.@constraint(pm.model, -c_diag*rate_a <= p_fr - q_fr <= c_diag*rate_a)
 end
 
 "nothing to do, no line losses in this model"
@@ -191,16 +188,13 @@ end
 function _PM.constraint_ne_thermal_limit_from(pm::LACRadPowerModel, n::Int, f_idx, rate_a)
     p_fr = var(pm, n, :p_ne, f_idx)
     q_fr = var(pm, n, :q_ne, f_idx)
-    sqrt2 = sqrt(2)
+    c_perp = 0.9238795325112867 # == cos(π/8)
+    c_diag = 1.3065629648763766 # == sin(π/8) + cos(π/8) == cos(π/8) * sqrt(2)
 
-    JuMP.@constraint(pm.model, p_fr <=  rate_a)
-    JuMP.@constraint(pm.model, p_fr >= -rate_a)
-    JuMP.@constraint(pm.model, q_fr <=  rate_a)
-    JuMP.@constraint(pm.model, q_fr >= -rate_a)
-    JuMP.@constraint(pm.model, p_fr + q_fr <=  sqrt2*rate_a)
-    JuMP.@constraint(pm.model, p_fr + q_fr >= -sqrt2*rate_a)
-    JuMP.@constraint(pm.model, p_fr - q_fr <=  sqrt2*rate_a)
-    JuMP.@constraint(pm.model, p_fr - q_fr >= -sqrt2*rate_a)
+    JuMP.@constraint(pm.model, -c_perp*rate_a <= p_fr        <= c_perp*rate_a)
+    JuMP.@constraint(pm.model, -c_perp*rate_a <= q_fr        <= c_perp*rate_a)
+    JuMP.@constraint(pm.model, -c_diag*rate_a <= p_fr + q_fr <= c_diag*rate_a)
+    JuMP.@constraint(pm.model, -c_diag*rate_a <= p_fr - q_fr <= c_diag*rate_a)
 end
 
 "nothing to do, no line losses in this model"
