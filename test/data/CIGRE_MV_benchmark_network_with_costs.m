@@ -1,5 +1,5 @@
 function mpc = CIGRE_MV_benchmark_network_with_costs
-% CIGRE_MV_BENCHMARK_NETWORK Returns MATPOWER case for the CIGRE medium-voltage benchmark network
+% CIGRE_MV_BENCHMARK_NETWORK_WITH_COSTS Returns MATPOWER case for the CIGRE medium-voltage benchmark network with generator cost
 % 
 % References:
 % [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed 
