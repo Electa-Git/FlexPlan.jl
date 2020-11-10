@@ -13,6 +13,10 @@ function _PM.variable_bus_voltage_magnitude_only(pm::LACRadPowerModel; kwargs...
     _PM.variable_bus_voltage_magnitude_sqr(pm; kwargs...)
 end
 
+"nothing to add, there are no voltage variables on branches"
+function _PM.variable_ne_branch_voltage(pm::LACRadPowerModel; kwargs...)
+end
+
 "Do nothing, no way to represent this in these variables"
 function _PM.constraint_theta_ref(pm::LACRadPowerModel, n::Int, ref_bus::Int)
 end
@@ -64,7 +68,7 @@ end
 # Copied from constraint_ne_power_balance(pm::AbstractWModels, n::Int, i::Int, bus_arcs, bus_arcs_dc, bus_arcs_sw, bus_arcs_ne, bus_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs)
 # in PowerModels/src/form/shared.jl, because AbstractWModels is a type union and cannot be subtyped
 ""
-function constraint_ne_power_balance(pm::LACRadPowerModel, n::Int, i::Int, bus_arcs, bus_arcs_dc, bus_arcs_sw, bus_arcs_ne, bus_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs)
+function _PM.constraint_ne_power_balance(pm::LACRadPowerModel, n::Int, i::Int, bus_arcs, bus_arcs_dc, bus_arcs_sw, bus_arcs_ne, bus_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs)
     w    = var(pm, n, :w, i)
     p    = get(var(pm, n),    :p, Dict()); _check_var_keys(p, bus_arcs, "active power", "branch")
     q    = get(var(pm, n),    :q, Dict()); _check_var_keys(q, bus_arcs, "reactive power", "branch")
@@ -109,7 +113,6 @@ function constraint_ne_power_balance(pm::LACRadPowerModel, n::Int, i::Int, bus_a
     end
 end
 
-
 ""
 function _PM.constraint_ohms_yt_from(pm::LACRadPowerModel, n::Int, f_bus, t_bus, f_idx, t_idx, g, b, g_fr, b_fr, tr, ti, tm)
     p_fr = var(pm, n, :p, f_idx)
@@ -133,8 +136,35 @@ function _PM.constraint_ohms_yt_to(pm::LACRadPowerModel, n::Int, f_bus, t_bus, f
     JuMP.@constraint(pm.model, q_to  ==  - q_fr )
 end
 
+""
+function _PM.constraint_ne_ohms_yt_from(pm::LACRadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, g, b, g_fr, b_fr, tr, ti, tm, vad_min, vad_max)
+        p_fr = var(pm, n, :p_ne, f_idx)
+    q_fr = var(pm, n, :q_ne, f_idx)
+    w_fr = var(pm, n, :w, f_bus)
+    w_to = var(pm, n, :w, t_bus)
+    z    = pinv(g + im * b)
+    r, x = real(z), imag(z)
+
+    JuMP.@constraint(pm.model, 2*r*p_fr + 2*x*q_fr ==  w_fr/tm^2 - w_to )
+end
+
+""
+function _PM.constraint_ne_ohms_yt_to(pm::LACRadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, g, b, g_to, b_to, tr, ti, tm, vad_min, vad_max)
+    p_fr = var(pm, n, :p_ne, f_idx)
+    q_fr = var(pm, n, :q_ne, f_idx)
+    p_to = var(pm, n, :p_ne, t_idx)
+    q_to = var(pm, n, :q_ne, t_idx)
+
+    JuMP.@constraint(pm.model, p_to  ==  - p_fr )
+    JuMP.@constraint(pm.model, q_to  ==  - q_fr )
+end
+
 "nothing to do, no voltage angle variables"
 function _PM.constraint_voltage_angle_difference(pm::LACRadPowerModel, n::Int, f_idx, angmin, angmax)
+end
+
+"nothing to do, no voltage angle variables"
+function _PM.constraint_ne_voltage_angle_difference(pm::LACRadPowerModel, n::Int, f_idx, angmin, angmax, vad_min, vad_max)
 end
 
 "octagonal approximation of apparent power"
@@ -155,6 +185,26 @@ end
 
 "nothing to do, no line losses in this model"
 function _PM.constraint_thermal_limit_to(pm::LACRadPowerModel, n::Int, t_idx, rate_a)
+end
+
+"octagonal approximation of apparent power"
+function _PM.constraint_ne_thermal_limit_from(pm::LACRadPowerModel, n::Int, f_idx, rate_a)
+    p_fr = var(pm, n, :p_ne, f_idx)
+    q_fr = var(pm, n, :q_ne, f_idx)
+    sqrt2 = sqrt(2)
+
+    JuMP.@constraint(pm.model, p_fr <=  rate_a)
+    JuMP.@constraint(pm.model, p_fr >= -rate_a)
+    JuMP.@constraint(pm.model, q_fr <=  rate_a)
+    JuMP.@constraint(pm.model, q_fr >= -rate_a)
+    JuMP.@constraint(pm.model, p_fr + q_fr <=  sqrt2*rate_a)
+    JuMP.@constraint(pm.model, p_fr + q_fr >= -sqrt2*rate_a)
+    JuMP.@constraint(pm.model, p_fr - q_fr <=  sqrt2*rate_a)
+    JuMP.@constraint(pm.model, p_fr - q_fr >= -sqrt2*rate_a)
+end
+
+"nothing to do, no line losses in this model"
+function _PM.constraint_ne_thermal_limit_to(pm::LACRadPowerModel, n::Int, t_idx, rate_a)
 end
 
 # Copied from constraint_switch_state_closed(pm::AbstractWModels, n::Int, f_bus, t_bus) in
