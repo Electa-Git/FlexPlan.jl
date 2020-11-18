@@ -17,11 +17,9 @@ end
 function _PM.constraint_theta_ref(pm::LACRadPowerModel, n::Int, ref_bus::Int)
 end
 
-"""
-Bus KCL constraint
-
-Branch admittances are modeled as bus shunt loads.
-"""
+# Copied from constraint_power_balance(pm::AbstractWModels, n::Int, i, bus_arcs, bus_arcs_dc, bus_arcs_sw, bus_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs)
+# in PowerModels/src/form/shared.jl, because AbstractWModels is a type union and cannot be subtyped
+""
 function _PM.constraint_power_balance(pm::LACRadPowerModel, n::Int, i, bus_arcs, bus_arcs_dc, bus_arcs_sw, bus_gens, bus_storage, bus_pd, bus_qd, bus_gs, bus_bs)
     w    = var(pm, n, :w, i)
     p    = get(var(pm, n),    :p, Dict()); _check_var_keys(p, bus_arcs, "active power", "branch")
@@ -35,30 +33,9 @@ function _PM.constraint_power_balance(pm::LACRadPowerModel, n::Int, i, bus_arcs,
     p_dc = get(var(pm, n), :p_dc, Dict()); _check_var_keys(p_dc, bus_arcs_dc, "active power", "dcline")
     q_dc = get(var(pm, n), :q_dc, Dict()); _check_var_keys(q_dc, bus_arcs_dc, "reactive power", "dcline")
 
-    # sum, over the branches connected to bus i, the value of the closest of the two shunt
-    # admittances (π model)
-    br_gs = 0.0
-    br_bs = 0.0
-    for (l,i,j) in bus_arcs
-        branch = ref(pm, n, :branch, l)
-        if branch["transformer"]
-            if branch["g_fr"] != 0.0 || branch["b_fr"] != 0.0 || branch["g_to"] != 0.0 || branch["b_to"] != 0.0
-                Memento.warn(_LOGGER, "shunt admittances on transformer branches are not supported by this model, ignoring them")
-            end
-        else
-            if branch["f_bus"] == i # forward orientation
-                br_gs += branch["g_fr"]
-                br_bs += branch["b_fr"]
-            else                    # reverse orientation
-                br_gs += branch["g_to"]
-                br_bs += branch["b_to"]
-            end
-        end
-    end
 
     cstr_p = JuMP.@constraint(pm.model,
         sum(p[a] for a in bus_arcs)
-        + br_gs*w
         + sum(p_dc[a_dc] for a_dc in bus_arcs_dc)
         + sum(psw[a_sw] for a_sw in bus_arcs_sw)
         ==
@@ -69,7 +46,6 @@ function _PM.constraint_power_balance(pm::LACRadPowerModel, n::Int, i, bus_arcs,
     )
     cstr_q = JuMP.@constraint(pm.model,
         sum(q[a] for a in bus_arcs)
-        - br_bs*w
         + sum(q_dc[a_dc] for a_dc in bus_arcs_dc)
         + sum(qsw[a_sw] for a_sw in bus_arcs_sw)
         ==

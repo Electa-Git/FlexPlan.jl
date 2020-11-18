@@ -13,7 +13,6 @@ Variables:
 
 Hypotheses:
 - same voltage angle for all buses;
-- no line losses;
-- line shunt admittances modeled as bus shunt loads.
+- no line losses.
 """
 mutable struct LACRadPowerModel <: _PM.AbstractPowerModel _PM.@pm_fields end
