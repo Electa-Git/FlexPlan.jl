@@ -61,6 +61,7 @@ function _PM.constraint_power_balance(pm::LACRadPowerModel, n::Int, i, bus_arcs,
     end
 end
 
+# Used as constraint_voltage_magnitude_difference in branch flow models
 ""
 function _PM.constraint_ohms_yt_from(pm::LACRadPowerModel, n::Int, f_bus, t_bus, f_idx, t_idx, g, b, g_fr, b_fr, tr, ti, tm)
     p_fr = var(pm, n, :p, f_idx)
@@ -70,9 +71,10 @@ function _PM.constraint_ohms_yt_from(pm::LACRadPowerModel, n::Int, f_bus, t_bus,
     z    = pinv(g + im * b)
     r, x = real(z), imag(z)
 
-    JuMP.@constraint(pm.model, 2*r*p_fr + 2*x*q_fr ==  w_fr/tm^2 - w_to )
+    JuMP.@constraint(pm.model, (w_fr/tm^2) - w_to ==  2*(r*p_fr + x*q_fr))
 end
 
+# Used as constraint_power_losses in branch flow models
 ""
 function _PM.constraint_ohms_yt_to(pm::LACRadPowerModel, n::Int, f_bus, t_bus, f_idx, t_idx, g, b, g_to, b_to, tr, ti, tm)
     p_fr = var(pm, n, :p, f_idx)
@@ -80,8 +82,8 @@ function _PM.constraint_ohms_yt_to(pm::LACRadPowerModel, n::Int, f_bus, t_bus, f
     p_to = var(pm, n, :p, t_idx)
     q_to = var(pm, n, :q, t_idx)
 
-    JuMP.@constraint(pm.model, p_to  ==  - p_fr )
-    JuMP.@constraint(pm.model, q_to  ==  - q_fr )
+    JuMP.@constraint(pm.model, p_fr + p_to == 0 )
+    JuMP.@constraint(pm.model, q_fr + q_to == 0 )
 end
 
 "nothing to do, no voltage angle variables"
@@ -96,7 +98,7 @@ function _PM.constraint_thermal_limit_from(pm::LACRadPowerModel, n::Int, f_idx, 
     c_diag = 1.3065629648763766 # == sin(π/8) + cos(π/8) == cos(π/8) * sqrt(2)
 
     JuMP.@constraint(pm.model, -c_perp*rate_a <= p_fr        <= c_perp*rate_a)
-    JuMP.@constraint(pm.model, -c_perp*rate_a <= q_fr        <= c_perp*rate_a)
+    JuMP.@constraint(pm.model, -c_perp*rate_a <=        q_fr <= c_perp*rate_a)
     JuMP.@constraint(pm.model, -c_diag*rate_a <= p_fr + q_fr <= c_diag*rate_a)
     JuMP.@constraint(pm.model, -c_diag*rate_a <= p_fr - q_fr <= c_diag*rate_a)
 end
