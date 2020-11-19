@@ -145,8 +145,8 @@ function _PM.constraint_ne_ohms_yt_from(pm::LACRadPowerModel, n::Int, i, f_bus, 
     x      = branch["br_x"]
     fr_bus = ref(pm, n, :bus, f_bus)
     to_bus = ref(pm, n, :bus, t_bus)
-    M_hi   = fr_bus["vmax"]^2 - to_bus["vmin"]^2
-    M_lo   = to_bus["vmax"]^2 - fr_bus["vmin"]^2
+    M_hi   =  fr_bus["vmax"]^2/tm^2 - to_bus["vmin"]^2
+    M_lo   = -fr_bus["vmin"]^2/tm^2 + to_bus["vmax"]^2
     p_fr = var(pm, n, :p_ne, f_idx)
     q_fr = var(pm, n, :q_ne, f_idx)
     w_fr = var(pm, n, :w, f_bus)
