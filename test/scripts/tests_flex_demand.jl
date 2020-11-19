@@ -9,6 +9,8 @@ import PowerModels; const _PM = PowerModels
 import InfrastructureModels; const _IM = InfrastructureModels
 
 include("../../src/io/plots.jl")
+include("../../src/io/get_result.jl")
+include("../../src/io/get_data.jl")
 
 # Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
@@ -35,7 +37,7 @@ cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
 # TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments 
 
 # Input parameters:
-number_of_hours = 24        # Number of time steps
+number_of_hours = 96        # Number of time steps
 start_hour = 1              # First time step
 n_loads = 5                 # Number of load points
 i_load_mod = 5              # The load point on which we modify the demand profile
@@ -49,6 +51,13 @@ t_vec = start_hour:start_hour+(number_of_hours-1)
 load_mod_mean = 120
 load_mod_var = 120
 loadprofile[i_load_mod,:] = ( load_mod_mean .+ load_mod_var .* sin.(t_vec * 2*pi/24) )/240 
+
+# Increse load on one of the days
+day = 2
+mins = findall(x->x==0,loadprofile)
+loadprofile[mins[day-1]:mins[day]] *=3
+day = 3
+loadprofile[mins[day-1]:mins[day]] *=2.5
 
 # Data manipulation (per unit conversions and matching data models)
 data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
@@ -83,10 +92,77 @@ plot_branch_flow(result_test1,1,data,"ne_branch")
 
 # Plot exemplary (flexible) load
 p_flex = plot_flex_demand(result_test1,5,data,extradata)
-savefig(p_flex,"flex_demand")
+plot!(title = "max energy not served: 1000 MWh and max energy reduction: 100 MWh")
+savefig(p_flex,"flex_demand_e_nce_1000MWh_p_red_100MWh")
+
+## Espen
+
+# get res structure overview of units and vars
+res_structure = get_res_structure(result_test1)
+#using PrettyPrint
+#pprint(res_structure)
 
 
-bus5 = get_vars(result_test1, "bus", "5")
-plot_var(result_test1, "bus", "5", "vm")
+# Get data for unit type
+bus_data = get_data(data, "bus")
+busdc_data = get_data(data, "busdc")
+convdc_data = get_data(data, "convdc")
+load_data = get_data(data, "load")
+gen_data = get_data(data, "gen")
+# To get entire width of wide tables instead of only metadata use:
+# using IndexedTables
+# IndexedTables.set_show_compact!(false)
+branch_data = get_data(data, "branch")
+branchdc_data = get_data(data, "branchdc")
+ne_branch_data = get_data(data, "ne_branch")
+branchdc_ne_data = get_data(data, "branchdc_ne")
+ne_storage_data = get_data(data, "ne_storage")
 
-plot_var(result_test1, "branch", "1","pt")
+
+# Get snapshot (single time) variables by units
+load_t1 = snapshot_utype(result_test1, "load", 1)
+load_t3 = snapshot_utype(result_test1, "load", 3)
+load_t8 = snapshot_utype(result_test1, "load", 8)
+branch_t1 = snapshot_utype(result_test1, "branch", 1)
+branchdc_t1 = snapshot_utype(result_test1, "branchdc", 1)
+
+branchdc_ne_3 = get_vars(result_test1, "branchdc_ne", "3")
+
+conv_1 = plot_var(result_test1, "convdc", "1")
+
+plot_var(result_test1, "branchdc", "1","pt")
+plot_var!(result_test1, "branchdc", "2","pt")
+
+# Get variables per unit by times
+load5 = get_vars(result_test1, "load", "5")
+branchdc_1 = get_vars(result_test1, "branchdc", "1")
+branchdc_2 = get_vars(result_test1, "branchdc", "2")
+branchdc_ne_1 = get_vars(result_test1, "branchdc_ne", "3")
+
+bus5_import = select(branchdc_1, :pt) + select(branchdc_2, :pt) + select(branchdc_ne_3, :pf)
+t = select(branchdc_1,:time)
+bus5_plot = plot(t, bus5_import, label = "import to bus 5", xlabel = "time (h)", fill=(select(branchdc_1, :pt),0.5,:red))
+
+
+# Plot single variable
+#plot_var(result_test1, "bus", "5", "vm")
+#plot_var(result_test1, "branch", "1","pt")
+#plot_var(result_test1, "load", "5","pflex")
+#plot_var(result_test1, "branch", "4","pt")
+
+# Plot input demand profile and pflex
+bus_nr = 5
+load5_input = transpose(extradata["load"][string(bus_nr)]["pd"])
+plot!(Array[1:number_of_hours], load5_input)
+plot_var!(result_test1, "load", string(bus_nr),"pflex")
+
+savefig(bus5_plot, "bus5_balance.png")
+
+# Plot all variables of unit
+plot_var(result_test1, "load", "5")
+
+# Plot specified list of variables of unit
+shift_vars = ["pshift_down","pshift_down_tot","pshift_up","pshift_up_tot",
+              "pnce", "pcurt", "pflex"]
+plot_var(result_test1, "load", "5", shift_vars)
+
