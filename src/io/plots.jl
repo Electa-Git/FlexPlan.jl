@@ -304,27 +304,27 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
 end
 
 
-function plot_var(res::Dict, utype::String, unit::String, var::String)
+function plot_var(res::Dict, utype::String, unit::String, var::String; kwargs...)
 
     var_table = get_vars(res, utype, unit)
     
     time = select(var_table, :time)
     val = select(var_table, Symbol(var))
 
-    plot(time, val)
+    plot(time, val; kwargs...)
 end
 
-function plot_var!(res::Dict, utype::String, unit::String, var::String)
+function plot_var!(res::Dict, utype::String, unit::String, var::String; kwargs...)
 
     var_table = get_vars(res, utype, unit)
     
     time = select(var_table, :time)
     val = select(var_table, Symbol(var))
 
-    plot!(time, val, label=var)
+    plot!(time, val, label=var; kwargs...)
 end
 
-function plot_var(res::Dict, utype::String, unit::String, vars::Array)
+function plot_var(res::Dict, utype::String, unit::String, vars::Array; kwargs...)
 
     var_table = get_vars(res, utype, unit)
     var_names = propertynames(var_table.columns)
@@ -336,12 +336,12 @@ function plot_var(res::Dict, utype::String, unit::String, vars::Array)
             continue
         end
         val = select(var_table, Symbol(var))
-        plot!(time, val, label=Symbol(var))
+        plot!(time, val, label=Symbol(var); kwargs...)
     end
     display(p)
 end
 
-function plot_var(res::Dict, utype::String, unit::String)
+function plot_var(res::Dict, utype::String, unit::String; kwargs...)
 
     var_table = get_vars(res, utype, unit)
     var_names = propertynames(var_table.columns)
@@ -353,7 +353,7 @@ function plot_var(res::Dict, utype::String, unit::String)
             continue
         end
         val = select(var_table, var)
-        plot!(time, val, label=var)
+        plot!(time, val, label=var; kwargs...)
     end
     display(p)
 end
