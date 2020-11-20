@@ -4,15 +4,20 @@
 ##### Linear Approximations #####
 
 """
-Linearized AC power flow model for radial networks.
+Linearized AC branch flow model for radial networks.
 
 Variables:
 - squared voltage magnitude;
-- active power;
-- reactive power.
+- branch active power;
+- branch reactive power.
 
-Hypotheses:
+Properties:
 - same voltage angle for all buses;
-- no line losses.
+- lossless.
+
+Differences with respect to `BFAPowerModel`:
+- shunt admittances of the branches are negected;
+- the complex power in the thermal limit constraints of the branches is limited by an octagon
+  instead of a circle, so as to keep the model linear. 
 """
-mutable struct LACRadPowerModel <: _PM.AbstractPowerModel _PM.@pm_fields end
+mutable struct BFARadPowerModel <: _PM.AbstractBFAModel _PM.@pm_fields end

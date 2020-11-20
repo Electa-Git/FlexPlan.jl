@@ -8,11 +8,17 @@ function mpc = CIGRE_MV_benchmark_network_tnep
 % EDITS:
 % - branch data: angmin and angmax set to -60 and 60 degrees respectively to comply with
 %   PowerModels' requirements;
-% - added generator cost data: linear in active power, zero-cost reactive power, equal prices
-%   for distributed generators, grid exchanges cost twice;
-% - added bus 16: it is isolated and with a load, so it requires to build a new branch;
-% - added bus 17: it is isolated and without loads, so it does not require to build a new branch;
-% - added candidate branches: (1,16) and (1,17).
+% - added generator cost data: linear in active power, zero-cost reactive power, equal prices for
+%   distributed generators, grid exchanges cost twice;
+% - (8 MW, 2 MVar) of load moved from bus 1 to bus 2 and from bus 12 to bus 13 to force the building
+%   of new lines;
+% - added candidate branches:
+%   |  buses  |               type               | should be built? |
+%   |---------|----------------------------------|------------------|
+%   | ( 1, 2) | addition in parallel to existing |       yes        |
+%   | ( 2, 3) | addition in parallel to existing |        no        |
+%   | (12,13) |      replacement of existing     |       yes        |
+%   | (13,14) |      replacement of existing     |        no        |
 
 %% MATPOWER Case Format : Version 2
 mpc.version = '2';
@@ -24,8 +30,8 @@ mpc.baseMVA = 1;
 %% bus data
 % bus_i type      pd       qd   gs   bs bus_area   vm   va base_kv zone    vmax    vmin
 mpc.bus = [
-     1    1   19.839    4.637    0    0        1    1    0      20    1    1.05    0.95;
-     2    1    0.000    0.000    0    0        1    1    0      20    1    1.05    0.95;
+     1    1   11.839    2.637    0    0        1    1    0      20    1    1.05    0.95;
+     2    1    8.000    2.000    0    0        1    1    0      20    1    1.05    0.95;
      3    1    0.502    0.209    0    0        1    1    0      20    1    1.05    0.95;
      4    1    0.432    0.108    0    0        1    1    0      20    1    1.05    0.95;
      5    1    0.728    0.182    0    0        1    1    0      20    1    1.05    0.95;
@@ -35,12 +41,10 @@ mpc.bus = [
      9    1    0.574    0.356    0    0        1    1    0      20    1    1.05    0.95;
     10    1    0.543    0.161    0    0        1    1    0      20    1    1.05    0.95;
     11    1    0.330    0.083    0    0        1    1    0      20    1    1.05    0.95;
-    12    1   20.010    4.693    0    0        1    1    0      20    1    1.05    0.95;
-    13    1    0.034    0.021    0    0        1    1    0      20    1    1.05    0.95;
+    12    1   12.010    2.693    0    0        1    1    0      20    1    1.05    0.95;
+    13    1    8.034    2.021    0    0        1    1    0      20    1    1.05    0.95;
     14    1    0.540    0.258    0    0        1    1    0      20    1    1.05    0.95;
     15    3    0.000    0.000    0    0        1    1    0     220    1    1.5     0.5 ;
-    16    1    1.000    0.000    0    0        1    1    0      20    1    1.05    0.95;
-    17    1    0.000    0.000    0    0        1    1    0      20    1    1.05    0.95;
 ];
 
 %% generator data
@@ -88,10 +92,12 @@ mpc.branch = [
 ];
 
 %% network expansion branch data
-%column_names% f_bus t_bus     br_r        br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost
+%column_names% f_bus t_bus     br_r        br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost replace
 mpc.ne_branch = [
-                   1    16  0.00353205   0.0050478   0.053572104     9      9      9   0     0         1    -60     60              1000;
-                   1    17  0.00353205   0.0050478   0.053572104     9      9      9   0     0         1    -60     60               500;
+                   1     2  0.001766025  0.0025239   0.026786052  18     18     18     0     0         1    -60     60                 1       0;
+                   2     3  0.002768025  0.0079118   0.041983812  18     18     18     0     0         1    -60     60                 1       0;
+                  12    13  0.0030623625 0.002237175 0.003102216  15     15     15     0     0         1    -60     60                 1       1;
+                  13    14  0.0018724875 0.001367925 0.001896856  15     15     15     0     0         1    -60     60                 1       1;
 ];
 
 %% generator cost data

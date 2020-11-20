@@ -8,12 +8,11 @@ import JSON
 import CSV
 import Memento
 import PowerModels
-import PowerModels: _check_var_keys
 import PowerModelsACDC
 const _PM = PowerModels
 const _PMACDC = PowerModelsACDC
 import InfrastructureModels
-import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
+#import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
 const _IM = InfrastructureModels
 
 import JuMP: with_optimizer, optimizer_with_attributes
@@ -29,6 +28,7 @@ const _LOGGER = Memento.getlogger(@__MODULE__)
 __init__() = Memento.register(_LOGGER)
 
 
+include("prob/tnep_bf.jl")
 include("prob/flexible_tnep.jl")
 include("prob/stochastic_flexible_tnep.jl")
 include("prob/storage_tnep.jl")
@@ -49,5 +49,6 @@ include("core/shared_constraints.jl")
 include("core/line_replacement.jl")
 include("core/types.jl")
 
-include("form/lacrad.jl")
+include("form/bf.jl")
+include("form/bfarad.jl")
 end
