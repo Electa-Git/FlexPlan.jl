@@ -43,4 +43,5 @@ include("core/storage.jl")
 include("core/objective.jl")
 include("core/model_references.jl")
 include("core/shared_constraints.jl")
+include("core/line_replacement.jl")
 end
