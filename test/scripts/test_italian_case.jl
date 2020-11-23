@@ -12,10 +12,10 @@ import InfrastructureModels; const _IM = InfrastructureModels
 import Ipopt
 import SCS
 import Juniper
-import Mosek
-import MosekTools
+#import Mosek
+#import MosekTools
 import JuMP
-import Gurobi
+#import Gurobi
 import Cbc
 import JSON
 import CSV
@@ -24,8 +24,8 @@ import CSV
 scs = JuMP.with_optimizer(SCS.Optimizer, max_iters=100000)
 ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1e-4, print_level=0)
 cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
-gurobi = JuMP.with_optimizer(Gurobi.Optimizer)
-mosek = JuMP.with_optimizer(Mosek.Optimizer)
+#gurobi = JuMP.with_optimizer(Gurobi.Optimizer)
+#mosek = JuMP.with_optimizer(Mosek.Optimizer)
 juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
 
 # TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments for the Italian case
@@ -62,7 +62,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-result = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+result = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
 
 # plot load and gen data + storage data
 p1 = _FP.plot_profile_data(extradata, number_of_hours, result["solution"], ["3","5","6"])
