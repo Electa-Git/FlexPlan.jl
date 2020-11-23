@@ -140,7 +140,7 @@ function calculate_inv_cost(pm::_PM.AbstractPowerModel, n::Int)
         +
         sum(branch["cost"]*_PM.var(pm, n, :branchdc_ne, i) for (i,branch) in pm.ref[:nw][n][:branchdc_ne])
         +
-        sum((storage["eq_cost"] + storage["inst_cost"] + storage["co2_cost"])*_PM.var(pm, n, :z_strg_ne, i) for (i,storage) in pm.ref[:nw][n][:ne_storage])
+        sum((storage["eq_cost"] + storage["inst_cost"])*_PM.var(pm, n, :z_strg_ne, i) for (i,storage) in pm.ref[:nw][n][:ne_storage])
         +
         sum(load["cost_shift_up"]*_PM.var(pm, n, :pshift_up, i) for (i,load) in pm.ref[:nw][n][:load])
         +
