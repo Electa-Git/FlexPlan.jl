@@ -217,8 +217,10 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
     # Extract power flow pt (at the to-end of the branch)
     pt = zeros(n_time_steps, n_branches)        
     for i_branch = 1:n_branches
-        for t = 1:n_time_steps
-            pt[t,i_branch] = results["solution"]["nw"][string(t)][branch_type][string(i_branch)][flow_key]           
+        if input_data["branch"][string(i_branch)]["br_status"] == 1
+            for t = 1:n_time_steps                    
+                pt[t,i_branch] = results["solution"]["nw"][string(t)][branch_type][string(i_branch)][flow_key]           
+            end
         end
     end
 
