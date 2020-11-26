@@ -134,8 +134,8 @@ function constraint_voltage_angle_difference_repl(pm::_PM.AbstractDCPModel, n::I
     va_to = _PM.var(pm, n, :va, t_bus)
     z = _PM.var(pm, n, :branch_ne, ne_br_idx)
 
-    JuMP.@constraint(pm.model, va_fr - va_to <= angmax*z + vad_max*z)
-    JuMP.@constraint(pm.model, va_fr - va_to >= angmin*z + vad_min*z)
+    JuMP.@constraint(pm.model, va_fr - va_to <= angmax*(1-z) + vad_max*z)
+    JuMP.@constraint(pm.model, va_fr - va_to >= angmin*(1-z) + vad_min*z)
 end
 
 ""
