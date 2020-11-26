@@ -198,7 +198,7 @@ function constraint_storage_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm
         Memento.warn(_LOGGER, "network data should specify time_elapsed, using 1.0 as a default")
         time_elapsed = 1.0
     end
-    constraint_storage_state_initial(pm, nw, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
+    constraint_storage_state_initial(pm, nw, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["self_discharge_rate"], time_elapsed)
 end
 
 function constraint_storage_state_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
@@ -210,7 +210,7 @@ function constraint_storage_state_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int
         Memento.warn(_LOGGER, "network data should specify time_elapsed, using 1.0 as a default")
         time_elapsed = 1.0
     end
-    constraint_storage_state_initial_ne(pm, nw, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
+    constraint_storage_state_initial_ne(pm, nw, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["self_discharge_rate"], time_elapsed)
 end
 
 function constraint_storage_state(pm::_PM.AbstractPowerModel, i::Int, nw_1::Int, nw_2::Int)
@@ -224,11 +224,11 @@ function constraint_storage_state(pm::_PM.AbstractPowerModel, i::Int, nw_1::Int,
     end
 
     if haskey(_PM.ref(pm, nw_1, :storage), i)
-        constraint_storage_state(pm, nw_1, nw_2, i, storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
+        constraint_storage_state(pm, nw_1, nw_2, i, storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["self_discharge_rate"], time_elapsed)
     else
         # if the storage device has status=0 in nw_1, then the stored energy variable will not exist. Initialize storage from data model instead.
         Memento.warn(_LOGGER, "storage component $(i) was not found in network $(nw_1) while building constraint_storage_state between networks $(nw_1) and $(nw_2). Using the energy value from the storage component in network $(nw_2) instead")
-        constraint_storage_state_initial(pm, nw_2, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
+        constraint_storage_state_initial(pm, nw_2, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["self_discharge_rate"], time_elapsed)
     end
 end
 
@@ -243,11 +243,11 @@ function constraint_storage_state_ne(pm::_PM.AbstractPowerModel, i::Int, nw_1::I
     end
 
     if haskey(_PM.ref(pm, nw_1, :ne_storage), i)
-        constraint_storage_state_ne(pm, nw_1, nw_2, i, storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
+        constraint_storage_state_ne(pm, nw_1, nw_2, i, storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["self_discharge_rate"], time_elapsed)
     else
         # if the storage device has status=0 in nw_1, then the stored energy variable will not exist. Initialize storage from data model instead.
         Memento.warn(_LOGGER, "storage component $(i) was not found in network $(nw_1) while building constraint_storage_state between networks $(nw_1) and $(nw_2). Using the energy value from the storage component in network $(nw_2) instead")
-        constraint_storage_state_initial_ne(pm, nw_2, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["discharge_rating"], time_elapsed)
+        constraint_storage_state_initial_ne(pm, nw_2, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["self_discharge_rate"], time_elapsed)
     end
 end
 
@@ -350,40 +350,40 @@ function constraint_storage_losses_ne(pm::_PM.AbstractAPLossLessModels, n::Int, 
     JuMP.@constraint(pm.model, ps + (sd - sc) == p_loss)
 end
 
-function constraint_storage_state_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int, energy, charge_eff, discharge_eff, inflow, outflow, discharge_rate, time_elapsed)
+function constraint_storage_state_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int, energy, charge_eff, discharge_eff, inflow, outflow, self_discharge_rate, time_elapsed)
     sc = _PM.var(pm, n, :sc, i)
     sd = _PM.var(pm, n, :sd, i)
     se = _PM.var(pm, n, :se, i)
 
-    JuMP.@constraint(pm.model, se == ((1-discharge_rate)^time_elapsed)*energy + time_elapsed*(charge_eff*sc - sd/discharge_eff + inflow - outflow))
+    JuMP.@constraint(pm.model, se == ((1-self_discharge_rate)^time_elapsed)*energy + time_elapsed*(charge_eff*sc - sd/discharge_eff + inflow - outflow))
 end
 
-function constraint_storage_state_initial_ne(pm::_PM.AbstractPowerModel, n::Int, i::Int, energy, charge_eff, discharge_eff, inflow, outflow, discharge_rate, time_elapsed)
+function constraint_storage_state_initial_ne(pm::_PM.AbstractPowerModel, n::Int, i::Int, energy, charge_eff, discharge_eff, inflow, outflow, self_discharge_rate, time_elapsed)
     sc = _PM.var(pm, n, :sc_ne, i)
     sd = _PM.var(pm, n, :sd_ne, i)
     se = _PM.var(pm, n, :se_ne, i)
     z = _PM.var(pm, n, :z_strg_ne, i)
 
-    JuMP.@constraint(pm.model, se == ((1-discharge_rate)^time_elapsed)*energy + time_elapsed*(charge_eff*sc - sd/discharge_eff + inflow * z - outflow * z))
+    JuMP.@constraint(pm.model, se == ((1-self_discharge_rate)^time_elapsed)*energy + time_elapsed*(charge_eff*sc - sd/discharge_eff + inflow * z - outflow * z))
 end
 
-function constraint_storage_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int, charge_eff, discharge_eff, inflow, outflow, discharge_rate, time_elapsed)
+function constraint_storage_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int, charge_eff, discharge_eff, inflow, outflow, self_discharge_rate, time_elapsed)
     sc_2 = _PM.var(pm, n_2, :sc, i)
     sd_2 = _PM.var(pm, n_2, :sd, i)
     se_2 = _PM.var(pm, n_2, :se, i)
     se_1 = _PM.var(pm, n_1, :se, i)
 
-    JuMP.@constraint(pm.model, se_2 == ((1-discharge_rate)^time_elapsed)*se_1 + time_elapsed*(charge_eff*sc_2 - sd_2/discharge_eff + inflow - outflow))
+    JuMP.@constraint(pm.model, se_2 == ((1-self_discharge_rate)^time_elapsed)*se_1 + time_elapsed*(charge_eff*sc_2 - sd_2/discharge_eff + inflow - outflow))
 end
 
-function constraint_storage_state_ne(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int, charge_eff, discharge_eff, inflow, outflow, discharge_rate, time_elapsed)
+function constraint_storage_state_ne(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int, charge_eff, discharge_eff, inflow, outflow, self_discharge_rate, time_elapsed)
     sc_2 = _PM.var(pm, n_2, :sc_ne, i)
     sd_2 = _PM.var(pm, n_2, :sd_ne, i)
     se_2 = _PM.var(pm, n_2, :se_ne, i)
     se_1 = _PM.var(pm, n_1, :se_ne, i)
     z = _PM.var(pm, n_2, :z_strg_ne, i)
 
-    JuMP.@constraint(pm.model, se_2 == ((1-discharge_rate)^time_elapsed)*se_1 + time_elapsed*(charge_eff*sc_2 - sd_2/discharge_eff + inflow * z - outflow * z))
+    JuMP.@constraint(pm.model, se_2 == ((1-self_discharge_rate)^time_elapsed)*se_1 + time_elapsed*(charge_eff*sc_2 - sd_2/discharge_eff + inflow * z - outflow * z))
 end
 
 function constraint_storage_state_final(pm::_PM.AbstractPowerModel, n::Int, i::Int, energy)
