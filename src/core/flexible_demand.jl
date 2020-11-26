@@ -16,7 +16,7 @@ end
 function variable_total_flex_demand(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
     pflex = _PM.var(pm, nw)[:pflex] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pflex",
-        lower_bound = 0,
+        lower_bound = _PM.ref(pm, nw, :load, i, "pd") * (1 - _PM.ref(pm, nw, :load, i, "p_shift_down_max")),
         upper_bound = _PM.ref(pm, nw, :load, i, "pd") * (1 + _PM.ref(pm, nw, :load, i, "p_shift_up_max")),
         start = _PM.comp_start_value(_PM.ref(pm, nw, :load, i), "pd")
     )
@@ -38,7 +38,7 @@ end
 function variable_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
     pshift_up = _PM.var(pm, nw)[:pshift_up] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pshift_up",
-        lower_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :load, i, "p_shift_up_min"),
+        lower_bound = 0,
         upper_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :load, i, "p_shift_up_max"),
         start = 0
     )
@@ -50,7 +50,7 @@ function variable_total_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::
     pshift_up_tot = _PM.var(pm, nw)[:pshift_up_tot] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pshift_up_tot",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :load, i, "p_shift_up_max") * length(_PM.nw_ids(pm)), # to be updated
+        upper_bound = _PM.ref(pm, nw, :load, i, "p_shift_up_tot_max"),
         start = 0
     )
     report && _IM.sol_component_value(pm, nw, :load, :pshift_up_tot, _PM.ids(pm, nw, :load), pshift_up_tot)
@@ -59,7 +59,7 @@ end
 function variable_demand_shifting_downwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
     pshift_down = _PM.var(pm, nw)[:pshift_down] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pshift_down",
-        lower_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :load, i, "p_shift_down_min"),
+        lower_bound = 0, 
         upper_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :load, i, "p_shift_down_max"),
         start = 0
     )
@@ -71,7 +71,7 @@ function variable_total_demand_shifting_downwards(pm::_PM.AbstractPowerModel; nw
     pshift_down_tot = _PM.var(pm, nw)[:pshift_down_tot] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pshift_down_tot",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :load, i, "p_shift_down_max") * length(_PM.nw_ids(pm)), # to be updated
+        upper_bound =  _PM.ref(pm, nw, :load, i, "p_shift_down_tot_max"), 
         start = 0
     )
 
@@ -125,23 +125,22 @@ function constraint_fixed_demand(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.
     constraint_fixed_demand(pm, nw, i)
 end
 
-function constraint_shift_duration(pm::_PM.AbstractPowerModel, n_2::Int, network_ids, i::Int)
-    constraint_shift_duration_up(pm, n_2, network_ids, i)
-    constraint_shift_duration_down(pm, n_2, network_ids, i)
+function constraint_shift_duration(pm::_PM.AbstractPowerModel, nw::Int , i::Int)
+    constraint_shift_duration_up(pm, nw, i)
+    constraint_shift_duration_down(pm, nw, i)
 end
 #
-function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, n_2::Int, n_idx, i::Int)
-    load = _PM.ref(pm, n_2, :load, i)
-
-    constraint_shift_duration_up(pm, n_2, n_idx, i, load["t_grace_up"])
+function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, nw::Int, i::Int)
+    load = _PM.ref(pm, nw, :load, i)
+    start_grace = max(nw-load["t_grace_up"],1)
+    constraint_shift_duration_up(pm, nw, i, start_grace)
 end
 #
-function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, n_2::Int, n_idx, i::Int)
-    load = _PM.ref(pm, n_2, :load, i)
-
-    constraint_shift_duration_down(pm, n_2, n_idx, i, load["t_grace_down"])
+function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, nw::Int, i::Int)
+    load = _PM.ref(pm, nw, :load, i)
+    start_grace = max(nw-load["t_grace_down"],1)
+    constraint_shift_duration_down(pm, nw, i, start_grace)
 end
-
 
 function constraint_flex_bounds_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
     constraint_flex_bounds_ne(pm, nw, i)
@@ -239,20 +238,14 @@ function constraint_flex_bounds_ne(pm::_PM.AbstractPowerModel, n::Int, i::Int)
     pnce = _PM.var(pm, n, :pnce, i)
     z = _PM.var(pm, n, :z_flex, i)
 
-    pshift_up_min = JuMP.lower_bound(pshift_up)
     pshift_up_max = JuMP.upper_bound(pshift_up)
-    pshift_down_min = JuMP.lower_bound(pshift_down)
     pshift_down_max = JuMP.upper_bound(pshift_down)
-    pnce_min = JuMP.lower_bound(pnce)
     pnce_max = JuMP.upper_bound(pnce)
 
 
     JuMP.@constraint(pm.model, pshift_up  <= pshift_up_max * z)
-    JuMP.@constraint(pm.model, pshift_up  >= pshift_up_min * z)
     JuMP.@constraint(pm.model, pshift_down  <= pshift_down_max * z)
-    JuMP.@constraint(pm.model, pshift_down  >= pshift_down_min * z)
     JuMP.@constraint(pm.model, pnce  <= pnce_max * z)
-    JuMP.@constraint(pm.model, pnce  >= pnce_min * z)
 
 end
 
@@ -315,18 +308,17 @@ function constraint_flex_investment(pm::_PM.AbstractPowerModel, n_1::Int, n_2::I
     JuMP.@constraint(pm.model, z_1 == z_2)
 end
 
-function constraint_shift_duration_up(pm, n_2, n_idx, i, t_grace)
-    pshift_up = _PM.var(pm, n_2, :pshift_up, i)
+function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, n::Int, i::Int, start_grace::Int)
+    pshift_up = _PM.var(pm, n, :pshift_up, i)
     pshift_up_max = JuMP.upper_bound(pshift_up)
-    t = max(1, n_2 - t_grace)
-    # JuMP.@constraint(pm.model, pshift_up <= pshift_up_max - sum(_PM.var(pm, n, :pshift_up_tot, i) for n in n_idx[n_2 - t_grace:n_2-1])) #ToDo verify that shiting constraint is correct
-    JuMP.@constraint(pm.model, pshift_up <= pshift_up_max - _PM.var(pm, t, :pshift_up_tot, i))
+
+    JuMP.@constraint(pm.model, pshift_up <= pshift_up_max - sum(_PM.var(pm, t, :pshift_up, i) for t in start_grace:n-1))
 end
 
-function constraint_shift_duration_down(pm, n_2, n_idx, i, t_grace)
-    pshift_down = _PM.var(pm, n_2, :pshift_down, i)
+function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, n::Int, i::Int, start_grace::Int)
+    pshift_down = _PM.var(pm, n, :pshift_down, i)
     pshift_down_max = JuMP.upper_bound(pshift_down)
-    t = max(1, n_2 - t_grace)
-    # JuMP.@constraint(pm.model, pshift_down <= pshift_down_max - sum(_PM.var(pm, n, :pshift_down_tot, i) for n in n_idx[n_2 - t_grace:n_2-1])) #ToDo verify that shiting constraint is correct
-    JuMP.@constraint(pm.model, pshift_down <= pshift_down_max - _PM.var(pm, t, :pshift_down_tot, i))
+
+    JuMP.@constraint(pm.model, pshift_down <= pshift_down_max - sum(_PM.var(pm, t, :pshift_down, i) for t in start_grace:n-1))
 end
+

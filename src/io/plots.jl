@@ -302,3 +302,78 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
 
     return p
 end
+
+
+function plot_var(res::Dict, utype::String, unit::String, var::String; kwargs...)
+
+    var_table = get_vars(res, utype, unit)
+    
+    time = select(var_table, :time)
+    val = select(var_table, Symbol(var))
+
+    plot(time, val; kwargs...)
+end
+
+function plot_var!(res::Dict, utype::String, unit::String, var::String; kwargs...)
+
+    var_table = get_vars(res, utype, unit)
+    
+    time = select(var_table, :time)
+    val = select(var_table, Symbol(var))
+
+    plot!(time, val, label=var; kwargs...)
+end
+
+function plot_var(res::Dict, utype::String, unit::String, vars::Array; kwargs...)
+
+    var_table = get_vars(res, utype, unit)
+    var_names = propertynames(var_table.columns)
+    time = select(var_table, :time)
+
+    p = plot(title=join([utype, "_", unit]))
+    for var in vars
+        if var == :time || Symbol(var) ∉ var_names
+            continue
+        end
+        val = select(var_table, Symbol(var))
+        plot!(time, val, label=Symbol(var); kwargs...)
+    end
+    display(p)
+end
+
+function plot_var(res::Dict, utype::String, unit::String; kwargs...)
+
+    var_table = get_vars(res, utype, unit)
+    var_names = propertynames(var_table.columns)
+    time = select(var_table, :time)
+
+    p = plot(title=join([utype, "_", unit]))
+    for var in var_names
+        if var == :time
+            continue
+        end
+        val = select(var_table, var)
+        plot!(time, val, label=var; kwargs...)
+    end
+    display(p)
+end
+
+
+@userplot StackedArea
+
+# source: https://discourse.julialang.org/t/how-to-plot-a-simple-stacked-area-chart/21351/2
+# a simple "recipe" for Plots.jl to get stacked area plots
+# usage: stackedarea(xvector, datamatrix, plotsoptions)
+@recipe function f(pc::StackedArea)
+    x, y = pc.args
+    n = length(x)
+    y = cumsum(y, dims=2)
+    seriestype := :shape
+
+    # create a filled polygon for each item
+    for c=1:size(y,2)
+        sx = vcat(x, reverse(x))
+        sy = vcat(y[:,c], c==1 ? zeros(n) : reverse(y[:,c-1]))
+        @series (sx, sy)
+    end
+end

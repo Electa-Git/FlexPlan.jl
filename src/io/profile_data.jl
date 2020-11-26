@@ -76,9 +76,9 @@ function add_flexible_demand_data!(data)
         data["load"]["$idx"]["p_red_max"] = load_extra["p_red_max"]
         data["load"]["$idx"]["p_red_min"] = load_extra["p_red_min"]
         data["load"]["$idx"]["p_shift_up_max"] = load_extra["p_shift_up_max"]
-        data["load"]["$idx"]["p_shift_up_min"] = load_extra["p_shift_up_min"]
+        data["load"]["$idx"]["p_shift_up_tot_max"] = load_extra["p_shift_up_tot_max"]
         data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]
-        data["load"]["$idx"]["p_shift_down_min"] = load_extra["p_shift_down_min"]
+        data["load"]["$idx"]["p_shift_down_tot_max"] = load_extra["p_shift_down_tot_max"]
         data["load"]["$idx"]["cost_reduction"] = load_extra["cost_reduction"]
         data["load"]["$idx"]["t_grace_up"] = load_extra["t_grace_up"]
         data["load"]["$idx"]["t_grace_down"] = load_extra["t_grace_down"]
@@ -95,7 +95,9 @@ function add_flexible_demand_data!(data)
         rescale_power = x -> x/data["baseMVA"]
         _PM._apply_func!(data["load"]["$idx"], "cost_reduction", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_up", rescale_cost)
+        _PM._apply_func!(data["load"]["$idx"], "cost_shift_up_tot_max", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down", rescale_cost)
+        _PM._apply_func!(data["load"]["$idx"], "cost_shift_down_tot_max", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_curtailment", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "e_nce_max", rescale_power)
     end
