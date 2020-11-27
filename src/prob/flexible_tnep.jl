@@ -27,7 +27,6 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
         variable_absorbed_energy_ne(pm; nw = n)
         variable_flexible_demand(pm; nw = n)
 
-
         # new variables for TNEP problem
         _PM.variable_ne_branch_indicator(pm; nw = n)
         _PM.variable_ne_branch_power(pm; nw = n)
@@ -54,13 +53,22 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
         for i in _PM.ids(pm, n, :bus)
             constraint_power_balance_acne_dcne_flex(pm, i; nw = n)
         end
-
-        for i in _PM.ids(pm, n, :branch)
-            _PM.constraint_ohms_yt_from(pm, i; nw = n)
-            _PM.constraint_ohms_yt_to(pm, i; nw = n)
-            _PM.constraint_voltage_angle_difference(pm, i; nw = n)
-            _PM.constraint_thermal_limit_from(pm, i; nw = n)
-            _PM.constraint_thermal_limit_to(pm, i; nw = n)
+        if haskey(pm.setting, "allow_line_replacement") && pm.setting["allow_line_replacement"] == true
+            for i in _PM.ids(pm, n, :branch)
+                constraint_ohms_yt_from_repl(pm, i; nw = n)
+                constraint_ohms_yt_to_repl(pm, i; nw = n)
+                constraint_voltage_angle_difference_repl(pm, i; nw = n)
+                constraint_thermal_limit_from_repl(pm, i; nw = n)
+                constraint_thermal_limit_to_repl(pm, i; nw = n)
+            end
+        else    
+            for i in _PM.ids(pm, n, :branch)
+                _PM.constraint_ohms_yt_from(pm, i; nw = n)
+                _PM.constraint_ohms_yt_to(pm, i; nw = n)
+                _PM.constraint_voltage_angle_difference(pm, i; nw = n)
+                _PM.constraint_thermal_limit_from(pm, i; nw = n)
+                _PM.constraint_thermal_limit_to(pm, i; nw = n)
+            end
         end
         for i in _PM.ids(pm, n, :ne_branch)
             _PM.constraint_ne_ohms_yt_from(pm, i; nw = n)
@@ -188,8 +196,8 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
             if _PM.ref(pm, n_2, :load, i, "flex") == 1
                 constraint_ence_state(pm, i, n_1, n_2)
                 constraint_shift_up_state(pm, n_1, n_2, i)
-                constraint_shift_down_state(pm, n_1, n_2, i)
-                constraint_shift_duration(pm, n_2, network_ids, i)
+                constraint_shift_down_state(pm, n_1, n_2, i) 
+                constraint_shift_duration(pm, n_2, i)
                 constraint_flex_investment(pm, n_1, n_2, i)
             end
         end
