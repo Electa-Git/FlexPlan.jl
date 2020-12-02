@@ -1,5 +1,5 @@
 using Plots
-
+using IndexedTables
 
 function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_gen_ids = nothing)
     # Plots load and generation profile data at grid level.
@@ -358,6 +358,21 @@ function plot_var(res::Dict, utype::String, unit::String; kwargs...)
     display(p)
 end
 
+function plot_var(var_table::IndexedTable, index_name::Symbol, utype_name=""; kwargs...)
+
+    index = select(var_table, index_name)
+    var_names = propertynames(var_table.columns)
+    p = plot()
+    for var in var_names
+        if var == index_name
+            continue
+        end
+        val = select(var_table, var)
+        plot!(index, val; label=join([utype_name," ",var]), kwargs...)
+    end
+    display(p)
+    return p
+end
 
 @userplot StackedArea
 
