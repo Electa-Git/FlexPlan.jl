@@ -8,6 +8,7 @@ import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
 import InfrastructureModels; const _IM = InfrastructureModels
 import CSV
+import IndexedTables
 
 include("../../src/io/plots.jl")
 include("../../src/io/get_result.jl")
@@ -44,12 +45,17 @@ n_loads = 13                  # Number of load points
 i_load_mod = 4                # The load point on which we modify the demand profile
 i_load_other = 5              # Load point for other loads on the same radial affecting congestion
 i_branch_congest = 4          # Index of branch on which to force congestion
-rate_congest = 0.8            # Rating of branch on which to force congestion
+rate_congest = 0.8              # Rating of branch on which to force congestion
+load_scaling_factor = 1       # Factor with which original base case load demand data should be scaled
+
 
 # Vector of hours (time steps) included in case
 t_vec = start_hour:start_hour+(number_of_hours-1)
 
 file = "./test/data/CIGRE_MV_benchmark_network_flex.m" # Input case, in matpower m-file format: Here CIGRE MV benchmark network
+
+# Filename with extra_load array with demand flexibility model parameters
+filename_load_extra = "./test/data/CIGRE_MV_benchmark_network_flex_load_extra.csv"
 
 #Pkg.add("CSV")
 fname_Norway = "./test/data/demand_Norway_2015.csv"
@@ -66,6 +72,14 @@ loadprofile = demand_pu[1:number_of_hours,1:n_loads]'
 
 # Data manipulation (per unit conversions and matching data models)
 data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
+
+# Add extra_load array for demand flexibility model parameters
+data = read_case_data_from_csv(data,filename_load_extra,"load_extra")
+
+for i_load = 1:n_loads
+      data["load"][string(i_load)]["pd"] = data["load"][string(i_load)]["pd"] * load_scaling_factor
+      data["load"][string(i_load)]["qd"] = data["load"][string(i_load)]["qd"] * load_scaling_factor
+end
 
 # Modify branch ratings to artificially cause congestions
 data["branch"][string(i_branch_congest)]["rate_a"] = rate_congest
