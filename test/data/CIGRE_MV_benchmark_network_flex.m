@@ -88,7 +88,7 @@ mpc.branch = [
 
 %column_names% f_bus	t_bus	br_r	br_x	br_b	rate_a	rate_b	rate_c	tap	shift	br_status	angmin	angmax	construction_cost
 mpc.ne_branch = [
-	15	1	6.4e-05	0.00480000135	0	250	250	250	0	0	1	-360	360	5;
+	15     1  0.000475     0.004775    0.000000     25     25     25     1     0         1    -60     60 5;
 ];
 
 %% existing dc bus data
