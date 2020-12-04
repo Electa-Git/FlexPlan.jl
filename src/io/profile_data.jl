@@ -60,6 +60,7 @@ function scale_cost_data!(data, scenario)
         load["cost_shift_up"] = load["cost_shift_up"] * 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
         load["cost_shift_down"] = load["cost_shift_down"]* 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
         load["cost_curtailment"] = load["cost_curtailment"]* 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
+        load["cost_reduction"] = load["cost_reduction"]* 8760 / scenario["hours"] * scenario["planning_horizon"] #
         if haskey(load, "co2_cost")
             load["co2_cost"] = load["co2_cost"] / scenario["hours"]  # co2 cost is given as total cost
         end
@@ -75,9 +76,9 @@ function add_flexible_demand_data!(data)
         data["load"]["$idx"]["p_red_max"] = load_extra["p_red_max"]
         data["load"]["$idx"]["p_red_min"] = load_extra["p_red_min"]
         data["load"]["$idx"]["p_shift_up_max"] = load_extra["p_shift_up_max"]
-        data["load"]["$idx"]["p_shift_up_min"] = load_extra["p_shift_up_min"]
+        data["load"]["$idx"]["p_shift_up_tot_max"] = load_extra["p_shift_up_tot_max"]
         data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]
-        data["load"]["$idx"]["p_shift_down_min"] = load_extra["p_shift_down_min"]
+        data["load"]["$idx"]["p_shift_down_tot_max"] = load_extra["p_shift_down_tot_max"]
         data["load"]["$idx"]["cost_reduction"] = load_extra["cost_reduction"]
         data["load"]["$idx"]["t_grace_up"] = load_extra["t_grace_up"]
         data["load"]["$idx"]["t_grace_down"] = load_extra["t_grace_down"]
@@ -94,7 +95,9 @@ function add_flexible_demand_data!(data)
         rescale_power = x -> x/data["baseMVA"]
         _PM._apply_func!(data["load"]["$idx"], "cost_reduction", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_up", rescale_cost)
+        _PM._apply_func!(data["load"]["$idx"], "cost_shift_up_tot_max", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down", rescale_cost)
+        _PM._apply_func!(data["load"]["$idx"], "cost_shift_down_tot_max", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_curtailment", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "e_nce_max", rescale_power)
     end
@@ -140,8 +143,8 @@ end
 
 function create_profile_data_italy(data, scenario = Dict{String, Any}())
 
-    genprofile = ones(length(data["gen"]), length(scenario) * scenario["hours"])
-    loadprofile = ones(length(data["load"]), length(scenario) * scenario["hours"])
+    genprofile = ones(length(data["gen"]), length(scenario["sc_years"]) * scenario["hours"])
+    loadprofile = ones(length(data["load"]), length(scenario["sc_years"]) * scenario["hours"])
 
     data["scenario"] = Dict{String, Any}()
     data["scenario_prob"] = Dict{String, Any}()
@@ -159,7 +162,8 @@ function create_profile_data_italy(data, scenario = Dict{String, Any}())
             genprofile[6, start_idx + h] = wind_sicily["data"]["$h_idx"]["electricity"]
         end
         loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = [demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1: scenario["hours"]]
-        
+        # loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = repeat([demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1],1,scenario["hours"])
+
         data["scenario"][s] = Dict()
         data["scenario_prob"][s] = scnr["probability"]
         for h in 1 : scenario["hours"]

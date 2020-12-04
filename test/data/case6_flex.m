@@ -115,26 +115,26 @@ mpc.storage = [
 ];
 
 %% storage additional data
-%column_names%  max_energy_absorption stationary_energy_inflow stationary_energy_outflow
+%column_names%  max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
 mpc.storage_extra = [
-2400 0 0;
+2400 0 0 1e-4;
 ];
 
 
 %% storage data
-%column_names%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow discharge_rate
+%column_names%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
 mpc.ne_storage = [
-     5   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     2.5     0.5     1 2400 0 0 0.001;
+     5   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     2.5     0.5     1 2400 0 0 1e-4;
 ];
 
 
 
 %% load additional data
-%column_names% load_id e_nce_max p_red_max p_red_min p_shift_up_max p_shift_up_min p_shift_down_max p_shift_down_min t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost
+%column_names% load_id e_nce_max p_red_max p_red_min p_shift_up_max p_shift_up_tot_max p_shift_down_max p_shift_down_tot_max t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost
 mpc.load_extra = [
 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0.5;
 2 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0.5;
 3 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0.5;
 4 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0.5;
-5 100 1 0 0.3 0 0.3 0 2 2 0.1 0.00 0.00 10 0.0 1 0.5;
+5 1000 0.3 0 0.3 1000 1.0 1000 10 10 0.1 0.00 0.00 10 0.0 1 0.5;
 ];

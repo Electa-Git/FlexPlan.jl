@@ -196,8 +196,8 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
             if _PM.ref(pm, n_2, :load, i, "flex") == 1
                 constraint_ence_state(pm, i, n_1, n_2)
                 constraint_shift_up_state(pm, n_1, n_2, i)
-                constraint_shift_down_state(pm, n_1, n_2, i)
-                constraint_shift_duration(pm, n_2, network_ids, i)
+                constraint_shift_down_state(pm, n_1, n_2, i) 
+                constraint_shift_duration(pm, n_2, i)
                 constraint_flex_investment(pm, n_1, n_2, i)
             end
         end
