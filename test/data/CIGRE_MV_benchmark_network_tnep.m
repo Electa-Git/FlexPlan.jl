@@ -10,15 +10,17 @@ function mpc = CIGRE_MV_benchmark_network_tnep
 %   PowerModels' requirements;
 % - added generator cost data: linear in active power, zero-cost reactive power, equal prices for
 %   distributed generators, grid exchanges cost twice;
-% - (8 MW, 2 MVar) of load moved from bus 1 to bus 2 and from bus 12 to bus 13 to force the building
-%   of new lines;
+% - (8 MW, 2 MVar) of load moved from bus 1 to bus 2 to force the building of a new line;
+% - (12 MW, 3 MVar) of load moved from bus 12 to bus 13 to force the building of a new line;
 % - added candidate branches:
-%   |  buses  |               type               | should be built? |
-%   |---------|----------------------------------|------------------|
-%   | ( 1, 2) | addition in parallel to existing |       yes        |
-%   | ( 2, 3) | addition in parallel to existing |        no        |
-%   | (12,13) |      replacement of existing     |       yes        |
-%   | (13,14) |      replacement of existing     |        no        |
+%   | row |  buses  |     type    |    investment type   | built? |        reason         |
+%   |-----|---------|-------------|----------------------|--------|-----------------------|
+%   |     | ( 1, 2) |     line    |      replacement     |  yes   |                       |
+%   |     | ( 1, 2) |     line    |      replacement     |   no   | costs more than other |
+%   |     | ( 2, 3) |     line    |      replacement     |   no   | not needed            |
+%   |     | (12,13) |     line    | addition in parallel |   no   | insufficient capacity |
+%   |     | (12,13) |     line    | addition in parallel |  yes   |                       |
+%   |     | (13,14) |     line    | addition in parallel |   no   | not needed            |
 
 %% MATPOWER Case Format : Version 2
 mpc.version = '2';
@@ -41,8 +43,8 @@ mpc.bus = [
      9    1    0.574    0.356    0    0        1    1    0      20    1    1.05    0.95;
     10    1    0.543    0.161    0    0        1    1    0      20    1    1.05    0.95;
     11    1    0.330    0.083    0    0        1    1    0      20    1    1.05    0.95;
-    12    1   12.010    2.693    0    0        1    1    0      20    1    1.05    0.95;
-    13    1    8.034    2.021    0    0        1    1    0      20    1    1.05    0.95;
+    12    1    8.010    1.693    0    0        1    1    0      20    1    1.05    0.95;
+    13    1   12.034    3.021    0    0        1    1    0      20    1    1.05    0.95;
     14    1    0.540    0.258    0    0        1    1    0      20    1    1.05    0.95;
     15    3    0.000    0.000    0    0        1    1    0     220    1    1.5     0.5 ;
 ];
@@ -94,9 +96,11 @@ mpc.branch = [
 %% network expansion branch data
 %column_names% f_bus t_bus     br_r        br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost replace
 mpc.ne_branch = [
-                   1     2  0.001766025  0.0025239   0.026786052  18     18     18     0     0         1    -60     60                 1       0;
-                   2     3  0.002768025  0.0079118   0.041983812  18     18     18     0     0         1    -60     60                 1       0;
-                  12    13  0.0030623625 0.002237175 0.003102216  15     15     15     0     0         1    -60     60                 1       1;
+                   1     2  0.001766025  0.0025239   0.026786052  18     18     18     0     0         1    -60     60                 2       0;
+                   1     2  0.00117735   0.0016826   0.017857368  27     27     27     0     0         1    -60     60                 3       0;
+                   2     3  0.002768025  0.0079118   0.041983812  18     18     18     0     0         1    -60     60                 2       0;
+                  12    13  0.006124725  0.00447435  0.006204432   7.5    7.5    7.5   0     0         1    -60     60                 1       1;
+                  12    13  0.0030623625 0.002237175 0.003102216  15     15     15     0     0         1    -60     60                 2       1;
                   13    14  0.0018724875 0.001367925 0.001896856  15     15     15     0     0         1    -60     60                 1       1;
 ];
 
