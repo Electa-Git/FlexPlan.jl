@@ -149,17 +149,29 @@ function create_profile_data_italy(data, scenario = Dict{String, Any}())
     data["scenario"] = Dict{String, Any}()
     data["scenario_prob"] = Dict{String, Any}()
 
+    if haskey(scenario, "mc")
+        monte_carlo = scenario["mc"]
+    else
+        monte_carlo = false
+    end
+
     for (s, scnr) in scenario["sc_years"]
         year = scnr["year"]
-        pv_sicily, pv_south_central, wind_sicily = read_res_data(year)
-        demand_center_north_pu, demand_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu = read_demand_data(year)
+        pv_sicily, pv_south_central, wind_sicily = read_res_data(year; mc = monte_carlo)
+        demand_center_north_pu, demand_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu = read_demand_data(year; mc = monte_carlo)
 
         start_idx = (parse(Int, s) - 1) * scenario["hours"]
-        for h in 1 : scenario["hours"]
-            h_idx = scnr["start"] + ((h-1) * 3600000)
-            genprofile[3, start_idx + h] = pv_south_central["data"]["$h_idx"]["electricity"]
-            genprofile[5, start_idx + h] = pv_sicily["data"]["$h_idx"]["electricity"]
-            genprofile[6, start_idx + h] = wind_sicily["data"]["$h_idx"]["electricity"]
+        if monte_carlo == false
+            for h in 1 : scenario["hours"]
+                h_idx = scnr["start"] + ((h-1) * 3600000)
+                genprofile[3, start_idx + h] = pv_south_central["data"]["$h_idx"]["electricity"]
+                genprofile[5, start_idx + h] = pv_sicily["data"]["$h_idx"]["electricity"]
+                genprofile[6, start_idx + h] = wind_sicily["data"]["$h_idx"]["electricity"]
+            end
+        else
+            genprofile[3, start_idx + 1 : start_idx + scenario["hours"]] = pv_south_central[1: scenario["hours"]]
+            genprofile[5, start_idx + 1 : start_idx + scenario["hours"]] = pv_sicily[1: scenario["hours"]]
+            genprofile[6, start_idx + 1 : start_idx + scenario["hours"]] = wind_sicily[1: scenario["hours"]]
         end
         loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = [demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1: scenario["hours"]]
         # loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = repeat([demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1],1,scenario["hours"])
