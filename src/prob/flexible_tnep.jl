@@ -203,5 +203,4 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
         end
         n_1 = n_2
     end
-
 end
