@@ -1,18 +1,24 @@
 using Plots
 
 
-function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_gen_ids = nothing)
+function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_gen_ids = nothing, scenario = "1")
     # Plots load and generation profile data at grid level.
     # See test_italian_case.jl for an example of how to use.
-    # Does not support stochastic formulation yet.
+    # scenario: id of the scenario data we want to plot
 
-    hours = [1:number_of_hours]
+    hours = collect(1:number_of_hours)
+
+    nw_1 = number_of_hours*(parse(Int,scenario) - 1) + 1
+    nw_end = number_of_hours*parse(Int,scenario)
+    nw_ids = collect(nw_1:nw_end)
 
     # compute total load in the system at each hour
     total_load_pu = zeros(number_of_hours)
     for (load_id,load) in extradata["load"]
-        for h in 1:number_of_hours
-            total_load_pu[h] += load["pd"][h]
+        hour = 1
+        for nw in nw_ids
+            total_load_pu[hour] += load["pd"][nw]
+            hour += 1
         end
     end
     p = plot(hours,total_load_pu,label="Total load (p.u.)",xlabel="Time (h)",
@@ -21,8 +27,10 @@ function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_ge
     # compute total generation capacity of the system at each hour
     tot_gen_cap_pu = zeros(number_of_hours)
     for (gen_id,gen) in extradata["gen"]
-        for h in 1:number_of_hours
-            tot_gen_cap_pu[h] += gen["pmax"][h]
+        hour = 1
+        for nw in nw_ids
+            tot_gen_cap_pu[hour] += gen["pmax"][nw]
+            hour += 1
         end
     end
     plot!(hours,tot_gen_cap_pu,label="Total generation capacity (p.u.)")
@@ -31,11 +39,13 @@ function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_ge
     if haskey(solution,"nw")
         actual_gen_pu = zeros(number_of_hours)
 
-        for (nw_id,nw) in solution["nw"]
-            h = parse(Int,nw_id)
+        hour = 1
+        for nw_id in nw_ids
+            nw = solution["nw"][string(nw_id)]
             for (gen_id,gen) in nw["gen"]
-                actual_gen_pu[h] += gen["pg"]
+                actual_gen_pu[hour] += gen["pg"]
             end
+            hour += 1
         end
         plot!(hours,actual_gen_pu,label="Actual generation (p.u.)")
     end
@@ -47,12 +57,14 @@ function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_ge
         tot_trad_cap_pu = zeros(number_of_hours)
 
         for (gen_id,gen) in extradata["gen"]
-            for h in 1:number_of_hours
+            hour = 1
+            for nw in nw_ids
                 if gen_id in res_gen_ids
-                    tot_res_cap_pu[h] += gen["pmax"][h]
+                    tot_res_cap_pu[hour] += gen["pmax"][nw]
                 else
-                    tot_trad_cap_pu[h] += gen["pmax"][h]
+                    tot_trad_cap_pu[hour] += gen["pmax"][nw]
                 end
+                hour += 1
             end
         end
         plot!(hours,tot_trad_cap_pu,label="Trad. generation capacity (p.u.)")
@@ -62,11 +74,10 @@ function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_ge
     return p
 end
 
-function plot_storage_data(data,solution)
+function plot_storage_data(data, number_of_hours, solution, scenario = "1")
     # Plots storage charge/discharge power and energy level at each
     # time step and for each existing and candidate storage asset.
     # See test_italian_case.jl for an example of how to use.
-    # Does not support stochastic formulation yet.
 
     nws = solution["nw"]
     if haskey(nws["1"],"storage")
@@ -81,26 +92,32 @@ function plot_storage_data(data,solution)
         n_st_ne = 0
     end
 
-    number_of_hours = length(nws)
-    t = [1:number_of_hours;]
+    hours = collect(1:number_of_hours)
+
+    nw_1 = number_of_hours*(parse(Int,scenario) - 1) + 1
+    nw_end = number_of_hours*parse(Int,scenario)
+    nw_ids = collect(nw_1:nw_end)
+
+
     st_power = zeros((n_st+n_st_ne,number_of_hours)) #storage power (charge/discharge) at each time step
     st_energy = zeros((n_st+n_st_ne,number_of_hours)) #stoarge energy level at each time step
 
-    for (hour,nw) in nws
-        h = parse(Int,hour)
+    hour = 1
+    for nw_id in nw_ids
+        nw = nws[string(nw_id)]
         # existing storage assets
         if haskey(nw,"storage")
             for (index,st) in nw["storage"]
                 i = parse(Int,index)
                 if st["sc"] > 0 # charge taken as positive power
-                    st_power[i,h] = st["sc"]
+                    st_power[i,hour] = st["sc"]
                     if st["sd"] != 0 println("storage charge and discharge not exclsuive") end
                 elseif st["sd"] > 0 # discharge taken as negative power
-                    st_power[i,h] = -st["sd"]
+                    st_power[i,hour] = -st["sd"]
                     if st["sc"] != 0 println("storage charge and discharge not exclsuive") end
                 end
                 # energy level: divide storage energy by energy rating
-                st_energy[i,h] = st["se"]/data["storage"][index]["energy_rating"]
+                st_energy[i,hour] = st["se"]/data["storage"][index]["energy_rating"]
             end
         end
         # candidate storage assets
@@ -109,22 +126,25 @@ function plot_storage_data(data,solution)
                 if st_ne["isbuilt"] == 1
                     i = parse(Int,index_ne)
                     if st_ne["sc_ne"] > 0 # charge taken as positive power
-                        st_power[i+n_st,h] = st_ne["sc_ne"]
+                        st_power[i+n_st,hour] = st_ne["sc_ne"]
                     elseif st_ne["sd_ne"] > 0 # discharge taken as negative power
-                        st_power[i+n_st,h] = -st_ne["sd_ne"]
+                        st_power[i+n_st,hour] = -st_ne["sd_ne"]
                     end
                     # energy level: divide storage energy by energy rating
-                    st_energy[i+n_st,h] = st_ne["se_ne"]/data["ne_storage"][index_ne]["energy_rating"]
+                    st_energy[i+n_st,hour] = st_ne["se_ne"]/data["ne_storage"][index_ne]["energy_rating"]
                 end
             end
         end
+        hour += 1
     end
 
     # remove rows of not built storage assets
     index = [1:n_st;]
-    for (ne_st_ind,ne_st) in nws["1"]["ne_storage"]
-        if ne_st["isbuilt"] == 1
-            push!(index,n_st + parse(Int,ne_st_ind))
+    if haskey(nws["1"],"ne_storage")
+        for (ne_st_ind,ne_st) in nws["1"]["ne_storage"]
+            if ne_st["isbuilt"] == 1
+                push!(index,n_st + parse(Int,ne_st_ind))
+            end
         end
     end
     st_power = st_power[index,:]
@@ -132,13 +152,17 @@ function plot_storage_data(data,solution)
 
     # labels for plottingg
     labels1 = ["Storage $i" for i in 1:n_st]
-    labels2 = ["Candidate storage $(ne_st_ind)" for (ne_st_ind,ne_st) in nws["1"]["ne_storage"] if ne_st["isbuilt"] == 1]
+    if haskey(nws["1"],"ne_storage")
+        labels2 = ["Candidate storage $(ne_st_ind)" for (ne_st_ind,ne_st) in nws["1"]["ne_storage"] if ne_st["isbuilt"] == 1]
+    else
+        labels2 = []
+    end
     labels = append!(labels1,labels2)
     labels = reshape(labels, 1, :)
 
-    p1 = bar(t,st_power',bar_position = :dodge,label=labels,xlabel="Time (h)",
+    p1 = bar(hours,st_power',bar_position = :dodge,label=labels,xlabel="Time (h)",
             ylabel="Storage charge/dicharge (p.u.)",xlim=(0,number_of_hours))
-    p2 = bar(t,st_energy',bar_position = :dodge,xlabel="Time (h)",label=labels,
+    p2 = bar(hours,st_energy',bar_position = :dodge,xlabel="Time (h)",label=labels,
             ylabel="Energy level",xlim=(0,number_of_hours))
     return p1,p2
 end
@@ -153,7 +177,7 @@ is provided, the branch flow is compared with the branch power ratings in
 the plots. If 'i_branch' is _not_ provided, all branches are plotted.
 The optional input argument 'branch_type' specifies which type of branch
 flow is tested for, either "branch" (i.e. AC branches; default), "branchdc"
-(DC branches), "ne_branch" (candidate AC branch), or "branchdc_ne" 
+(DC branches), "ne_branch" (candidate AC branch), or "branchdc_ne"
 (candidate DC branches).
 """
 function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type="branch")
@@ -161,12 +185,12 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
     # Handle different types of branches (different dictionary keys are used for
     # different types of dictionaries...)
     if branch_type == "branch"
-        flow_key = "pt"    
-        rate_key = "rate_a"    
+        flow_key = "pt"
+        rate_key = "rate_a"
     elseif branch_type == "branchdc"
-        flow_key = "pt"    
-        rate_key = "rateA"    
-    elseif branch_type == "ne_branch"        
+        flow_key = "pt"
+        rate_key = "rateA"
+    elseif branch_type == "ne_branch"
         flow_key = "p_ne_to"
         built_key = "built"
         rate_key = "rate_a"
@@ -199,7 +223,7 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
 
     # Number of branches in network
     n_branches = length(sol_1[branch_type])
-    
+
     # Extract branch power flow rating (rate_a)
     if !isempty(input_data)
         rate_a = zeros(n_branches, 1)
@@ -215,10 +239,10 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
     t_vec = [1:n_time_steps]
 
     # Extract power flow pt (at the to-end of the branch)
-    pt = zeros(n_time_steps, n_branches)        
+    pt = zeros(n_time_steps, n_branches)
     for i_branch = 1:n_branches
         for t = 1:n_time_steps
-            pt[t,i_branch] = results["solution"]["nw"][string(t)][branch_type][string(i_branch)][flow_key]           
+            pt[t,i_branch] = results["solution"]["nw"][string(t)][branch_type][string(i_branch)][flow_key]
         end
     end
 
@@ -245,10 +269,10 @@ end
 """
     plot_flex_demand(results,i_load,input_data,input_extra_data)
 
-    Plot time series for demand shifted and/or curtailed for flexible demand 
-    element 'i_load_plot' in the network in the multi-period OPF solution 
+    Plot time series for demand shifted and/or curtailed for flexible demand
+    element 'i_load_plot' in the network in the multi-period OPF solution
     'results'. The input argument 'input_data' are the static network input data
-    for the case whereas the input argument 'input_extradata' contains the 
+    for the case whereas the input argument 'input_extradata' contains the
     (reference) load demand time series for the case.
 """
 function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
@@ -256,8 +280,8 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
     # Input argument checks
     if !haskey(results["solution"], "multinetwork") || !results["solution"]["multinetwork"]
         error("Input argument results has to be the result of a multi-period OPF problem")
-    end            
-    if !haskey(input_extra_data["load"], string(i_load_plot)) 
+    end
+    if !haskey(input_extra_data["load"], string(i_load_plot))
         error(string("There does not exist a load at bus ", i_load_plot))
     end
     isflex = input_data["load"][string(i_load_plot)]["flex"]
@@ -268,37 +292,37 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
     # Find number and set of time steps
     n_time_steps = length(results["solution"]["nw"])
     t_vec = [1:n_time_steps]
-    
-    pd = zeros(n_time_steps, 1)             # Load demand at bus (input data)      
-    pflex = zeros(n_time_steps, 1)          # Actual (flexible) load demand at bus    
+
+    pd = zeros(n_time_steps, 1)             # Load demand at bus (input data)
+    pflex = zeros(n_time_steps, 1)          # Actual (flexible) load demand at bus
     pshift_down = zeros(n_time_steps, 1)    # Downwards load shifting
     pshift_up = zeros(n_time_steps, 1)      # Upwards demand shifting
     pnce = zeros(n_time_steps, 1)           # Not consumed energy
     pcurt = zeros(n_time_steps, 1)          # Demand curtailment
-    
+
     # Extract demand-related variables from the solution
     for t = 1:n_time_steps
-        pd[t,1] = input_extra_data["load"][string(i_load_plot)]["pd"][t]          
-        pflex[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pflex"]           
-        pshift_down[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pshift_down"]           
-        pshift_up[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pshift_up"]           
-        pnce[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pnce"]           
-        pcurt[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pcurt"]           
+        pd[t,1] = input_extra_data["load"][string(i_load_plot)]["pd"][t]
+        pflex[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pflex"]
+        pshift_down[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pshift_down"]
+        pshift_up[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pshift_up"]
+        pnce[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pnce"]
+        pcurt[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pcurt"]
     end
-    
+
     # Plotting demand variables
     p = plot(xlabel="Time step", ylabel="Load (p.u.)")
-    
+
     plot!(p, t_vec, pd, label=string("Reference demand"))
-    
+
     # If no demand shifting or curtailment, this should plot the same as the reference demand above
     plot!(p, t_vec, pflex, label=string("Actual (flexible) demand"))
-    
+
     #  If no demand shifting or curtailment, this should all be zeros
     plot!(p, t_vec, pshift_down, label=string("Downwards load shifting"))
     plot!(p, t_vec, pshift_up, label=string("Upwards demand shifting"))
     plot!(p, t_vec, pnce, label=string("Not consumed energy"))
-    plot!(p, t_vec, pcurt, label=string("Demand curtailment"))    
+    plot!(p, t_vec, pcurt, label=string("Demand curtailment"))
 
     return p
 end
@@ -307,7 +331,7 @@ end
 function plot_var(res::Dict, utype::String, unit::String, var::String; kwargs...)
 
     var_table = get_vars(res, utype, unit)
-    
+
     time = select(var_table, :time)
     val = select(var_table, Symbol(var))
 
@@ -317,7 +341,7 @@ end
 function plot_var!(res::Dict, utype::String, unit::String, var::String; kwargs...)
 
     var_table = get_vars(res, utype, unit)
-    
+
     time = select(var_table, :time)
     val = select(var_table, Symbol(var))
 
