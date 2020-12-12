@@ -55,12 +55,13 @@ load_scaling_factor = 1       # Factor with which original base case load demand
 # Vector of hours (time steps) included in case
 t_vec = start_hour:start_hour+(number_of_hours-1)
 
-file = "./test/data/CIGRE_MV_benchmark_network_flex.m" # Input case, in matpower m-file format: Here CIGRE MV benchmark network
+# Input case, in matpower m-file format: Here CIGRE MV benchmark network
+file = "./test/data/CIGRE_MV_benchmark_network_flex.m" 
 
 # Filename with extra_load array with demand flexibility model parameters
 filename_load_extra = "./test/data/CIGRE_MV_benchmark_network_flex_load_extra.csv"
 
-#Pkg.add("CSV")
+# Read load demand series and assign (relative) profiles to load points in the network
 fname_Norway = "./test/data/demand_Norway_2015.csv"
 demand_data = CSV.read(fname_Norway)
 demand = demand_data[:,2:end]
@@ -71,7 +72,6 @@ for i_load_data = 1:n_loads_data
       demand_pu[:,i_load_data] = demand[:,i_load_data] ./ maximum(demand[:,i_load_data])
 end
 loadprofile = demand_pu[1:number_of_hours,1:n_loads]'
-#loadprofile = [zeros(1,number_of_hours); demand_pu[1:number_of_hours,:]'; zeros(3,number_of_hours)]
 
 # Data manipulation (per unit conversions and matching data models)
 data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
@@ -79,16 +79,10 @@ data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks a
 # Add extra_load array for demand flexibility model parameters
 data = read_case_data_from_csv(data,filename_load_extra,"load_extra")
 
-if !do_mod_single_load
-      # Scale load at one of the load points
-      data["load"][string(i_load_mon)]["pd"] = data["load"][string(i_load_mon)]["pd"] * load_scaling_factor
-      data["load"][string(i_load_mon)]["qd"] = data["load"][string(i_load_mon)]["qd"] * load_scaling_factor
-else
-      # Scale load at all of the load points
-      for i_load = 1:n_loads
-            data["load"][string(i_load)]["pd"] = data["load"][string(i_load)]["pd"] * load_scaling_factor
-            data["load"][string(i_load)]["qd"] = data["load"][string(i_load)]["qd"] * load_scaling_factor
-      end
+# Scale load at all of the load points
+for i_load = 1:n_loads
+      data["load"][string(i_load)]["pd"] = data["load"][string(i_load)]["pd"] * load_scaling_factor
+      data["load"][string(i_load)]["qd"] = data["load"][string(i_load)]["qd"] * load_scaling_factor
 end
 
 # Modify branch ratings to artificially cause congestions
@@ -112,8 +106,6 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
-
-
 
 
 # Plot branch flow on congested branch
