@@ -13,6 +13,7 @@ import IndexedTables
 include("../../src/io/plots.jl")
 include("../../src/io/get_result.jl")
 include("../../src/io/get_data.jl")
+include("../../src/io/read_case_data_from_csv.jl")
 
 # Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
