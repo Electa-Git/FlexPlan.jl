@@ -43,12 +43,12 @@ cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
 number_of_hours = 96          # Number of time steps
 start_hour = 1                # First time step
 n_loads = 13                  # Number of load points
-i_load_mon = 4                # The load point on which we monitor the load demand
-I_load_other = 5              # Load point for other loads on the same radial affecting congestion
-i_branch_mon = 4              # Index of branch on which to monitor congestion
+i_load_mon = 3                # The load point on which we monitor the load demand
+I_load_other = [4 5]              # Load point for other loads on the same radial affecting congestion
+i_branch_mon = 3              # Index of branch on which to monitor congestion
 do_force_congest = true      # True if forcing congestion by modifying branch flow rating of i_branch_congest
-do_mod_single_load = true     # False if modifying all loads by load scaling factor; true if modifying only load #i_load_mon
-rate_congest = 0.8            # Rating of branch on which to force congestion
+do_mod_single_load = false     # False if modifying all loads by load scaling factor; true if modifying only load #i_load_mon
+rate_congest = 1.1            # Rating of branch on which to force congestion
 load_scaling_factor = 1       # Factor with which original base case load demand data should be scaled
 
 
@@ -139,7 +139,7 @@ end
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
 branch_congest_flow = select(branch_mon, :pt)*-1
-bus_mod_balance = branch_congest_flow - select(load_other, :pflex)
+bus_mod_balance = branch_congest_flow - pflex_load_other
 stack_series = [pflex_load_other bus_mod_balance select(load_mon, :pnce) select(load_mon, :pcurt)]
 stack_labels = ["branch flow to rest of the radial" "net branch flow to load bus" "reduced load" "curtailed load" " " " "]
 stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
