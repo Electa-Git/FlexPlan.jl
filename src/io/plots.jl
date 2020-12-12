@@ -198,7 +198,7 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
     end
 
     # Number of branches in network
-    n_branches = length(sol_1[branch_type])
+    n_branches = length(input_data[branch_type])
     
     # Extract branch power flow rating (rate_a)
     if !isempty(input_data)
@@ -214,13 +214,15 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
     n_time_steps = length(results["solution"]["nw"])
     t_vec = [1:n_time_steps]
 
-    # Extract power flow pt (at the to-end of the branch)
-    pt = zeros(n_time_steps, n_branches)        
+    # Power flow pt (at the to-end of the branch)
+    pt = zeros(n_time_steps, n_branches)       
+
+        # Extract branch power flow results
     for i_branch = 1:n_branches
         if input_data["branch"][string(i_branch)]["br_status"] == 1
             for t = 1:n_time_steps                    
                 pt[t,i_branch] = results["solution"]["nw"][string(t)][branch_type][string(i_branch)][flow_key]           
-            end
+            end        
         end
     end
 
