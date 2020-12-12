@@ -37,16 +37,18 @@ cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
 #juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
 
 
-# TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments 
+# TEST SCRIPT to run multi-period optimisation of demand flexibility for the CIGRE MV benchmark network
 
 # Input parameters:
 number_of_hours = 96          # Number of time steps
 start_hour = 1                # First time step
 n_loads = 13                  # Number of load points
-i_load_mod = 4                # The load point on which we modify the demand profile
-i_load_other = 5              # Load point for other loads on the same radial affecting congestion
-i_branch_congest = 4          # Index of branch on which to force congestion
-rate_congest = 0.8              # Rating of branch on which to force congestion
+i_load_mon = 4                # The load point on which we monitor the load demand
+I_load_other = 5              # Load point for other loads on the same radial affecting congestion
+i_branch_mon = 4              # Index of branch on which to monitor congestion
+do_force_congest = true      # True if forcing congestion by modifying branch flow rating of i_branch_congest
+do_mod_single_load = true     # False if modifying all loads by load scaling factor; true if modifying only load #i_load_mon
+rate_congest = 0.8            # Rating of branch on which to force congestion
 load_scaling_factor = 1       # Factor with which original base case load demand data should be scaled
 
 
@@ -77,15 +79,24 @@ data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks a
 # Add extra_load array for demand flexibility model parameters
 data = read_case_data_from_csv(data,filename_load_extra,"load_extra")
 
-for i_load = 1:n_loads
-      data["load"][string(i_load)]["pd"] = data["load"][string(i_load)]["pd"] * load_scaling_factor
-      data["load"][string(i_load)]["qd"] = data["load"][string(i_load)]["qd"] * load_scaling_factor
+if !do_mod_single_load
+      # Scale load at one of the load points
+      data["load"][string(i_load_mon)]["pd"] = data["load"][string(i_load_mon)]["pd"] * load_scaling_factor
+      data["load"][string(i_load_mon)]["qd"] = data["load"][string(i_load_mon)]["qd"] * load_scaling_factor
+else
+      # Scale load at all of the load points
+      for i_load = 1:n_loads
+            data["load"][string(i_load)]["pd"] = data["load"][string(i_load)]["pd"] * load_scaling_factor
+            data["load"][string(i_load)]["qd"] = data["load"][string(i_load)]["qd"] * load_scaling_factor
+      end
 end
 
 # Modify branch ratings to artificially cause congestions
-data["branch"][string(i_branch_congest)]["rate_a"] = rate_congest
-data["branch"][string(i_branch_congest)]["rate_b"] = rate_congest
-data["branch"][string(i_branch_congest)]["rate_c"] = rate_congest
+if do_force_congest
+      data["branch"][string(i_branch_mon)]["rate_a"] = rate_congest
+      data["branch"][string(i_branch_mon)]["rate_b"] = rate_congest
+      data["branch"][string(i_branch_mon)]["rate_c"] = rate_congest
+end
 
 _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
 _FP.add_flexible_demand_data!(data) # Add flexible data model
@@ -106,31 +117,42 @@ result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
 
 
 # Plot branch flow on congested branch
-p_congest = plot_branch_flow(result_test1,i_branch_congest,data,"branch")
-savefig(p_congest,"branch_flow_congest")
+if !isnan(i_branch_mon)
+      p_congest = plot_branch_flow(result_test1,i_branch_mon,data,"branch")
+      savefig(p_congest,"branch_flow_congest")
+end
 
-# Extract results
-load_mod = get_vars(result_test1, "load", string(i_load_mod))
-load_other = get_vars(result_test1, "load", string(i_load_other))
-branch_congest = get_vars(result_test1, "branch", string(i_branch_congest))
+# Extract results for branch and load point to monitor
+load_mon = get_vars(result_test1, "load", string(i_load_mon))
+branch_mon = get_vars(result_test1, "branch", string(i_branch_mon))
+
+# Extract results for other loads on the radial beyond the node that is monitored
+pflex_load_other = zeros(number_of_hours,1)
+pd_load_other = zeros(number_of_hours,1)
+for i_load_other in I_load_other
+      load_other = get_vars(result_test1, "load", string(i_load_other))
+      pflex_load_other = pflex_load_other + select(load_other, :pflex)
+      pd_load_other = pd_load_other + transpose(extradata["load"][string(i_load_other)]["pd"])
+end
+
 
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
-branch_congest_flow = select(branch_congest, :pt)*-1
+branch_congest_flow = select(branch_mon, :pt)*-1
 bus_mod_balance = branch_congest_flow - select(load_other, :pflex)
-stack_series = [select(load_other, :pflex) bus_mod_balance select(load_mod, :pnce) select(load_mod, :pcurt)]
+stack_series = [pflex_load_other bus_mod_balance select(load_mon, :pnce) select(load_mon, :pcurt)]
 stack_labels = ["branch flow to rest of the radial" "net branch flow to load bus" "reduced load" "curtailed load" " " " "]
 stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
-load_input = transpose(extradata["load"][string(i_load_mod)]["pd"] + extradata["load"][string(i_load_other)]["pd"])
+load_input = transpose(extradata["load"][string(i_load_mon)]["pd"]) + pd_load_other
 plot!(t_vec, load_input, color=:red, width=3.0, label="base demand", line=:dash)
-load_flex = select(load_mod, :pflex) + select(load_other, :pflex)
+load_flex = select(load_mon, :pflex) + pflex_load_other
 plot!(t_vec, load_flex, color=:blue, width=3.0, label="flexible demand", line=:dash)
-#plot_var!(result_test1, "load", string(i_load_mod),"pflex", label="flexible demand",
+#plot_var!(result_test1, "load", string(i_load_mon),"pflex", label="flexible demand",
 #          ylabel="power (p.u.)", color=:blue, width=3.0, line=:dash, gridalpha=0.5)
 savefig(stacked_plot, "load_mod_balance.png")
 
 # Plot energy not served
-plot_not_served = plot_var(result_test1, "load", string(i_load_mod), "ence", color=:black, width=3.0,
+plot_not_served = plot_var(result_test1, "load", string(i_load_mon), "ence", color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
                            ylabel="energy (p.u.)", legend=false, gridalpha=0.5)
 
@@ -150,10 +172,10 @@ savefig(vertical_plot, "load_mod_balance_vertical.png")
 
 
 # Plot the shifted demand
-stack_series = select(load_mod, :pshift_up)
+stack_series = select(load_mon, :pshift_up)
 label = "pshift_up"
 plot_energy_shift = stackedarea(t_vec, stack_series,  labels=label, alpha=0.7, color=:blue, legend=false)
-stack_series = select(load_mod, :pshift_down)*-1
+stack_series = select(load_mon, :pshift_down)*-1
 label = "pshift_down"
 stackedarea!(t_vec, stack_series, labels=label, xlabel="time (h)", ylabel="load shifted (p.u.)",
              alpha=0.7, color=:red, legend=false, gridalpha=0.5)

@@ -1,3 +1,10 @@
+"""
+    read_case_data_from_csv(data,filename,field_input)
+
+Reads auxiliary case data from .csv file 'filename' and adds it to the 
+field 'field_input' of the FlexPlan case input data Dict 'data' 
+(e.g. read from a MATPOWER case with auxiliary fields of the mpc data structure.)    
+"""
 function read_case_data_from_csv(data,filename,field_input)
     
     case_input = CSV.read(filename)
