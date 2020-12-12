@@ -199,7 +199,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
                     constraint_ence_state(pm, i, n_1, n_2)
                     constraint_shift_up_state(pm, n_1, n_2, i)
                     constraint_shift_down_state(pm, n_1, n_2, i)
-                    constraint_shift_duration(pm, n_2, network_ids, i)
+                    constraint_shift_duration(pm, n_2, i)
                 end
             end
             n_1 = n_2
