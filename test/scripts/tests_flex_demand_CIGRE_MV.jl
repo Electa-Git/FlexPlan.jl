@@ -43,12 +43,11 @@ cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
 number_of_hours = 96          # Number of time steps
 start_hour = 1                # First time step
 n_loads = 13                  # Number of load points
-i_load_mon = 3                # The load point on which we monitor the load demand
-I_load_other = [4 5]              # Load point for other loads on the same radial affecting congestion
-i_branch_mon = 3              # Index of branch on which to monitor congestion
+I_load_mon = 1:10                # The load point on which we monitor the load demand
+I_load_other = []            # Load point for other loads on the same radial affecting congestion
+i_branch_mon = 16              # Index of branch on which to monitor congestion
 do_force_congest = true      # True if forcing congestion by modifying branch flow rating of i_branch_congest
-do_mod_single_load = false     # False if modifying all loads by load scaling factor; true if modifying only load #i_load_mon
-rate_congest = 1.1            # Rating of branch on which to force congestion
+rate_congest = 16            # Rating of branch on which to force congestion
 load_scaling_factor = 1       # Factor with which original base case load demand data should be scaled
 
 
@@ -114,37 +113,53 @@ if !isnan(i_branch_mon)
       savefig(p_congest,"branch_flow_congest")
 end
 
-# Extract results for branch and load point to monitor
-load_mon = get_vars(result_test1, "load", string(i_load_mon))
+# Extract results for branch to monitor
 branch_mon = get_vars(result_test1, "branch", string(i_branch_mon))
+
+# Extract results for load points to monitor 
+# (this code got quite ugly but I do not want to re-write/extend the get_vars functions right now...)
+pflex_load_mon = zeros(number_of_hours,1)
+pnce_load_mon = zeros(number_of_hours,1)
+pcurt_load_mon = zeros(number_of_hours,1)
+pd_load_mon = zeros(number_of_hours,1)
+ence_load_mon = zeros(number_of_hours,1)
+pshift_up_load_mon = zeros(number_of_hours,1)
+pshift_down_load_mon = zeros(number_of_hours,1)
+for i_load_mon in I_load_mon
+      load_mon = get_vars(result_test1, "load", string(i_load_mon))
+      global pflex_load_mon += select(load_mon, :pflex)
+      global pnce_load_mon += select(load_mon, :pnce)
+      global pcurt_load_mon += select(load_mon, :pcurt)
+      global ence_load_mon += select(load_mon, :ence)
+      global pshift_up_load_mon += select(load_mon, :pshift_up)
+      global pshift_down_load_mon += select(load_mon, :pshift_down)
+      global pd_load_mon += transpose(extradata["load"][string(i_load_mon)]["pd"])
+end
 
 # Extract results for other loads on the radial beyond the node that is monitored
 pflex_load_other = zeros(number_of_hours,1)
 pd_load_other = zeros(number_of_hours,1)
 for i_load_other in I_load_other
       load_other = get_vars(result_test1, "load", string(i_load_other))
-      pflex_load_other = pflex_load_other + select(load_other, :pflex)
-      pd_load_other = pd_load_other + transpose(extradata["load"][string(i_load_other)]["pd"])
+      global pflex_load_other += select(load_other, :pflex)
+      global pd_load_other += transpose(extradata["load"][string(i_load_other)]["pd"])
 end
-
 
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
 branch_congest_flow = select(branch_mon, :pt)*-1
 bus_mod_balance = branch_congest_flow - pflex_load_other
-stack_series = [pflex_load_other bus_mod_balance select(load_mon, :pnce) select(load_mon, :pcurt)]
-stack_labels = ["branch flow to rest of the radial" "net branch flow to load bus" "reduced load" "curtailed load" " " " "]
+stack_series = [pflex_load_other bus_mod_balance pnce_load_mon pcurt_load_mon]
+stack_labels = ["branch flow to other buses" "net branch flow to buses" "reduced load at buses" "curtailed load at buses" " " " "]
 stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
-load_input = transpose(extradata["load"][string(i_load_mon)]["pd"]) + pd_load_other
+load_input = pd_load_mon + pd_load_other
 plot!(t_vec, load_input, color=:red, width=3.0, label="base demand", line=:dash)
-load_flex = select(load_mon, :pflex) + pflex_load_other
+load_flex = pflex_load_mon + pflex_load_other
 plot!(t_vec, load_flex, color=:blue, width=3.0, label="flexible demand", line=:dash)
-#plot_var!(result_test1, "load", string(i_load_mon),"pflex", label="flexible demand",
-#          ylabel="power (p.u.)", color=:blue, width=3.0, line=:dash, gridalpha=0.5)
 savefig(stacked_plot, "load_mod_balance.png")
 
 # Plot energy not served
-plot_not_served = plot_var(result_test1, "load", string(i_load_mon), "ence", color=:black, width=3.0,
+plot_not_served = plot(t_vec, ence_load_mon, color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
                            ylabel="energy (p.u.)", legend=false, gridalpha=0.5)
 
@@ -164,10 +179,10 @@ savefig(vertical_plot, "load_mod_balance_vertical.png")
 
 
 # Plot the shifted demand
-stack_series = select(load_mon, :pshift_up)
+stack_series = pshift_up_load_mon
 label = "pshift_up"
 plot_energy_shift = stackedarea(t_vec, stack_series,  labels=label, alpha=0.7, color=:blue, legend=false)
-stack_series = select(load_mon, :pshift_down)*-1
+stack_series = pshift_down_load_mon*-1
 label = "pshift_down"
 stackedarea!(t_vec, stack_series, labels=label, xlabel="time (h)", ylabel="load shifted (p.u.)",
              alpha=0.7, color=:red, legend=false, gridalpha=0.5)
