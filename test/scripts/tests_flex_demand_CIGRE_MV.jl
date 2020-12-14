@@ -60,20 +60,11 @@ file = "./test/data/CIGRE_MV_benchmark_network_flex.m"
 # Filename with extra_load array with demand flexibility model parameters
 filename_load_extra = "./test/data/CIGRE_MV_benchmark_network_flex_load_extra.csv"
 
-# Read load demand series and assign (relative) profiles to load points in the network
-fname_Norway = "./test/data/demand_Norway_2015.csv"
-demand_data = CSV.read(fname_Norway)
-demand = demand_data[:,2:end]
-n_hours_data = size(demand,1)
-n_loads_data = size(demand,2)
-demand_pu = zeros(n_hours_data,n_loads_data)
-for i_load_data = 1:n_loads_data
-      demand_pu[:,i_load_data] = demand[:,i_load_data] ./ maximum(demand[:,i_load_data])
-end
-loadprofile = demand_pu[1:number_of_hours,1:n_loads]'
-
 # Data manipulation (per unit conversions and matching data models)
 data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
+
+# Read load demand series and assign (relative) profiles to load points in the network
+data,loadprofile,genprofile = _FP.create_profile_data_norway(data, number_of_hours)
 
 # Add extra_load array for demand flexibility model parameters
 data = read_case_data_from_csv(data,filename_load_extra,"load_extra")
