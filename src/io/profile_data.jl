@@ -182,7 +182,7 @@ function create_profile_data_italy(data, scenario = Dict{String, Any}())
             network = start_idx + h
             data["scenario"][s]["$h"] = network
         end
-    
+
     end
     # Add bus loactions to data dictionary
     data["bus"]["1"]["lat"] = 43.4894; data["bus"]["1"]["lon"] =  11.7946; #Italy central north
@@ -193,4 +193,24 @@ function create_profile_data_italy(data, scenario = Dict{String, Any}())
     data["bus"]["6"]["lat"] = 37.4844; data["bus"]["6"]["lon"] =   14.1568; # Sicily
     # Return info
     return data, loadprofile, genprofile
+end
+
+function create_profile_data_norway(data, number_of_hours)
+# creates load and generation profiles from Norway data
+# - for now generation profile is constant at 1.0
+# - for now works only for single scenario
+
+    demand_data = CSV.read("./test/data/demand_Norway_2015.csv")
+    demand = demand_data[:,2:end]
+    n_hours_data = size(demand,1)
+    n_loads_data = size(demand,2)
+    demand_pu = zeros(n_hours_data,n_loads_data)
+    for i_load_data = 1:n_loads_data
+          demand_pu[:,i_load_data] = demand[:,i_load_data] ./ maximum(demand[:,i_load_data])
+    end
+    loadprofile = demand_pu[1:number_of_hours,1:length(data["load"])]'
+    # for now gen profile is constant
+    genprofile = ones(length(data["gen"]), number_of_hours)
+
+    return data,loadprofile,genprofile
 end
