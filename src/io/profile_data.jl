@@ -195,7 +195,7 @@ function create_profile_data_italy(data, scenario = Dict{String, Any}())
     return data, loadprofile, genprofile
 end
 
-function create_profile_data_norway(data, number_of_hours, number_of_loads)
+function create_profile_data_norway(data, number_of_hours)
 # creates load and generation profiles from Norway data
 # - for now generation profile is constant at 1.0
 # - for now works only for single scenario
@@ -208,7 +208,7 @@ function create_profile_data_norway(data, number_of_hours, number_of_loads)
     for i_load_data = 1:n_loads_data
           demand_pu[:,i_load_data] = demand[:,i_load_data] ./ maximum(demand[:,i_load_data])
     end
-    loadprofile = demand_pu[1:number_of_hours,1:number_of_loads]'
+    loadprofile = demand_pu[1:number_of_hours,1:length(data["load"])]'
     # for now gen profile is constant
     genprofile = ones(length(data["gen"]), number_of_hours)
 
