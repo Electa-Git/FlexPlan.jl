@@ -82,6 +82,28 @@ mpc.branch = [
      15    12  0.000475     0.004775    0.000000     25     25     25     1     0         1    -60     60;
 ];
 
+%% add new columns to "branch" table
+%column_names% tm_min tm_max
+mpc.branch_oltc = [
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.0    0.0;
+                  0.9    1.1;
+                  0.9    1.1;
+];
+
 %% generator cost data
 % model startup shutdown ncost  cost
 mpc.gencost = [
