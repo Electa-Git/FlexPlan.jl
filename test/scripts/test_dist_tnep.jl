@@ -1,5 +1,4 @@
-# Run a TNEP on a distribution network (so, should the problem be called DNEP?) using the linear AC
-# approximation for radial networks.
+# Network expansion planning using the linear AC approximation for radial networks
 
 
 ## Import packages and choose a solver

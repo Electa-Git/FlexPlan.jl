@@ -1,7 +1,9 @@
-# TNEP for branch flow formulations.
-#
-# Adapted from PowerModels/src/prob/tnep.jl.
-# See also differences between PowerModels/src/prob/opf.jl and PowerModels/src/prob/opf_bf.jl.
+# Problems defined on distribution networks
+
+
+## Network expansion planning
+# (TNEP acronym is maintained for consistency with transmission networks.)
+
 
 ""
 function run_tnep_bf(file, model_type::Type, optimizer; kwargs...)
@@ -98,7 +100,6 @@ function ref_add_ne_branch_parallel!(ref::Dict{Symbol,<:Any}, data::Dict{String,
         end
     end
 end
-
 
 "like calc_buspair_parameters, but retains indices of all the branches and drops keys that depend on branch"
 function calc_buspair_parameters_parallel(buses, branches, conductor_ids, ismulticondcutor)

@@ -1,5 +1,4 @@
-# Run an OPF on a distribution network using the linear AC approximation for radial networks.
-# Compare the results to those obtained with the usual AC OPF.
+# Optimal power flow using the linear AC approximation for radial networks
 
 
 ## Import packages and choose a solver
