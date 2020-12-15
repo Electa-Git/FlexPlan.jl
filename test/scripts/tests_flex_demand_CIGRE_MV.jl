@@ -46,9 +46,9 @@ n_loads = 13                  # Number of load points
 I_load_mon = 1:10                # The load point on which we monitor the load demand
 I_load_other = []            # Load point for other loads on the same radial affecting congestion
 i_branch_mon = 16              # Index of branch on which to monitor congestion
-do_force_congest = true      # True if forcing congestion by modifying branch flow rating of i_branch_congest
+do_force_congest = false      # True if forcing congestion by modifying branch flow rating of i_branch_congest
 rate_congest = 16            # Rating of branch on which to force congestion
-load_scaling_factor = 1       # Factor with which original base case load demand data should be scaled
+load_scaling_factor = 1.5       # Factor with which original base case load demand data should be scaled
 
 
 # Vector of hours (time steps) included in case
@@ -117,6 +117,9 @@ end
 # Extract results for branch to monitor
 branch_mon = get_vars(result_test1, "branch", string(i_branch_mon))
 
+# Extract results for new branch (assuming there only being one, and that it has a relevant placement)
+branch_new = get_vars(result_test1, "ne_branch","1")
+
 # Extract results for load points to monitor 
 # (this code got quite ugly but I do not want to re-write/extend the get_vars functions right now...)
 pflex_load_mon = zeros(number_of_hours,1)
@@ -149,9 +152,10 @@ end
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
 branch_congest_flow = select(branch_mon, :pt)*-1
+branch_new_flow = select(branch_new, :p_ne_to)*-1
 bus_mod_balance = branch_congest_flow - pflex_load_other
-stack_series = [pflex_load_other bus_mod_balance pnce_load_mon pcurt_load_mon]
-stack_labels = ["branch flow to other buses" "net branch flow to buses" "reduced load at buses" "curtailed load at buses" " " " "]
+stack_series = [branch_new_flow bus_mod_balance pnce_load_mon pcurt_load_mon]
+stack_labels = ["branch flow old branch" "branch flow new branch" "reduced load at buses" "curtailed load at buses" " " " "]
 stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
 load_input = pd_load_mon + pd_load_other
 plot!(t_vec, load_input, color=:red, width=3.0, label="base demand", line=:dash)
