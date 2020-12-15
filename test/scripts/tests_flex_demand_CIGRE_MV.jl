@@ -63,6 +63,16 @@ filename_load_extra = "./test/data/CIGRE_MV_benchmark_network_flex_load_extra.cs
 # Data manipulation (per unit conversions and matching data models)
 data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
 
+# Handle possible missing auxiliary fields of the MATPOWER case file
+#fieldnames = ["storage","ne_storage","ne_branch","branchdc_ne","busdc","convdc","branchdc","busdc_ne","convdc_ne","storage_extra"]
+field_names = ["busdc","branchdc","convdc"]
+#field_names = ["ne_storage","ne_branch","branchdc_ne"]
+for field_name in field_names
+      if !haskey(data,field_name)
+            data[field_name] = Dict{String,Any}()
+      end
+end
+
 # Read load demand series and assign (relative) profiles to load points in the network
 data,loadprofile,genprofile = _FP.create_profile_data_norway(data, number_of_hours)
 

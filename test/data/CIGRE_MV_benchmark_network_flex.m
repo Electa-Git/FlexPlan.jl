@@ -91,24 +91,7 @@ mpc.ne_branch = [
 	15     1  0.000475     0.004775    0.000000     25     25     25     1     0         1    -60     60 5;
 ];
 
-%% existing dc bus data
-%column_names%   busdc_i grid    Pdc     Vdc     basekVdc    Vdcmax  Vdcmin Cdc
-mpc.busdc = [
-1              1       0       1       20         1.1     0.9  0;
-2              1       0       1       20         1.1     0.9  0;
-];
 
-% existing converters
-%column_names%   busdc_i busac_i type_dc type_ac P_g   Q_g  islcc  Vtar rtf xtf  transformer tm   bf filter    rc      xc  reactor   basekVac Vmmax   Vmmin   Imax    status   LossA LossB  LossCrec LossCinv  droop Pdcset    Vdcset  dVdcset Pacmax Pacmin Qacmax Qacmin
-mpc.convdc = [
-1       1   1       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1     	1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 110 -110 50 -50;
-];
-
-%% existing dc branches
-%column_names%   fbusdc  tbusdc  r      l        c   rateA   rateB   rateC status
-mpc.branchdc = [
-	1	 2	 0.01	 0.00	 0.00  100.0	 0.0	 0.0	 1.0;
-];
 
 %% candidate dc bus data
 %column_names%   busdc_i grid    Pdc     Vdc     basekVdc    Vdcmax  Vdcmin  Cdc
