@@ -50,7 +50,6 @@ do_force_congest = false      # True if forcing congestion by modifying branch f
 rate_congest = 16            # Rating of branch on which to force congestion
 load_scaling_factor = 1.5       # Factor with which original base case load demand data should be scaled
 
-
 # Vector of hours (time steps) included in case
 t_vec = start_hour:start_hour+(number_of_hours-1)
 
@@ -100,7 +99,7 @@ extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) # create
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
 
 # Add PowerModels(ACDC) settings
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
+s = Dict("output" => Dict("branch_flows" => true), "allow_line_replacement" => do_replace_branch, "conv_losses_mp" => false, "process_data_internally" => false)
 
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application

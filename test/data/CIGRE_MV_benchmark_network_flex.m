@@ -86,9 +86,9 @@ mpc.branch = [
 ];
 
 
-%column_names% f_bus	t_bus	br_r	br_x	br_b	rate_a	rate_b	rate_c	tap	shift	br_status	angmin	angmax	construction_cost
+%column_names% f_bus	t_bus	br_r	br_x	br_b	rate_a	rate_b	rate_c	tap	shift	br_status	angmin	angmax	construction_cost co2_cost replace
 mpc.ne_branch = [
-	15     1  0.000475     0.004775    0.000000     25     25     25     1     0         1    -60     60 0.2;
+	15     1  0.000475     0.004775    0.000000     40     40     40     1     0         1    -60     60     0.2  0    1;
 ];
 
 
