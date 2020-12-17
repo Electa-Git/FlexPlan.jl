@@ -1,5 +1,5 @@
 using Plots
-
+using IndexedTables
 
 function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_gen_ids = nothing, scenario = "1")
     # Plots load and generation profile data at grid level.
@@ -222,8 +222,8 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
     end
 
     # Number of branches in network
-    n_branches = length(sol_1[branch_type])
-
+    n_branches = length(input_data[branch_type])
+    
     # Extract branch power flow rating (rate_a)
     if !isempty(input_data)
         rate_a = zeros(n_branches, 1)
@@ -238,11 +238,15 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
     n_time_steps = length(results["solution"]["nw"])
     t_vec = [1:n_time_steps]
 
-    # Extract power flow pt (at the to-end of the branch)
-    pt = zeros(n_time_steps, n_branches)
+    # Power flow pt (at the to-end of the branch)
+    pt = zeros(n_time_steps, n_branches)       
+
+        # Extract branch power flow results
     for i_branch = 1:n_branches
-        for t = 1:n_time_steps
-            pt[t,i_branch] = results["solution"]["nw"][string(t)][branch_type][string(i_branch)][flow_key]
+        if input_data["branch"][string(i_branch)]["br_status"] == 1
+            for t = 1:n_time_steps                    
+                pt[t,i_branch] = results["solution"]["nw"][string(t)][branch_type][string(i_branch)][flow_key]           
+            end        
         end
     end
 
@@ -382,6 +386,21 @@ function plot_var(res::Dict, utype::String, unit::String; kwargs...)
     display(p)
 end
 
+function plot_var(var_table::IndexedTable, index_name::Symbol, utype_name=""; kwargs...)
+
+    index = select(var_table, index_name)
+    var_names = propertynames(var_table.columns)
+    p = plot()
+    for var in var_names
+        if var == index_name
+            continue
+        end
+        val = select(var_table, var)
+        plot!(index, val; label=join([utype_name," ",var]), kwargs...)
+    end
+    display(p)
+    return p
+end
 
 @userplot StackedArea
 
