@@ -5,6 +5,17 @@
 
 ## Variables ##
 
+""
+function _PM.variable_bus_voltage(pm::BFARadPowerModel; kwargs...)
+    _PM.variable_bus_voltage_magnitude_sqr(pm; kwargs...)
+    _PM.variable_bus_voltage_angle(pm; kwargs...)
+end
+
+"Voltage angle of all buses is that of the reference bus"
+function _PM.variable_bus_voltage_angle(pm::BFARadPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+    report && _IM.sol_component_fixed(pm, nw, :bus, :va, _PM.ids(pm, nw, :bus), last(first(_PM.ref(pm,nw,:ref_buses)))["va"])
+end
+
 # Copied from _PM.variable_branch_power_real(pm::AbstractAPLossLessModels; nw::Int, bounded::Bool, report::Bool)
 # Since this model is lossless, active power variables are 1 per branch instead of 2.
 ""
@@ -356,7 +367,6 @@ Converts the solution data into the data model's standard space, polar voltages 
 
 Bus voltage magnitude `vm` is the square root of `w`.
 Voltage magnitude of the reference bus is 1.0 p.u.
-Bus voltage angle `va` is that of the reference bus.
 Branch OLTC tap ratio `tm` (if applies) is the square root of the inverse of `ttmi`.
 """
 function _PM.sol_data_model!(pm::BFARadPowerModel, solution::Dict)
@@ -379,14 +389,12 @@ function _PM.sol_data_model!(pm::BFARadPowerModel, solution::Dict)
         end
         ref_bus_id = first(keys(ref_buses))
 
-        # The voltage angle of all buses is that of the reference bus
-        ref_bus_va = _PM.ref(pm,n,:bus,ref_bus_id,"va")
+        # Bus voltage magnitude `vm` is the square root of `w`
         for (i,bus) in nw_sol["bus"]
             if haskey(bus, "w")
                 bus["vm"] = sqrt(bus["w"])
                 delete!(bus, "w")
             end
-            bus["va"] = ref_bus_va
         end
 
         # The voltage magnitude of the reference bus is 1.0 p.u.
