@@ -423,5 +423,5 @@ function ne_branch_replace(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=p
     if !haskey(ne_branch, "replace")
         Memento.error(_LOGGER, "a `replace` value is required on all `ne_branch`es")
     end
-    return ne_branch["replace"] == 1 ? true : false
+    return ne_branch["replace"] == 1
 end

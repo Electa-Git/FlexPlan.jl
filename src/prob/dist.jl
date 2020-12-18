@@ -78,7 +78,7 @@ end
 function ref_add_ne_branch_allbranches!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
     for (nw, nw_ref) in ref[:nw]
         if !haskey(nw_ref, :ne_branch)
-            error(_LOGGER, "required ne_branch data not found")
+            Memento.error(_LOGGER, "required ne_branch data not found")
         end
 
         nw_ref[:ne_branch] = Dict(x for x in nw_ref[:ne_branch] if (x.second["br_status"] == 1 && x.second["f_bus"] in keys(nw_ref[:bus]) && x.second["t_bus"] in keys(nw_ref[:bus])))

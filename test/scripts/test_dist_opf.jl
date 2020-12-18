@@ -8,7 +8,7 @@ const _PM = PowerModels
 import FlexPlan
 const _FP = FlexPlan
 import Ipopt
-my_optimizer = _FP.optimizer_with_attributes(Ipopt.Optimizer,"print_level"=>0,"sb"=>"yes")
+my_optimizer = _FP.optimizer_with_attributes(Ipopt.Optimizer, "print_level"=>0, "sb"=>"yes")
 
 
 ## Load and preprocess data
