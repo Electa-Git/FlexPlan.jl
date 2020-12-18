@@ -142,6 +142,49 @@ function _PM.variable_ne_branch_power_imaginary(pm::BFARadPowerModel; nw::Int=pm
     report && _IM.sol_component_value_edge(pm, nw, :ne_branch, :qf, :qt, _PM.ref(pm, nw, :ne_arcs_from), _PM.ref(pm, nw, :ne_arcs_to), q_ne_expr)
 end
 
+function variable_oltc_branch_transform(pm::BFARadPowerModel; kwargs...)
+    variable_oltc_branch_transform_magnitude_sqr_inv(pm; kwargs...)
+end
+
+"variable: `0 <= ttmi[l]` for `l` in `oltc_branch`es"
+function variable_oltc_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+    ttmi = _PM.var(pm, nw)[:ttmi] = JuMP.@variable(pm.model,
+        [i in _PM.ids(pm, nw, :oltc_branch)], base_name="$(nw)_ttmi",
+        lower_bound = 0.0,
+        start = 1.0 / _PM.ref(pm,nw,:oltc_branch,i,"tap")^2
+    )
+
+    if bounded
+        for (i, br) in _PM.ref(pm, nw, :oltc_branch)
+            JuMP.set_lower_bound(ttmi[i], 1.0 / br["tm_max"]^2 )
+            JuMP.set_upper_bound(ttmi[i], 1.0 / br["tm_min"]^2 )
+        end
+    end
+
+    report && _IM.sol_component_value(pm, nw, :branch, :ttmi, _PM.ids(pm, nw, :oltc_branch), ttmi)
+end
+
+function variable_oltc_ne_branch_transform(pm::BFARadPowerModel; kwargs...)
+    variable_oltc_ne_branch_transform_magnitude_sqr_inv(pm; kwargs...)
+end
+
+"variable: `0 <= ttmi_ne[l]` for `l` in `oltc_ne_branch`es"
+function variable_oltc_ne_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+    ttmi_ne = _PM.var(pm, nw)[:ttmi_ne] = JuMP.@variable(pm.model,
+        [i in _PM.ids(pm, nw, :oltc_ne_branch)], base_name="$(nw)_ttmi_ne",
+        lower_bound = 0.0,
+        start = 1.0 / _PM.ref(pm,nw,:oltc_ne_branch,i,"tap")^2
+    )
+
+    if bounded
+        for (i, br) in _PM.ref(pm, nw, :oltc_ne_branch)
+            JuMP.set_lower_bound(ttmi_ne[i], 1.0 / br["tm_max"]^2 )
+            JuMP.set_upper_bound(ttmi_ne[i], 1.0 / br["tm_min"]^2 )
+        end
+    end
+
+    report && _IM.sol_component_value(pm, nw, :ne_branch, :ttmi, _PM.ids(pm, nw, :oltc_ne_branch), ttmi_ne)
+end
 
 
 ## Constraints ## 
@@ -155,11 +198,39 @@ function constraint_power_losses_on_off(pm::BFARadPowerModel, n::Int, i, f_bus, 
 end
 
 "Nothing to do, this model is lossless"
+function constraint_power_losses_frb(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm)
+end
+
+"Nothing to do, this model is lossless"
+function constraint_power_losses_frb_on_off(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
+end
+
+"Nothing to do, this model is lossless"
+function constraint_power_losses_oltc(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to)
+end
+
+"Nothing to do, this model is lossless"
+function constraint_power_losses_oltc_on_off(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, vad_min, vad_max)
+end
+
+"Nothing to do, this model is lossless"
 function constraint_ne_power_losses(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
 end
 
 "Nothing to do, this model is lossless"
 function constraint_ne_power_losses_parallel(pm::BFARadPowerModel, n::Int, br_idx_e, br_idx_c, f_bus, t_bus, f_idx_c, t_idx_c, r_e, x_e, g_sh_fr_e, g_sh_to_e, b_sh_fr_e, b_sh_to_e, r_c, x_c, g_sh_fr_c, g_sh_to_c, b_sh_fr_c, b_sh_to_c, tm, vad_min, vad_max)
+end
+
+"Nothing to do, this model is lossless"
+function constraint_ne_power_losses_frb(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
+end
+
+"Nothing to do, this model is lossless"
+function constraint_ne_power_losses_frb_parallel(pm::BFARadPowerModel, n::Int, br_idx_e, br_idx_c, f_bus, t_bus, f_idx_c, t_idx_c, r_e, x_e, g_sh_fr_e, g_sh_to_e, b_sh_fr_e, b_sh_to_e, r_c, x_c, g_sh_fr_c, g_sh_to_c, b_sh_fr_c, b_sh_to_c, tm, vad_min, vad_max)
+end
+
+"Nothing to do, this model is lossless"
+function constraint_ne_power_losses_oltc(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, vad_min, vad_max)
 end
 
 "Nothing to do, no voltage angle variables"
@@ -172,6 +243,27 @@ end
 
 "Nothing to do, no voltage angle variables"
 function _PM.constraint_ne_voltage_angle_difference(pm::BFARadPowerModel, n::Int, f_idx, angmin, angmax, vad_min, vad_max)
+end
+
+"Defines voltage drop over a branch whose `f_bus` is the reference bus"
+function constraint_voltage_magnitude_difference_frb(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr, tm)
+    p_fr = _PM.var(pm, n, :p, f_idx)
+    q_fr = _PM.var(pm, n, :q, f_idx)
+    w_to = _PM.var(pm, n, :w, t_bus)
+    # w_fr is assumed equal to 1.0
+
+    JuMP.@constraint(pm.model, (1.0/tm^2) - w_to ==  2*(r*p_fr + x*q_fr))
+end
+
+"Defines voltage drop over a transformer branch that has an OLTC"
+function constraint_voltage_magnitude_difference_oltc(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr)
+    p_fr = _PM.var(pm, n, :p, f_idx)
+    q_fr = _PM.var(pm, n, :q, f_idx)
+    ttmi = _PM.var(pm, n, :ttmi, i)
+    w_to = _PM.var(pm, n, :w, t_bus)
+    # w_fr is assumed equal to 1.0 to preserve the linearity of the model
+
+    JuMP.@constraint(pm.model, 1.0*ttmi - w_to == 2*(r*p_fr + x*q_fr))
 end
 
 "Complex power is limited by an octagon instead of a circle, so as to keep the model linear"
@@ -263,38 +355,69 @@ end
 Converts the solution data into the data model's standard space, polar voltages and rectangular power.
 
 Bus voltage magnitude `vm` is the square root of `w`.
+Voltage magnitude of the reference bus is 1.0 p.u.
 Bus voltage angle `va` is that of the reference bus.
+Branch OLTC tap ratio `tm` (if applies) is the square root of the inverse of `ttmi`.
 """
 function _PM.sol_data_model!(pm::BFARadPowerModel, solution::Dict)
     if haskey(solution, "nw")
-        nws_data = solution["nw"]
-        nws_pmdata = pm.data["nw"]
+        nws_sol = solution["nw"]
     else
-        nws_data = Dict("0" => solution)
-        nws_pmdata = Dict("0" => pm.data)
+        nws_sol = Dict("0" => solution)
     end
 
-    for (n, nw_data) in nws_data
-        if haskey(nw_data, "bus")
-            ref_va = NaN
-            for (i,bus) in nws_pmdata[n]["bus"]
-                if bus["bus_type"] == 3
-                    ref_va = bus["va"]
-                    break
-                end
-            end
-            if ref_va == NaN
-                Memento.warn(_LOGGER, "no reference bus found, setting voltage angle to 0 for all buses")
-                ref_va = 0.0
-            end
+    for (nw, nw_sol) in nws_sol
 
-            for (i,bus) in nw_data["bus"]
-                if haskey(bus, "w")
-                    bus["vm"] = sqrt(bus["w"])
-                    delete!(bus, "w")
+        # Find reference bus id
+        n = parse(Int, nw)
+        ref_buses = _PM.ref(pm,n,:ref_buses)
+        if length(ref_buses) == 0
+            Memento.error(_LOGGER, "no reference bus found")
+        end
+        if length(ref_buses) > 1
+            Memento.error(_LOGGER, "networks with multiple reference buses are not supported")
+        end
+        ref_bus_id = first(keys(ref_buses))
+
+        # The voltage angle of all buses is that of the reference bus
+        ref_bus_va = _PM.ref(pm,n,:bus,ref_bus_id,"va")
+        for (i,bus) in nw_sol["bus"]
+            if haskey(bus, "w")
+                bus["vm"] = sqrt(bus["w"])
+                delete!(bus, "w")
+            end
+            bus["va"] = ref_bus_va
+        end
+
+        # The voltage magnitude of the reference bus is 1.0 p.u.
+        nw_sol["bus"]["$ref_bus_id"]["vm"] = 1.0
+
+        # OLTC tap ratio `tm` of `branch`es (if applies) is the square root of the inverse of `ttmi`
+        for (i,br) in nw_sol["branch"]
+            if haskey(br, "ttmi")
+                if haskey(nw_sol,"ne_branch") && any([nw_sol["ne_branch"]["$ne_br_id"]["built"] for ne_br_id in ne_branch_ids(pm,parse(Int,i))] .== 1.0)
+                    # if branch is not built
+                    br["tm"] = 0.0
+                else
+                    br["tm"] = sqrt(1.0/br["ttmi"])
                 end
-                bus["va"] = ref_va
+                delete!(br, "ttmi")
             end
         end
+
+        # OLTC tap ratio `tm` of `ne_branch`es (if applies) is the square root of the inverse of `ttmi`
+        if haskey(nw_sol,"ne_branch")
+            for (i,br) in nw_sol["ne_branch"]
+                if haskey(br, "ttmi")
+                    if br["built"] == 0.0
+                        br["tm"] = 0.0
+                    else
+                        br["tm"] = sqrt(1.0/br["ttmi"])
+                    end
+                    delete!(br, "ttmi")
+                end
+            end
+        end
+
     end
 end

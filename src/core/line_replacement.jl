@@ -181,6 +181,49 @@ function constraint_power_losses_on_off(pm::_PM.AbstractPowerModel, br_idx::Int;
 end
 
 ""
+function constraint_power_losses_frb_on_off(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=pm.cnw)
+    branch = _PM.ref(pm, nw, :branch, br_idx)
+    f_bus = branch["f_bus"]
+    t_bus = branch["t_bus"]
+    f_idx = (br_idx, f_bus, t_bus)
+    t_idx = (br_idx, t_bus, f_bus)
+
+    r = branch["br_r"]
+    x = branch["br_x"]
+    tm = branch["tap"]
+    g_sh_fr = branch["g_fr"]
+    g_sh_to = branch["g_to"]
+    b_sh_fr = branch["b_fr"]
+    b_sh_to = branch["b_to"]
+
+    vad_min = _PM.ref(pm, nw, :off_angmin)
+    vad_max = _PM.ref(pm, nw, :off_angmax)
+
+    constraint_power_losses_frb_on_off(pm, nw, br_idx, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
+end
+
+""
+function constraint_power_losses_oltc_on_off(pm::_PM.AbstractBFModel, br_idx::Int; nw::Int=pm.cnw)
+    branch = _PM.ref(pm, nw, :branch, br_idx)
+    f_bus = branch["f_bus"]
+    t_bus = branch["t_bus"]
+    f_idx = (br_idx, f_bus, t_bus)
+    t_idx = (br_idx, t_bus, f_bus)
+
+    r = branch["br_r"]
+    x = branch["br_x"]
+    g_sh_fr = branch["g_fr"]
+    g_sh_to = branch["g_to"]
+    b_sh_fr = branch["b_fr"]
+    b_sh_to = branch["b_to"]
+
+    vad_min = _PM.ref(pm, nw, :off_angmin)
+    vad_max = _PM.ref(pm, nw, :off_angmax)
+
+    constraint_power_losses_oltc_on_off(pm, nw, br_idx, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, vad_min, vad_max)
+end
+
+""
 function constraint_ne_power_losses_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=pm.cnw)
     ne_branch = _PM.ref(pm, nw, :ne_branch, ne_br_idx)
     f_bus = ne_branch["f_bus"]
@@ -216,6 +259,41 @@ function constraint_ne_power_losses_parallel(pm::_PM.AbstractPowerModel, ne_br_i
 end
 
 ""
+function constraint_ne_power_losses_frb_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=pm.cnw)
+    ne_branch = _PM.ref(pm, nw, :ne_branch, ne_br_idx)
+    f_bus = ne_branch["f_bus"]
+    t_bus = ne_branch["t_bus"]
+    f_idx = (ne_br_idx, f_bus, t_bus)
+    t_idx = (ne_br_idx, t_bus, f_bus)
+    vad_min = _PM.ref(pm, nw, :off_angmin)
+    vad_max = _PM.ref(pm, nw, :off_angmax)
+
+    ne_r       = ne_branch["br_r"]
+    ne_x       = ne_branch["br_x"]
+    ne_tm      = ne_branch["tap"]
+    ne_g_sh_fr = ne_branch["g_fr"]
+    ne_g_sh_to = ne_branch["g_to"]
+    ne_b_sh_fr = ne_branch["b_fr"]
+    ne_b_sh_to = ne_branch["b_to"]
+
+    br_idx  = branch_idx(pm, nw, f_bus, t_bus)
+    branch  = _PM.ref(pm, nw, :branch, br_idx)
+    r       = branch["br_r"]
+    x       = branch["br_x"]
+    tm      = branch["tap"]
+    g_sh_fr = branch["g_fr"]
+    g_sh_to = branch["g_to"]
+    b_sh_fr = branch["b_fr"]
+    b_sh_to = branch["b_to"]
+
+    if ne_tm != tm
+        Memento.error(_LOGGER, "ne_branch $(ne_br_idx) cannot be built in parallel to branch $(br_idx) because has a different tap ratio")
+    end
+
+    constraint_ne_power_losses_frb_parallel(pm, nw, br_idx, ne_br_idx, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, ne_r, ne_x, ne_g_sh_fr, ne_g_sh_to, ne_b_sh_fr, ne_b_sh_to, tm, vad_min, vad_max)
+end
+
+""
 function constraint_voltage_magnitude_difference_on_off(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=pm.cnw)
     branch = _PM.ref(pm, nw, :branch, br_idx)
     f_bus = branch["f_bus"]
@@ -230,6 +308,41 @@ function constraint_voltage_magnitude_difference_on_off(pm::_PM.AbstractPowerMod
     tm = branch["tap"]
 
     constraint_voltage_magnitude_difference_on_off(pm, nw, br_idx, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr, tm)
+end
+
+""
+function constraint_voltage_magnitude_difference_frb_on_off(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=pm.cnw)
+    branch = _PM.ref(pm, nw, :branch, br_idx)
+    f_bus = branch["f_bus"]
+    t_bus = branch["t_bus"]
+    f_idx = (br_idx, f_bus, t_bus)
+    t_idx = (br_idx, t_bus, f_bus)
+
+    r = branch["br_r"]
+    x = branch["br_x"]
+    g_sh_fr = branch["g_fr"]
+    b_sh_fr = branch["b_fr"]
+    tm = branch["tap"]
+
+    constraint_voltage_magnitude_difference_frb_on_off(pm, nw, br_idx, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr, tm)
+end
+
+""
+function constraint_voltage_magnitude_difference_oltc_on_off(pm::_PM.AbstractBFModel, br_idx::Int; nw::Int=pm.cnw)
+    branch = _PM.ref(pm, nw, :branch, br_idx)
+    f_bus = branch["f_bus"]
+    t_bus = branch["t_bus"]
+    f_idx = (br_idx, f_bus, t_bus)
+    t_idx = (br_idx, t_bus, f_bus)
+
+    r = branch["br_r"]
+    x = branch["br_x"]
+    g_sh_fr = branch["g_fr"]
+    b_sh_fr = branch["b_fr"]
+    tm_min = branch["tm_min"]
+    tm_max = branch["tm_max"]
+
+    constraint_voltage_magnitude_difference_oltc_on_off(pm, nw, br_idx, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr, tm_min, tm_max)
 end
 
 ""
@@ -254,11 +367,46 @@ function constraint_ne_voltage_magnitude_difference_parallel(pm::_PM.AbstractPow
     b_sh_fr = branch["b_fr"]
     tm      = branch["tap"]
 
+    if is_oltc_branch(pm, br_idx)
+        Memento.error(_LOGGER, "ne_branch $ne_br_idx cannot be built in parallel to an OLTC (branch $br_idx)")
+    end
     if ne_tm != tm
-        Memento.error(_LOGGER, "ne_branch $(ne_br_idx) cannot be built in parallel to branch $(br_idx) because has a different tap ratio")
+        Memento.error(_LOGGER, "ne_branch $ne_br_idx cannot be built in parallel to branch $br_idx because has a different tap ratio")
     end
 
     constraint_ne_voltage_magnitude_difference_parallel(pm, nw, br_idx, ne_br_idx, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr, ne_r, ne_x, ne_g_sh_fr, ne_b_sh_fr, tm)
+end
+
+""
+function constraint_ne_voltage_magnitude_difference_frb_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=pm.cnw)
+    ne_branch = _PM.ref(pm, nw, :ne_branch, ne_br_idx)
+    f_bus = ne_branch["f_bus"]
+    t_bus = ne_branch["t_bus"]
+    f_idx = (ne_br_idx, f_bus, t_bus)
+    t_idx = (ne_br_idx, t_bus, f_bus)
+
+    ne_r       = ne_branch["br_r"]
+    ne_x       = ne_branch["br_x"]
+    ne_g_sh_fr = ne_branch["g_fr"]
+    ne_b_sh_fr = ne_branch["b_fr"]
+    ne_tm      = ne_branch["tap"]
+
+    br_idx  = branch_idx(pm, nw, f_bus, t_bus)
+    branch  = _PM.ref(pm, nw, :branch, br_idx)
+    r       = branch["br_r"]
+    x       = branch["br_x"]
+    g_sh_fr = branch["g_fr"]
+    b_sh_fr = branch["b_fr"]
+    tm      = branch["tap"]
+
+    if is_oltc_branch(pm, br_idx)
+        Memento.error(_LOGGER, "ne_branch $ne_br_idx cannot be built in parallel to an OLTC (branch $br_idx)")
+    end
+    if ne_tm != tm
+        Memento.error(_LOGGER, "ne_branch $ne_br_idx cannot be built in parallel to branch $br_idx because has a different tap ratio")
+    end
+
+    constraint_ne_voltage_magnitude_difference_frb_parallel(pm, nw, br_idx, ne_br_idx, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr, ne_r, ne_x, ne_g_sh_fr, ne_b_sh_fr, tm)
 end
 
 ""
@@ -371,12 +519,58 @@ function constraint_voltage_magnitude_difference_on_off(pm::_PM.AbstractBFAModel
 end
 
 ""
+function constraint_voltage_magnitude_difference_frb_on_off(pm::_PM.AbstractBFAModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr, tm)
+    branch = _PM.ref(pm, n, :branch, i)
+    fr_bus = _PM.ref(pm, n, :bus, f_bus)
+    to_bus = _PM.ref(pm, n, :bus, t_bus)
+    M_hi   =  1.0^2/tm^2 - to_bus["vmin"]^2
+    M_lo   = -1.0^2/tm^2 + to_bus["vmax"]^2
+    
+    p_fr = _PM.var(pm, n, :p, f_idx)
+    q_fr = _PM.var(pm, n, :q, f_idx)
+    w_to = _PM.var(pm, n, :w, t_bus)
+    z    = _PM.var(pm, n, :z_branch, i)
+    # w_fr is assumed equal to 1.0
+
+    JuMP.@constraint(pm.model, (1.0/tm^2) - w_to <= 2*(r*p_fr + x*q_fr) + M_hi*(1-z) )
+    JuMP.@constraint(pm.model, (1.0/tm^2) - w_to >= 2*(r*p_fr + x*q_fr) - M_lo*(1-z) )
+end
+
+""
+function constraint_voltage_magnitude_difference_oltc_on_off(pm::_PM.AbstractBFAModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr, tm_min, tm_max)
+    branch = _PM.ref(pm, n, :branch, i)
+    fr_bus = _PM.ref(pm, n, :bus, f_bus)
+    to_bus = _PM.ref(pm, n, :bus, t_bus)
+    M_hi   =  1.0^2/tm_min^2 - to_bus["vmin"]^2
+    M_lo   = -1.0^2/tm_max^2 + to_bus["vmax"]^2
+    
+    p_fr = _PM.var(pm, n, :p, f_idx)
+    q_fr = _PM.var(pm, n, :q, f_idx)
+    ttmi = _PM.var(pm, n, :ttmi, i)
+    w_to = _PM.var(pm, n, :w, t_bus)
+    z    = _PM.var(pm, n, :z_branch, i)
+    # w_fr is assumed equal to 1.0 to preserve the linearity of the model
+
+    JuMP.@constraint(pm.model, 1.0*ttmi - w_to <= 2*(r*p_fr + x*q_fr) + M_hi*(1-z) )
+    JuMP.@constraint(pm.model, 1.0*ttmi - w_to >= 2*(r*p_fr + x*q_fr) - M_lo*(1-z) )
+end
+
+""
 function constraint_ne_voltage_magnitude_difference_parallel(pm::_PM.AbstractBFAModel, n::Int, br_idx_e, br_idx_c, f_bus, t_bus, f_idx_c, t_idx_c, r_e, x_e, g_sh_fr_e, b_sh_fr_e, r_c, x_c, g_sh_fr_c, b_sh_fr_c, tm)
     # Suffixes: _e: existing branch; _c: candidate branch; _p: parallel equivalent
     r_p  = (r_e*(r_c^2+x_c^2)+r_c*(r_e^2+x_e^2)) / ((r_e+r_c)^2+(x_e+x_c)^2)
     x_p  = (x_e*(r_c^2+x_c^2)+x_c*(r_e^2+x_e^2)) / ((r_e+r_c)^2+(x_e+x_c)^2)
 
     constraint_ne_voltage_magnitude_difference(pm::_PM.AbstractBFAModel, n::Int, br_idx_c, f_bus, t_bus, f_idx_c, t_idx_c, r_p, x_p, 0, 0, tm)
+end
+
+""
+function constraint_ne_voltage_magnitude_difference_frb_parallel(pm::_PM.AbstractBFAModel, n::Int, br_idx_e, br_idx_c, f_bus, t_bus, f_idx_c, t_idx_c, r_e, x_e, g_sh_fr_e, b_sh_fr_e, r_c, x_c, g_sh_fr_c, b_sh_fr_c, tm)
+    # Suffixes: _e: existing branch; _c: candidate branch; _p: parallel equivalent
+    r_p  = (r_e*(r_c^2+x_c^2)+r_c*(r_e^2+x_e^2)) / ((r_e+r_c)^2+(x_e+x_c)^2)
+    x_p  = (x_e*(r_c^2+x_c^2)+x_c*(r_e^2+x_e^2)) / ((r_e+r_c)^2+(x_e+x_c)^2)
+
+    constraint_ne_voltage_magnitude_difference_frb(pm::_PM.AbstractBFAModel, n::Int, br_idx_c, f_bus, t_bus, f_idx_c, t_idx_c, r_p, x_p, 0, 0, tm)
 end
 
 

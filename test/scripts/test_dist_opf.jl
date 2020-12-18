@@ -26,7 +26,7 @@ _PM.make_per_unit!(network_data)
 
 ## Generate model
 
-pm = _PM.instantiate_model(network_data, _FP.BFARadPowerModel, _PM.build_opf_bf)
+pm = _PM.instantiate_model(network_data, _FP.BFARadPowerModel, _FP.build_opf_rad; ref_extensions=[_FP.ref_add_frb_branch!,_FP.ref_add_oltc_branch!])
 
 
 ## Solve problem
@@ -38,14 +38,6 @@ result = _PM.optimize_model!(pm; optimizer=my_optimizer)
 _PM.sol_data_model!(pm, result["solution"])
 
 
-## Compare result to AC OPF
+## Write result
 
-pm_benchmark = _PM.instantiate_model(network_data, _PM.ACPPowerModel, _PM.build_opf)
-result_benchmark = _PM.optimize_model!(pm_benchmark; optimizer=my_optimizer)
-@assert result_benchmark["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result_benchmark["optimizer"]) termination status: $(result_benchmark["termination_status"])"
-
-printstyled("AC OPF\n\n"; color=:bold)
-_PM.print_summary(result_benchmark["solution"])
-
-printstyled("\n\nLinear AC approximation for radial networks\n\n"; color=:bold)
 _PM.print_summary(result["solution"])
