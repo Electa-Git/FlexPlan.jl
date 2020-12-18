@@ -52,12 +52,12 @@ load_mod_mean = 120
 load_mod_var = 120
 loadprofile[i_load_mod,:] = ( load_mod_mean .+ load_mod_var .* sin.(t_vec * 2*pi/24) )/240 
 
-# Increse load on one of the days
+# Increase load on one of the days
 day = 2
 mins = findall(x->x==0,loadprofile)
-loadprofile[mins[day-1]:mins[day]] *=3
+loadprofile[mins[day-1]:mins[day]] *= 3
 day = 3
-loadprofile[mins[day-1]:mins[day]] *=2.5
+loadprofile[mins[day-1]:mins[day]] *= 2.5
 
 # Data manipulation (per unit conversions and matching data models)
 data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
@@ -201,3 +201,123 @@ shift_vars = ["pshift_down","pshift_down_tot","pshift_up","pshift_up_tot",
               "pnce", "pcurt", "pflex"]
 plot_var(result_test1, "load", "5", shift_vars)
 
+
+## Run marginal analysis with model
+include("../../src/addon/marginal_analysis.jl")
+include("../../src/io/get_marginal_analysis_results.jl")
+
+m_utype = "load"
+m_unit = "5"
+m_param = "cost_investment"
+inv_var = "isflex"
+#inv_var = "isbuilt"
+data["branchdc_ne"]["3"]["cost"] = 3.5
+marginal_param = Dict((m_utype, m_unit, m_param) => [1 10 100 1000 10000])
+m_res = marginal_analysis(marginal_param, data, extradata, _PM, cbc)
+data["branchdc_ne"]["3"]["cost"] = 3.5
+
+## Plot marginal analysis results
+# m_utype = "branchdc_ne"
+# m_unit = "3"
+# inv_var = "isbuilt"
+
+ax_type = :log # true
+m_cost = Dict()
+for (k, v) in m_res
+    m_cost[k] = v["objective"]
+end
+m_cost = sort(m_cost)
+ma_linecost = plot(m_cost)
+scatter!(m_cost, ylabel="Objective value", xaxis=ax_type, legend=false)
+savefig(ma_linecost, "ma_linecost.png")
+
+#res_var_1 = get_vars(m_res[100], m_utype, m_unit)
+#res_var_1_10 = get_vars(m_res[300], m_utype, m_unit)
+#res_var_1_100 = get_vars(m_res[500], m_utype, m_unit)
+#res_var_1_1000 = get_vars(m_res[700], m_utype, m_unit)
+#res_var_1_10000 = get_vars(m_res[900], m_utype, m_unit)
+
+
+snap_res = snapshot_utype(m_res[100], m_utype, 1)
+
+isbuilt = get_ma_results(m_res, m_utype, inv_var)
+
+load_t1 = snapshot_utype(m_res[100], m_utype, 1)
+
+
+new_dcbranches = plot_var(isbuilt, :pval, xaxis=ax_type, seriestype=:scatter,
+                          xlabel=join([m_utype, " investment cost"]),
+                          ylabel = join([m_utype, " built? (bool)"]),
+                          legendtitle=join([m_utype, " number:"]),
+                          legendtitlefontsize=8)
+
+dcbranch_inv_plot = plot(ma_linecost, new_dcbranches, layout = @layout([A; B]),
+         size=(700, 400))
+savefig(dcbranch_inv_plot, "branch_inv_plot.png")
+
+
+## Plot results
+pval = 500
+plot_res = m_res[pval]
+
+# Get variables per unit by times
+load5 = get_vars(plot_res, "load", "5")
+branchdc_1 = get_vars(plot_res, "branchdc", "1")
+branchdc_2 = get_vars(plot_res, "branchdc", "2")
+branchdc_ne_3 = get_vars(plot_res, "branchdc_ne", "3")
+
+# Plot combined stacked area and line plot for energy balance in bus 5
+#... plot areas for power contribution from different sources
+stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pnce) select(load5, :pcurt)]
+stack_labels = ["dc branch 2" "new dc branch 3" "dc branch 1"  "reduced load" "curtailed load"]
+stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
+#... lines for base and flexible demand
+bus_nr = 5
+load5_input = transpose(extradata["load"][string(bus_nr)]["pd"])
+plot!(t_vec, load5_input, color=:red, width=3.0, label="base demand", line=:dash)
+plot_var!(plot_res, "load", string(bus_nr),"pflex", label="flexible demand",
+          ylabel="power (p.u.)", color=:blue, width=3.0, line=:dash, gridalpha=0.5)
+#... save figure
+savefig(stacked_plot, "bus5_balance.png")
+
+# Plot energy not served
+plot_not_served = plot_var(plot_res, "load", "5", "ence", color=:black, width=3.0,
+                           label="total energy not served", xlabel="time (h)",
+                           ylabel="energy (p.u.)", legend=false, gridalpha=0.5)
+
+# Make legend in new plot
+pos = (0,.7)
+v1legend = stackedarea([0], [[0] [0] [0] [0] [0]], label=stack_labels)
+plot!([0], label = "base demand", color=:red, line=:dash, width=3.0)
+plot!([0], label = "flexible demand", color=:blue, line=:dash, width=3.0)
+plot!([0], label = "total energy not served", color=:black, width=3.0, showaxis=false, grid=false,
+      legend=pos, foreground_color_legend = nothing)
+
+# Add the two plots (energy balance and shifted demand) vertially
+#   and the legend on the side (with a given width -> .2w)
+vertical_plot = plot(stacked_plot, plot_not_served, v1legend, layout = @layout([[A; B] C{.22w}]),
+                     size=(700, 400))
+savefig(vertical_plot, join(["bus5_balance_", pval, ".png"]))
+
+# Plot the shifted demand
+stack_series = select(load5, :pshift_up)
+label = "pshift_up"
+plot_energy_shift = stackedarea(t_vec, stack_series,  labels=label, alpha=0.7, color=:blue, legend=false)
+stack_series = select(load5, :pshift_down)*-1
+label = "pshift_down"
+stackedarea!(t_vec, stack_series, labels=label, xlabel="time (h)", ylabel="load shifted (p.u.)",
+             alpha=0.7, color=:red, legend=false, gridalpha=0.5)
+
+# Make legend in new plot
+pos = (0,.7)
+v2legend = stackedarea([0], [[0] [0] [0] [0] [0]], label=stack_labels)
+plot!([0], label = "base demand", color=:red, line=:dash, width=3.0)
+plot!([0], label = "flexible demand", color=:blue, line=:dash, width=3.0)
+stackedarea!([0],[0],label="load shift up", color=:blue)
+stackedarea!([0],[0], showaxis=false, grid=false, label="load shift down", legend=pos, color=:red,
+             foreground_color_legend = nothing)
+# Add the two plots (energy balance and shifted demand) vertially
+#   and the legend on the side (with a given width -> .2w)
+vshift_plot = plot(stacked_plot, plot_energy_shift, v2legend, layout = @layout([[A; B] C{.2w}]),
+                   size=(700, 400))
+savefig(vshift_plot, join(["bus5_balance_shift_", pval, ".png"]))

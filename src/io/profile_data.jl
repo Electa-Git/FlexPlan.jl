@@ -149,17 +149,29 @@ function create_profile_data_italy(data, scenario = Dict{String, Any}())
     data["scenario"] = Dict{String, Any}()
     data["scenario_prob"] = Dict{String, Any}()
 
+    if haskey(scenario, "mc")
+        monte_carlo = scenario["mc"]
+    else
+        monte_carlo = false
+    end
+
     for (s, scnr) in scenario["sc_years"]
         year = scnr["year"]
-        pv_sicily, pv_south_central, wind_sicily = read_res_data(year)
-        demand_center_north_pu, demand_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu = read_demand_data(year)
+        pv_sicily, pv_south_central, wind_sicily = read_res_data(year; mc = monte_carlo)
+        demand_center_north_pu, demand_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu = read_demand_data(year; mc = monte_carlo)
 
         start_idx = (parse(Int, s) - 1) * scenario["hours"]
-        for h in 1 : scenario["hours"]
-            h_idx = scnr["start"] + ((h-1) * 3600000)
-            genprofile[3, start_idx + h] = pv_south_central["data"]["$h_idx"]["electricity"]
-            genprofile[5, start_idx + h] = pv_sicily["data"]["$h_idx"]["electricity"]
-            genprofile[6, start_idx + h] = wind_sicily["data"]["$h_idx"]["electricity"]
+        if monte_carlo == false
+            for h in 1 : scenario["hours"]
+                h_idx = scnr["start"] + ((h-1) * 3600000)
+                genprofile[3, start_idx + h] = pv_south_central["data"]["$h_idx"]["electricity"]
+                genprofile[5, start_idx + h] = pv_sicily["data"]["$h_idx"]["electricity"]
+                genprofile[6, start_idx + h] = wind_sicily["data"]["$h_idx"]["electricity"]
+            end
+        else
+            genprofile[3, start_idx + 1 : start_idx + scenario["hours"]] = pv_south_central[1: scenario["hours"]]
+            genprofile[5, start_idx + 1 : start_idx + scenario["hours"]] = pv_sicily[1: scenario["hours"]]
+            genprofile[6, start_idx + 1 : start_idx + scenario["hours"]] = wind_sicily[1: scenario["hours"]]
         end
         loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = [demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1: scenario["hours"]]
         # loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = repeat([demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1],1,scenario["hours"])
@@ -170,7 +182,7 @@ function create_profile_data_italy(data, scenario = Dict{String, Any}())
             network = start_idx + h
             data["scenario"][s]["$h"] = network
         end
-    
+
     end
     # Add bus loactions to data dictionary
     data["bus"]["1"]["lat"] = 43.4894; data["bus"]["1"]["lon"] =  11.7946; #Italy central north
@@ -181,4 +193,24 @@ function create_profile_data_italy(data, scenario = Dict{String, Any}())
     data["bus"]["6"]["lat"] = 37.4844; data["bus"]["6"]["lon"] =   14.1568; # Sicily
     # Return info
     return data, loadprofile, genprofile
+end
+
+function create_profile_data_norway(data, number_of_hours)
+# creates load and generation profiles from Norway data
+# - for now generation profile is constant at 1.0
+# - for now works only for single scenario
+
+    demand_data = CSV.read("./test/data/demand_Norway_2015.csv")
+    demand = demand_data[:,2:end]
+    n_hours_data = size(demand,1)
+    n_loads_data = size(demand,2)
+    demand_pu = zeros(n_hours_data,n_loads_data)
+    for i_load_data = 1:n_loads_data
+          demand_pu[:,i_load_data] = demand[:,i_load_data] ./ maximum(demand[:,i_load_data])
+    end
+    loadprofile = demand_pu[1:number_of_hours,1:length(data["load"])]'
+    # for now gen profile is constant
+    genprofile = ones(length(data["gen"]), number_of_hours)
+
+    return data,loadprofile,genprofile
 end
