@@ -7,7 +7,7 @@
 
 ""
 function run_tnep_bf(file, model_type::Type, optimizer; kwargs...)
-    return _PM.run_model(file, model_type, optimizer, build_tnep_bf; ref_extensions=[_PM.ref_add_on_off_va_bounds!,ref_add_ne_branch_parallel!], kwargs...)
+    return _PM.run_model(file, model_type, optimizer, build_tnep_bf; ref_extensions=[_PM.ref_add_on_off_va_bounds!,ref_add_ne_branch_allbranches!], kwargs...)
 end
 
 "the general form of the tnep optimization model for branch flow formulations"
@@ -74,8 +74,8 @@ function build_tnep_bf(pm::_PM.AbstractPowerModel)
     end
 end
 
-"like ref_add_ne_branch!, but ne_buspairs are built using calc_buspair_parameters_parallel"
-function ref_add_ne_branch_parallel!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
+"like ref_add_ne_branch!, but ne_buspairs are built using calc_buspair_parameters_allbranches"
+function ref_add_ne_branch_allbranches!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
     for (nw, nw_ref) in ref[:nw]
         if !haskey(nw_ref, :ne_branch)
             error(_LOGGER, "required ne_branch data not found")
@@ -96,13 +96,13 @@ function ref_add_ne_branch_parallel!(ref::Dict{Symbol,<:Any}, data::Dict{String,
         if !haskey(nw_ref, :ne_buspairs)
             ismc = haskey(nw_ref, :conductors)
             cid = nw_ref[:conductor_ids]
-            nw_ref[:ne_buspairs] = calc_buspair_parameters_parallel(nw_ref[:bus], nw_ref[:ne_branch], cid, ismc)
+            nw_ref[:ne_buspairs] = calc_buspair_parameters_allbranches(nw_ref[:bus], nw_ref[:ne_branch], cid, ismc)
         end
     end
 end
 
 "like calc_buspair_parameters, but retains indices of all the branches and drops keys that depend on branch"
-function calc_buspair_parameters_parallel(buses, branches, conductor_ids, ismulticondcutor)
+function calc_buspair_parameters_allbranches(buses, branches, conductor_ids, ismulticondcutor)
     bus_lookup = Dict(bus["index"] => bus for (i,bus) in buses if bus["bus_type"] != 4)
 
     branch_lookup = Dict(branch["index"] => branch for (i,branch) in branches if branch["br_status"] == 1 && haskey(bus_lookup, branch["f_bus"]) && haskey(bus_lookup, branch["t_bus"]))

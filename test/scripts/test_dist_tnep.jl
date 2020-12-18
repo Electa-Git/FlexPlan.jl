@@ -26,7 +26,7 @@ _PM.make_per_unit!(network_data)
 
 ## Generate model
 
-pm = _PM.instantiate_model(network_data, _FP.BFARadPowerModel, _FP.build_tnep_bf; ref_extensions=[_PM.ref_add_on_off_va_bounds!,_FP.ref_add_ne_branch_parallel!])
+pm = _PM.instantiate_model(network_data, _FP.BFARadPowerModel, _FP.build_tnep_bf; ref_extensions=[_PM.ref_add_on_off_va_bounds!,_FP.ref_add_ne_branch_allbranches!])
 
 
 ## Solve problem
