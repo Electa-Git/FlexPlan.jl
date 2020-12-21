@@ -1,15 +1,22 @@
-# Problems defined on distribution networks
+# Contains: problems defined on distribution networks; related functions
+
+export opf_rad, tnep_rad
+
+## Problems defined on distribution networks
 
 
-## Optimal power flow
+### Optimal power flow
 
 ""
-function run_opf_rad(file, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
-    return run_model(file, model_type, optimizer, build_opf_rad; ref_extensions=[ref_add_frb_branch!,ref_add_oltc_branch!], kwargs...)
+function opf_rad(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
+    return _PM.run_model(data, model_type, optimizer, build_opf_rad;
+                         ref_extensions = [ref_add_frb_branch!, ref_add_oltc_branch!],
+                         solution_processors = [_PM.sol_data_model!],
+                         kwargs...)
 end
 
 "Optimal power flow problem for radial networks"
-function build_opf_rad(pm::_PM.AbstractPowerModel)
+function build_opf_rad(pm::_PM.AbstractBFModel)
     _PM.variable_bus_voltage(pm)
     _PM.variable_gen_power(pm)
     _PM.variable_branch_power(pm)
@@ -48,16 +55,19 @@ function build_opf_rad(pm::_PM.AbstractPowerModel)
 end
 
 
-## Network expansion planning
+### Network expansion planning
 # (TNEP acronym is maintained for consistency with transmission networks.)
 
 ""
-function run_tnep_rad(file, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
-    return _PM.run_model(file, model_type, optimizer, build_tnep_rad; ref_extensions=[_PM.ref_add_on_off_va_bounds!,ref_add_ne_branch_allbranches!,ref_add_frb_branch!,ref_add_oltc_branch!], kwargs...)
+function tnep_rad(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
+    return _PM.run_model(data, model_type, optimizer, build_tnep_rad;
+                         ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+                         solution_processors = [_PM.sol_data_model!],
+                         kwargs...)
 end
 
 "Network expansion planning problem for radial networks"
-function build_tnep_rad(pm::_PM.AbstractPowerModel)
+function build_tnep_rad(pm::_PM.AbstractBFModel)
     _PM.variable_bus_voltage(pm)
     _PM.variable_gen_power(pm)
     _PM.variable_branch_power(pm)
@@ -156,6 +166,10 @@ function build_tnep_rad(pm::_PM.AbstractPowerModel)
     end
 end
 
+
+
+## Functions that add or edit model references
+
 "like ref_add_ne_branch!, but ne_buspairs are built using calc_buspair_parameters_allbranches"
 function ref_add_ne_branch_allbranches!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
     for (nw, nw_ref) in ref[:nw]
@@ -233,9 +247,6 @@ function calc_buspair_parameters_allbranches(buses, branches, conductor_ids, ism
     return buspairs
 end
 
-
-## Auxiliary functions
-
 """
 Add to `ref` the following keys:
 - `:frb_branch`: the set of `branch`es whose `f_bus` is the reference bus;
@@ -294,6 +305,9 @@ function ref_add_oltc_branch!(ref::Dict{Symbol,Any}, data::Dict{String,<:Any})
         end
     end
 end
+
+
+## Lookup functions, to build the constraint selection logic
 
 "Return whether the `f_bus` of branch `i` is the reference bus."
 function is_frb_branch(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
