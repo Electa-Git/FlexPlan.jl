@@ -15,7 +15,6 @@ function build_opf_rad(pm::_PM.AbstractPowerModel)
     _PM.variable_branch_power(pm)
     _PM.variable_branch_current(pm)
     variable_oltc_branch_transform(pm)
-    _PM.variable_dcline_power(pm)
 
     _PM.objective_min_fuel_and_flow_cost(pm)
 
@@ -46,10 +45,6 @@ function build_opf_rad(pm::_PM.AbstractPowerModel)
         _PM.constraint_thermal_limit_from(pm, i)
         _PM.constraint_thermal_limit_to(pm, i)
     end
-
-    for i in _PM.ids(pm, :dcline)
-        _PM.constraint_dcline_power_losses(pm, i)
-    end
 end
 
 
@@ -68,7 +63,6 @@ function build_tnep_rad(pm::_PM.AbstractPowerModel)
     _PM.variable_branch_power(pm)
     _PM.variable_branch_current(pm)
     variable_oltc_branch_transform(pm)
-    _PM.variable_dcline_power(pm)
 
     _PM.variable_ne_branch_indicator(pm)
     _PM.variable_ne_branch_power(pm)
@@ -159,10 +153,6 @@ function build_tnep_rad(pm::_PM.AbstractPowerModel)
             constraint_ne_thermal_limit_to_parallel(pm, i)
         end
         _PM.constraint_ne_voltage_angle_difference(pm, i)
-    end
-
-    for i in _PM.ids(pm, :dcline)
-        _PM.constraint_dcline_power_losses(pm, i)
     end
 end
 
