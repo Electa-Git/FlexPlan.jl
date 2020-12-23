@@ -281,8 +281,8 @@ end
 function _PM.constraint_thermal_limit_from(pm::BFARadPowerModel, n::Int, f_idx, rate_a)
     p_fr = _PM.var(pm, n, :p, f_idx)
     q_fr = _PM.var(pm, n, :q, f_idx)
-    c_perp = 0.9238795325112867 # == cos(π/8)
-    c_diag = 1.3065629648763766 # == sin(π/8) + cos(π/8) == cos(π/8) * sqrt(2)
+    c_perp = cos(π/8) # ~0.92
+    c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
 
     JuMP.@constraint(pm.model, -c_perp*rate_a <= p_fr        <= c_perp*rate_a)
     JuMP.@constraint(pm.model, -c_perp*rate_a <=        q_fr <= c_perp*rate_a)
@@ -295,8 +295,8 @@ function _PM.constraint_thermal_limit_from_on_off(pm::BFARadPowerModel, n::Int, 
     p_fr = _PM.var(pm, n, :p, f_idx)
     q_fr = _PM.var(pm, n, :q, f_idx)
     z    = _PM.var(pm, n, :z_branch, i)
-    c_perp = 0.9238795325112867 # == cos(π/8)
-    c_diag = 1.3065629648763766 # == sin(π/8) + cos(π/8) == cos(π/8) * sqrt(2)
+    c_perp = cos(π/8) # ~0.92
+    c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
 
     JuMP.@constraint(pm.model, p_fr        >= -c_perp*rate_a*z)
     JuMP.@constraint(pm.model, p_fr        <=  c_perp*rate_a*z)
@@ -313,8 +313,8 @@ function _PM.constraint_ne_thermal_limit_from(pm::BFARadPowerModel, n::Int, i, f
     p_fr = _PM.var(pm, n, :p_ne, f_idx)
     q_fr = _PM.var(pm, n, :q_ne, f_idx)
     z    = _PM.var(pm, n, :branch_ne, i)
-    c_perp = 0.9238795325112867 # == cos(π/8)
-    c_diag = 1.3065629648763766 # == sin(π/8) + cos(π/8) == cos(π/8) * sqrt(2)
+    c_perp = cos(π/8) # ~0.92
+    c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
 
     JuMP.@constraint(pm.model, p_fr        >= -c_perp*rate_a*z)
     JuMP.@constraint(pm.model, p_fr        <=  c_perp*rate_a*z)

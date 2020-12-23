@@ -16,7 +16,7 @@ Properties:
 - lossless.
 
 Differences with respect to `BFAPowerModel`:
-- shunt admittances of the branches are negected;
+- shunt admittances of the branches are neglected;
 - the complex power in the thermal limit constraints of the branches is limited by an octagon
   instead of a circle, so as to keep the model linear. 
 """

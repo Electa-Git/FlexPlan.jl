@@ -343,7 +343,7 @@ function constraint_storage_thermal_limit_ne(pm::_PM.AbstractPowerModel, n::Int,
 end
 
 function constraint_storage_losses_ne(pm::_PM.AbstractAPLossLessModels, n::Int, i, bus, r, x, p_loss, q_loss)
-    ps =_PM. var(pm, n, :ps_ne, i)
+    ps = _PM.var(pm, n, :ps_ne, i)
     sc = _PM.var(pm, n, :sc_ne, i)
     sd = _PM.var(pm, n, :sd_ne, i)
 
