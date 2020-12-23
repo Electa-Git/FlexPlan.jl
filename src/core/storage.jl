@@ -339,7 +339,8 @@ function constraint_storage_thermal_limit_ne(pm::_PM.AbstractPowerModel, n::Int,
     ps = _PM.var(pm, n, :ps_ne, i)
     # qs = _PM.var(pm, n, :qs_ne, i)
 
-    JuMP.@constraint(pm.model, ps <= rating)
+    JuMP.lower_bound(ps) < -rating && JuMP.set_lower_bound(ps, -rating)
+    JuMP.upper_bound(ps) >  rating && JuMP.set_upper_bound(ps,  rating)
 end
 
 function constraint_storage_losses_ne(pm::_PM.AbstractAPLossLessModels, n::Int, i, bus, r, x, p_loss, q_loss)
