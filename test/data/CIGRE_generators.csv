@@ -1,4 +1,4 @@
-node  rated power [kW]  technology
+node	rated power [kW]	technology
 3	110	photovoltaic
 4	110	photovoltaic
 5	165	photovoltaic
