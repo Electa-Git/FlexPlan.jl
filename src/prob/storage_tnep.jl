@@ -12,11 +12,15 @@ end
 ""
 function post_strg_tnep(pm::_PM.AbstractPowerModel)
 # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: see storage.jl  
-for (n, networks) in pm.ref[:nw]
+    for (n, networks) in pm.ref[:nw]
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
         _PM.variable_storage_power(pm; nw = n)
+        if pm isa _PM.AbstractBFModel # distribution
+            _PM.variable_branch_current(pm; nw = n)
+            variable_oltc_branch_transform(pm; nw = n)
+        end
 
         _PMACDC.variable_voltage_slack(pm; nw = n)
         _PMACDC.variable_active_dcbranch_flow(pm; nw = n)
@@ -26,11 +30,15 @@ for (n, networks) in pm.ref[:nw]
         variable_absorbed_energy(pm; nw = n)
         variable_absorbed_energy_ne(pm; nw = n)
 
-
         # new variables for TNEP problem
         _PM.variable_ne_branch_indicator(pm; nw = n)
         _PM.variable_ne_branch_power(pm; nw = n)
-        _PM.variable_ne_branch_voltage(pm; nw = n)
+        if pm isa _PM.AbstractBFModel # distribution
+            variable_ne_branch_current(pm; nw = n)
+            variable_oltc_ne_branch_transform(pm; nw = n)
+        else # transmission
+            _PM.variable_ne_branch_voltage(pm; nw = n)
+        end
         variable_storage_power_ne(pm; nw = n)
         _PMACDC.variable_active_dcbranch_flow_ne(pm; nw = n)
         _PMACDC.variable_branch_ne(pm; nw = n)
@@ -42,8 +50,13 @@ for (n, networks) in pm.ref[:nw]
     objective_min_cost_storage(pm)
 #CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: storage.jl 
     for (n, networks) in pm.ref[:nw]
-        _PM.constraint_model_voltage(pm; nw = n)
-        _PM.constraint_ne_model_voltage(pm; nw = n)
+        if pm isa _PM.AbstractBFModel # distribution
+            _PM.constraint_model_current(pm; nw = n)
+            constraint_ne_model_current(pm; nw = n)
+        else # transmission
+            _PM.constraint_model_voltage(pm; nw = n)
+            _PM.constraint_ne_model_voltage(pm; nw = n)
+        end
         _PMACDC.constraint_voltage_dc(pm; nw = n)
         _PMACDC.constraint_voltage_dc_ne(pm; nw = n)
         for i in _PM.ids(pm, n, :ref_buses)
@@ -53,30 +66,111 @@ for (n, networks) in pm.ref[:nw]
         for i in _PM.ids(pm, n, :bus)
             constraint_power_balance_acne_dcne_strg(pm, i; nw = n)
         end
-        if haskey(pm.setting, "allow_line_replacement") && pm.setting["allow_line_replacement"] == true
+
+        if pm isa _PM.AbstractBFModel # distribution
             for i in _PM.ids(pm, n, :branch)
-                constraint_ohms_yt_from_repl(pm, i; nw = n)
-                constraint_ohms_yt_to_repl(pm, i; nw = n)
-                constraint_voltage_angle_difference_repl(pm, i; nw = n)
-                constraint_thermal_limit_from_repl(pm, i; nw = n)
-                constraint_thermal_limit_to_repl(pm, i; nw = n)
+                if isempty(ne_branch_ids(pm, i; nw = n))
+                    if is_frb_branch(pm, i; nw = n)
+                        if is_oltc_branch(pm, i; nw = n)
+                            constraint_power_losses_oltc(pm, i; nw = n)
+                            constraint_voltage_magnitude_difference_oltc(pm, i; nw = n)
+                        else
+                            constraint_power_losses_frb(pm, i; nw = n)
+                            constraint_voltage_magnitude_difference_frb(pm, i; nw = n)
+                        end
+                    else
+                        _PM.constraint_power_losses(pm, i; nw = n)
+                        _PM.constraint_voltage_magnitude_difference(pm, i; nw = n)
+                    end
+                    _PM.constraint_voltage_angle_difference(pm, i; nw = n)
+                    _PM.constraint_thermal_limit_from(pm, i; nw = n)
+                    _PM.constraint_thermal_limit_to(pm, i; nw = n)
+                else
+                    expression_branch_indicator(pm, i; nw = n)
+                    constraint_branch_complementarity(pm, i; nw = n)
+        
+                    if is_frb_branch(pm, i; nw = n)
+                        if is_oltc_branch(pm, i; nw = n)
+                            constraint_power_losses_oltc_on_off(pm, i; nw = n)
+                            constraint_voltage_magnitude_difference_oltc_on_off(pm, i; nw = n)
+                        else
+                            constraint_power_losses_frb_on_off(pm, i; nw = n)
+                            constraint_voltage_magnitude_difference_frb_on_off(pm, i; nw = n)
+                        end
+                    else
+                        constraint_power_losses_on_off(pm, i; nw = n)
+                        constraint_voltage_magnitude_difference_on_off(pm, i; nw = n)
+                    end
+                    _PM.constraint_voltage_angle_difference_on_off(pm, i; nw = n)
+                    _PM.constraint_thermal_limit_from_on_off(pm, i; nw = n)
+                    _PM.constraint_thermal_limit_to_on_off(pm, i; nw = n)
+                end
             end
-        else    
-            for i in _PM.ids(pm, n, :branch)
-                _PM.constraint_ohms_yt_from(pm, i; nw = n)
-                _PM.constraint_ohms_yt_to(pm, i; nw = n)
-                _PM.constraint_voltage_angle_difference(pm, i; nw = n)
-                _PM.constraint_thermal_limit_from(pm, i; nw = n)
-                _PM.constraint_thermal_limit_to(pm, i; nw = n)
+        else # transmission
+            if haskey(pm.setting, "allow_line_replacement") && pm.setting["allow_line_replacement"] == true
+                for i in _PM.ids(pm, n, :branch)
+                    constraint_ohms_yt_from_repl(pm, i; nw = n)
+                    constraint_ohms_yt_to_repl(pm, i; nw = n)
+                    constraint_voltage_angle_difference_repl(pm, i; nw = n)
+                    constraint_thermal_limit_from_repl(pm, i; nw = n)
+                    constraint_thermal_limit_to_repl(pm, i; nw = n)
+                end
+            else    
+                for i in _PM.ids(pm, n, :branch)
+                    _PM.constraint_ohms_yt_from(pm, i; nw = n)
+                    _PM.constraint_ohms_yt_to(pm, i; nw = n)
+                    _PM.constraint_voltage_angle_difference(pm, i; nw = n)
+                    _PM.constraint_thermal_limit_from(pm, i; nw = n)
+                    _PM.constraint_thermal_limit_to(pm, i; nw = n)
+                end
             end
         end
-        for i in _PM.ids(pm, n, :ne_branch)
-            _PM.constraint_ne_ohms_yt_from(pm, i; nw = n)
-            _PM.constraint_ne_ohms_yt_to(pm, i; nw = n)
-            _PM.constraint_ne_voltage_angle_difference(pm, i; nw = n)
-            _PM.constraint_ne_thermal_limit_from(pm, i; nw = n)
-            _PM.constraint_ne_thermal_limit_to(pm, i; nw = n)
-            if n > 1
+
+        if pm isa _PM.AbstractBFModel # distribution
+            for i in _PM.ids(pm, n, :ne_branch)
+                if ne_branch_replace(pm, i, nw = n)
+                    if is_frb_ne_branch(pm, i, nw = n)
+                        if is_oltc_ne_branch(pm, i, nw = n)
+                            constraint_ne_power_losses_oltc(pm, i, nw = n)
+                            constraint_ne_voltage_magnitude_difference_oltc(pm, i, nw = n)
+                        else
+                            constraint_ne_power_losses_frb(pm, i, nw = n)
+                            constraint_ne_voltage_magnitude_difference_frb(pm, i, nw = n)
+                        end
+                    else
+                        constraint_ne_power_losses(pm, i, nw = n)
+                        constraint_ne_voltage_magnitude_difference(pm, i, nw = n)
+                    end
+                    _PM.constraint_ne_thermal_limit_from(pm, i, nw = n)
+                    _PM.constraint_ne_thermal_limit_to(pm, i, nw = n)
+                else
+                    if is_frb_ne_branch(pm, i, nw = n)
+                        if is_oltc_ne_branch(pm, i, nw = n)
+                            Memento.error(_LOGGER, "addition of a candidate OLTC in parallel to an existing OLTC is not supported")
+                        else
+                            constraint_ne_power_losses_frb_parallel(pm, i, nw = n)
+                            constraint_ne_voltage_magnitude_difference_frb_parallel(pm, i, nw = n)
+                        end
+                    else
+                        constraint_ne_power_losses_parallel(pm, i, nw = n)
+                        constraint_ne_voltage_magnitude_difference_parallel(pm, i, nw = n)
+                    end
+                    constraint_ne_thermal_limit_from_parallel(pm, i, nw = n)
+                    constraint_ne_thermal_limit_to_parallel(pm, i, nw = n)
+                end
+                _PM.constraint_ne_voltage_angle_difference(pm, i, nw = n)
+            end
+        else # transmission
+            for i in _PM.ids(pm, n, :ne_branch)
+                _PM.constraint_ne_ohms_yt_from(pm, i; nw = n)
+                _PM.constraint_ne_ohms_yt_to(pm, i; nw = n)
+                _PM.constraint_ne_voltage_angle_difference(pm, i; nw = n)
+                _PM.constraint_ne_thermal_limit_from(pm, i; nw = n)
+                _PM.constraint_ne_thermal_limit_to(pm, i; nw = n)
+            end
+        end
+        if n > 1
+            for i in _PM.ids(pm, n, :ne_branch) # both transmission and distribution
                 _PMACDC.constraint_candidate_acbranches_mp(pm, n, i)
             end
         end
