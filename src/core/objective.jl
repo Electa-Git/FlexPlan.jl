@@ -37,9 +37,9 @@ function objective_min_cost_storage(pm::_PM.AbstractPowerModel)
     )
 end
 
-#################################################################
+####################################################################################
 ##################### Objective Objective with candidate storage and flexible demand
-##################################################################
+####################################################################################
 function objective_min_cost_flex(pm::_PM.AbstractPowerModel)
     gen_cost = Dict()
     for (n, nw_ref) in _PM.nws(pm)
@@ -103,7 +103,42 @@ function objective_stoch_flex(pm::_PM.AbstractPowerModel)
     )
 end
 
-function calculate_inv_cost(pm::_PM.AbstractPowerModel, n::Int)
+##########################################################################
+##################### Reliability objective with storage & flex candidates
+##########################################################################
+function objective_reliability(pm::_PM.AbstractPowerModel)
+    gen_cost = Dict()
+    for (s, contingency) in pm.ref[:contingency]
+        for (sc, n) in contingency
+            for (i,gen) in pm.ref[:nw][n][:gen]
+                pg = _PM.var(pm, n, :pg, i)
+                if length(gen["cost"]) == 1
+                    gen_cost[(n,i)] = gen["cost"][1]
+                elseif length(gen["cost"]) == 2
+                    gen_cost[(n,i)] = (gen["cost"][1]*pg + gen["cost"][2])
+                elseif length(gen["cost"]) == 3
+                    gen_cost[(n,i)] = (gen["cost"][2]*pg + gen["cost"][3])
+                else
+                    gen_cost[(n,i)] = 0.0
+                end
+                if haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"] == true
+                    gen_cost[(n,i)] = gen_cost[(n,i)] + gen["emission_factor"] * pg * pm.ref[:co2_emission_cost]
+                end
+            end
+        end
+    end
+    return JuMP.@objective(pm.model, Min,
+    sum(pm.ref[:contingency_prob][s] * 
+        sum(
+            sum(gen_cost[(n,i)] for (i,gen) in pm.ref[:nw][n][:gen]) + calculate_inv_cost(pm, n, is_reliability=true)
+            for (sc, n) in contingency # All times in a contingency scenario
+                ) 
+        for (s, contingency) in pm.ref[:contingency] # All contingency
+            )
+    )
+end
+
+function calculate_inv_cost(pm::_PM.AbstractPowerModel, n::Int; is_reliability::Bool=false)
     if haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"] == true
         inv_cost = (
             sum(conv["cost"]*_PM.var(pm, n, :conv_ne, i) for (i,conv) in pm.ref[:nw][n][:convdc_ne])
@@ -128,8 +163,6 @@ function calculate_inv_cost(pm::_PM.AbstractPowerModel, n::Int)
             +
             sum(load["cost_curtailment"]*_PM.var(pm, n, :pcurt, i) for (i,load) in pm.ref[:nw][n][:load])
             +
-            sum(load["cost_investment"]*_PM.var(pm, n, :z_flex, i) for (i,load) in pm.ref[:nw][n][:load])
-            +
             sum(load["co2_cost"]*_PM.var(pm, n, :z_flex, i) for (i,load) in pm.ref[:nw][n][:load])
             )
     else
@@ -153,5 +186,9 @@ function calculate_inv_cost(pm::_PM.AbstractPowerModel, n::Int)
         sum(load["cost_investment"]*_PM.var(pm, n, :z_flex, i) for (i,load) in pm.ref[:nw][n][:load])
         )
     end
+    if is_reliability
+        inv_cost += sum(load["cost_voll"]*_PM.var(pm, n, :pinter, i) for (i,load) in pm.ref[:nw][n][:load])
+    end
     return inv_cost
 end
+

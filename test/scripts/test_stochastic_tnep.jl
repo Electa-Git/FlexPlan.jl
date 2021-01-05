@@ -12,10 +12,10 @@ import InfrastructureModels; const _IM = InfrastructureModels
 import Ipopt
 import SCS
 import Juniper
-import Mosek
-import MosekTools
+#import Mosek
+#import MosekTools
 import JuMP
-import Gurobi
+#import Gurobi
 import Cbc
 import JSON
 import CSV
@@ -24,8 +24,8 @@ import CSV
 scs = JuMP.with_optimizer(SCS.Optimizer, max_iters=100000)
 ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1e-4, print_level=0)
 cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
-gurobi = JuMP.with_optimizer(Gurobi.Optimizer)
-mosek = JuMP.with_optimizer(Mosek.Optimizer)
+#gurobi = JuMP.with_optimizer(Gurobi.Optimizer)
+#mosek = JuMP.with_optimizer(Mosek.Optimizer)
 juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
 
 ################# INPUT PARAMETERS ######################
@@ -68,8 +68,9 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-result = _FP.stoch_flex_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+result = _FP.stoch_flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
 # # Plot final topology
 # plot_settings = Dict("add_nodes" => true, "plot_solution_only" => true)
 # plot_filename = "./test/data/output_files/results_italy.kml"
 # _FP.plot_geo_data(mn_data, plot_filename, plot_settings; solution = result)
+

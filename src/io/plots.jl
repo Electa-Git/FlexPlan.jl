@@ -304,9 +304,9 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
 end
 
 
-function plot_var(res::Dict, utype::String, unit::String, var::String; kwargs...)
+function plot_res(res::Dict, utype::String, unit::String, var::String; kwargs...)
 
-    var_table = get_vars(res, utype, unit)
+    var_table = get_res(res, utype, unit)
     
     time = select(var_table, :time)
     val = select(var_table, Symbol(var))
@@ -314,9 +314,9 @@ function plot_var(res::Dict, utype::String, unit::String, var::String; kwargs...
     plot(time, val; kwargs...)
 end
 
-function plot_var!(res::Dict, utype::String, unit::String, var::String; kwargs...)
+function plot_res!(res::Dict, utype::String, unit::String, var::String; kwargs...)
 
-    var_table = get_vars(res, utype, unit)
+    var_table = get_res(res, utype, unit)
     
     time = select(var_table, :time)
     val = select(var_table, Symbol(var))
@@ -324,9 +324,9 @@ function plot_var!(res::Dict, utype::String, unit::String, var::String; kwargs..
     plot!(time, val, label=var; kwargs...)
 end
 
-function plot_var(res::Dict, utype::String, unit::String, vars::Array; kwargs...)
+function plot_res(res::Dict, utype::String, unit::String, vars::Array; kwargs...)
 
-    var_table = get_vars(res, utype, unit)
+    var_table = get_res(res, utype, unit)
     var_names = propertynames(var_table.columns)
     time = select(var_table, :time)
 
@@ -341,9 +341,9 @@ function plot_var(res::Dict, utype::String, unit::String, vars::Array; kwargs...
     display(p)
 end
 
-function plot_var(res::Dict, utype::String, unit::String; kwargs...)
+function plot_res(res::Dict, utype::String, unit::String; kwargs...)
 
-    var_table = get_vars(res, utype, unit)
+    var_table = get_res(res, utype, unit)
     var_names = propertynames(var_table.columns)
     time = select(var_table, :time)
 
@@ -358,6 +358,16 @@ function plot_var(res::Dict, utype::String, unit::String; kwargs...)
     display(p)
 end
 
+function plot_res_by_scenario(res::Dict, scenario_map::Dict, utype::String, unit::String, var::String; kwargs...)
+
+    time, var_table = get_res(res, scenario_map, utype, unit, var)
+    scenarios = sort([parse(Int,i) for i in keys(scenario_map)])
+    p = plot(title=join([utype, "_", unit]))
+    for s in scenarios
+        plot!(time, var_table[s+1,:], label=join(["Scen ", s, ": ", var]); kwargs...)
+    end
+    display(p)
+end
 
 @userplot StackedArea
 
@@ -377,3 +387,24 @@ end
         @series (sx, sy)
     end
 end
+
+
+function plot_energy_balance(result::Dict, bus::Int)
+
+    utypes = ["load", "branch", "branchdc"]
+
+
+
+# Get variables per unit by times
+load5 = _FP.get_res(result, "load", "5")
+branchdc_1 = _FP.get_res(result, "branchdc", "1")
+branchdc_2 = _FP.get_res(result, "branchdc", "2")
+branchdc_ne_3 = _FP.get_res(result, "branchdc_ne", "3")
+
+t_vec = Array(1:dim)
+# Plot combined stacked area and line plot for energy balance in bus 5
+#... plot areas for power contribution from different sources
+stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pnce) select(load5, :pcurt) select(load5, :pinter)]
+replace!(stack_series, NaN=>0)
+stack_labels = ["dc branch 2" "new dc branch 3" "dc branch 1"  "reduced load" "curtailed load" "energy not served"]
+stacked_plot = _FP.stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)

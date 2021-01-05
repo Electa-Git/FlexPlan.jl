@@ -186,22 +186,6 @@
 </Style>
 </Placemark>
 <Placemark> 
-<name>Candidate Line4</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-9.9489,45.34110
-13.8302,41.82180
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FF14F000</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
 <name>Candidate Line1</name> 
 <LineString>
 <tessellate>1</tessellate>
@@ -224,22 +208,6 @@
 <coordinates>
 13.8302,41.82180
 16.2155,40.52280
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FF14F000</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Candidate Line3</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-16.2155,40.52280
-14.1568,37.48440
 </coordinates>
 </LineString>
 <Style>
@@ -539,24 +507,6 @@
 </Placemark>
 <Placemark> 
 <name>Candidate storage1</name> 
-<LineString>
-<tessellate>1</tessellate>
-<coordinates>
-9.9989,45.3910999999999940
-9.9989,45.29110
-9.9239,45.31610
-9.9989,45.3910999999999940
-</coordinates>
-</LineString>
-<Style>
-<LineStyle>
-<color>#FF1400FF</color>
-<width>3</width>
-</LineStyle>
-</Style>
-</Placemark>
-<Placemark> 
-<name>Candidate storage2</name> 
 <LineString>
 <tessellate>1</tessellate>
 <coordinates>
