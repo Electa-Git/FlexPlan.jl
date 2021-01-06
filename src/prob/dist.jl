@@ -1,6 +1,6 @@
 # Contains: problems defined on distribution networks; related functions
 
-export opf_rad, tnep_rad, strg_tnep_rad
+export opf_rad, tnep_rad, strg_tnep_rad, flex_tnep_rad
 
 ## Problems defined on distribution networks
 
@@ -69,6 +69,14 @@ end
 ""
 function strg_tnep_rad(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
     return _PM.run_model(data, model_type, optimizer, post_strg_tnep;
+                         ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+                         solution_processors = [_PM.sol_data_model!],
+                         kwargs...)
+end
+
+""
+function flex_tnep_rad(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
+    return _PM.run_model(data, model_type, optimizer, post_flex_tnep;
                          ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
                          solution_processors = [_PM.sol_data_model!],
                          kwargs...)

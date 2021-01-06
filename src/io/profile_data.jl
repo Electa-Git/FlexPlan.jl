@@ -91,6 +91,9 @@ function add_flexible_demand_data!(data)
         if haskey(load_extra, "co2_cost")
             data["load"]["$idx"]["co2_cost"] = load_extra["co2_cost"]
         end
+        if haskey(load_extra, "pf_angle")
+            data["load"]["$idx"]["pf_angle"] = load_extra["pf_angle"]
+        end
         rescale_cost = x -> x*data["baseMVA"]
         rescale_power = x -> x/data["baseMVA"]
         _PM._apply_func!(data["load"]["$idx"], "cost_reduction", rescale_cost)
