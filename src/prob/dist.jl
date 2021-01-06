@@ -101,77 +101,88 @@ function build_tnep_rad(pm::_PM.AbstractBFModel)
     end
 
     for i in _PM.ids(pm, :branch)
-        if isempty(ne_branch_ids(pm, i))
-            if is_frb_branch(pm, i)
-                if is_oltc_branch(pm, i)
-                    constraint_power_losses_oltc(pm, i)
-                    constraint_voltage_magnitude_difference_oltc(pm, i)
-                else
-                    constraint_power_losses_frb(pm, i)
-                    constraint_voltage_magnitude_difference_frb(pm, i)
-                end
-            else
-                _PM.constraint_power_losses(pm, i)
-                _PM.constraint_voltage_magnitude_difference(pm, i)
-            end
-            _PM.constraint_voltage_angle_difference(pm, i)
-            _PM.constraint_thermal_limit_from(pm, i)
-            _PM.constraint_thermal_limit_to(pm, i)
-        else
-            expression_branch_indicator(pm, i)    
-            constraint_branch_complementarity(pm, i)
-
-            if is_frb_branch(pm, i)
-                if is_oltc_branch(pm, i)
-                    constraint_power_losses_oltc_on_off(pm, i)
-                    constraint_voltage_magnitude_difference_oltc_on_off(pm, i)
-                else
-                    constraint_power_losses_frb_on_off(pm, i)
-                    constraint_voltage_magnitude_difference_frb_on_off(pm, i)
-                end
-            else
-                constraint_power_losses_on_off(pm, i)
-                constraint_voltage_magnitude_difference_on_off(pm, i)
-            end
-            _PM.constraint_voltage_angle_difference_on_off(pm, i)
-            _PM.constraint_thermal_limit_from_on_off(pm, i)
-            _PM.constraint_thermal_limit_to_on_off(pm, i)
-        end
+        constraint_dist_branch_tnep(pm, i)
     end
 
     for i in _PM.ids(pm, :ne_branch)
-        if ne_branch_replace(pm, i)
-            if is_frb_ne_branch(pm, i)
-                if is_oltc_ne_branch(pm, i)
-                    constraint_ne_power_losses_oltc(pm, i)
-                    constraint_ne_voltage_magnitude_difference_oltc(pm, i)
-                else
-                    constraint_ne_power_losses_frb(pm, i)
-                    constraint_ne_voltage_magnitude_difference_frb(pm, i)
-                end
-            else
-                constraint_ne_power_losses(pm, i)
-                constraint_ne_voltage_magnitude_difference(pm, i)
-            end
-            _PM.constraint_ne_thermal_limit_from(pm, i)
-            _PM.constraint_ne_thermal_limit_to(pm, i)
-        else
-            if is_frb_ne_branch(pm, i)
-                if is_oltc_ne_branch(pm, i)
-                    Memento.error(_LOGGER, "addition of a candidate OLTC in parallel to an existing OLTC is not supported")
-                else
-                    constraint_ne_power_losses_frb_parallel(pm, i)
-                    constraint_ne_voltage_magnitude_difference_frb_parallel(pm, i)
-                end
-            else
-                constraint_ne_power_losses_parallel(pm, i)
-                constraint_ne_voltage_magnitude_difference_parallel(pm, i)
-            end
-            constraint_ne_thermal_limit_from_parallel(pm, i)
-            constraint_ne_thermal_limit_to_parallel(pm, i)
-        end
-        _PM.constraint_ne_voltage_angle_difference(pm, i)
+        constraint_dist_ne_branch_tnep(pm, i)
     end
+end
+
+
+
+## Constraint templates that group several other constraint templates, provided for convenience
+
+function constraint_dist_branch_tnep(pm::_PM.AbstractBFModel, i::Int; nw::Int=pm.cnw)
+    if isempty(ne_branch_ids(pm, i; nw = nw))
+        if is_frb_branch(pm, i; nw = nw)
+            if is_oltc_branch(pm, i; nw = nw)
+                constraint_power_losses_oltc(pm, i; nw = nw)
+                constraint_voltage_magnitude_difference_oltc(pm, i; nw = nw)
+            else
+                constraint_power_losses_frb(pm, i; nw = nw)
+                constraint_voltage_magnitude_difference_frb(pm, i; nw = nw)
+            end
+        else
+            _PM.constraint_power_losses(pm, i; nw = nw)
+            _PM.constraint_voltage_magnitude_difference(pm, i; nw = nw)
+        end
+        _PM.constraint_voltage_angle_difference(pm, i; nw = nw)
+        _PM.constraint_thermal_limit_from(pm, i; nw = nw)
+        _PM.constraint_thermal_limit_to(pm, i; nw = nw)
+    else
+        expression_branch_indicator(pm, i; nw = nw)
+        constraint_branch_complementarity(pm, i; nw = nw)
+        if is_frb_branch(pm, i; nw = nw)
+            if is_oltc_branch(pm, i; nw = nw)
+                constraint_power_losses_oltc_on_off(pm, i; nw = nw)
+                constraint_voltage_magnitude_difference_oltc_on_off(pm, i; nw = nw)
+            else
+                constraint_power_losses_frb_on_off(pm, i; nw = nw)
+                constraint_voltage_magnitude_difference_frb_on_off(pm, i; nw = nw)
+            end
+        else
+            constraint_power_losses_on_off(pm, i; nw = nw)
+            constraint_voltage_magnitude_difference_on_off(pm, i; nw = nw)
+        end
+        _PM.constraint_voltage_angle_difference_on_off(pm, i; nw = nw)
+        _PM.constraint_thermal_limit_from_on_off(pm, i; nw = nw)
+        _PM.constraint_thermal_limit_to_on_off(pm, i; nw = nw)
+    end
+end
+
+function constraint_dist_ne_branch_tnep(pm::_PM.AbstractBFModel, i::Int; nw::Int=pm.cnw)
+    if ne_branch_replace(pm, i, nw = nw)
+        if is_frb_ne_branch(pm, i, nw = nw)
+            if is_oltc_ne_branch(pm, i, nw = nw)
+                constraint_ne_power_losses_oltc(pm, i, nw = nw)
+                constraint_ne_voltage_magnitude_difference_oltc(pm, i, nw = nw)
+            else
+                constraint_ne_power_losses_frb(pm, i, nw = nw)
+                constraint_ne_voltage_magnitude_difference_frb(pm, i, nw = nw)
+            end
+        else
+            constraint_ne_power_losses(pm, i, nw = nw)
+            constraint_ne_voltage_magnitude_difference(pm, i, nw = nw)
+        end
+        _PM.constraint_ne_thermal_limit_from(pm, i, nw = nw)
+        _PM.constraint_ne_thermal_limit_to(pm, i, nw = nw)
+    else
+        if is_frb_ne_branch(pm, i, nw = nw)
+            if is_oltc_ne_branch(pm, i, nw = nw)
+                Memento.error(_LOGGER, "addition of a candidate OLTC in parallel to an existing OLTC is not supported")
+            else
+                constraint_ne_power_losses_frb_parallel(pm, i, nw = nw)
+                constraint_ne_voltage_magnitude_difference_frb_parallel(pm, i, nw = nw)
+            end
+        else
+            constraint_ne_power_losses_parallel(pm, i, nw = nw)
+            constraint_ne_voltage_magnitude_difference_parallel(pm, i, nw = nw)
+        end
+        constraint_ne_thermal_limit_from_parallel(pm, i, nw = nw)
+        constraint_ne_thermal_limit_to_parallel(pm, i, nw = nw)
+    end
+    _PM.constraint_ne_voltage_angle_difference(pm, i, nw = nw)
 end
 
 

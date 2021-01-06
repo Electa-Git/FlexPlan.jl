@@ -69,42 +69,7 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
 
         if pm isa _PM.AbstractBFModel # distribution
             for i in _PM.ids(pm, n, :branch)
-                if isempty(ne_branch_ids(pm, i; nw = n))
-                    if is_frb_branch(pm, i; nw = n)
-                        if is_oltc_branch(pm, i; nw = n)
-                            constraint_power_losses_oltc(pm, i; nw = n)
-                            constraint_voltage_magnitude_difference_oltc(pm, i; nw = n)
-                        else
-                            constraint_power_losses_frb(pm, i; nw = n)
-                            constraint_voltage_magnitude_difference_frb(pm, i; nw = n)
-                        end
-                    else
-                        _PM.constraint_power_losses(pm, i; nw = n)
-                        _PM.constraint_voltage_magnitude_difference(pm, i; nw = n)
-                    end
-                    _PM.constraint_voltage_angle_difference(pm, i; nw = n)
-                    _PM.constraint_thermal_limit_from(pm, i; nw = n)
-                    _PM.constraint_thermal_limit_to(pm, i; nw = n)
-                else
-                    expression_branch_indicator(pm, i; nw = n)
-                    constraint_branch_complementarity(pm, i; nw = n)
-        
-                    if is_frb_branch(pm, i; nw = n)
-                        if is_oltc_branch(pm, i; nw = n)
-                            constraint_power_losses_oltc_on_off(pm, i; nw = n)
-                            constraint_voltage_magnitude_difference_oltc_on_off(pm, i; nw = n)
-                        else
-                            constraint_power_losses_frb_on_off(pm, i; nw = n)
-                            constraint_voltage_magnitude_difference_frb_on_off(pm, i; nw = n)
-                        end
-                    else
-                        constraint_power_losses_on_off(pm, i; nw = n)
-                        constraint_voltage_magnitude_difference_on_off(pm, i; nw = n)
-                    end
-                    _PM.constraint_voltage_angle_difference_on_off(pm, i; nw = n)
-                    _PM.constraint_thermal_limit_from_on_off(pm, i; nw = n)
-                    _PM.constraint_thermal_limit_to_on_off(pm, i; nw = n)
-                end
+                constraint_dist_branch_tnep(pm, i; nw = n)
             end
         else # transmission
             if haskey(pm.setting, "allow_line_replacement") && pm.setting["allow_line_replacement"] == true
@@ -128,37 +93,7 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
 
         if pm isa _PM.AbstractBFModel # distribution
             for i in _PM.ids(pm, n, :ne_branch)
-                if ne_branch_replace(pm, i, nw = n)
-                    if is_frb_ne_branch(pm, i, nw = n)
-                        if is_oltc_ne_branch(pm, i, nw = n)
-                            constraint_ne_power_losses_oltc(pm, i, nw = n)
-                            constraint_ne_voltage_magnitude_difference_oltc(pm, i, nw = n)
-                        else
-                            constraint_ne_power_losses_frb(pm, i, nw = n)
-                            constraint_ne_voltage_magnitude_difference_frb(pm, i, nw = n)
-                        end
-                    else
-                        constraint_ne_power_losses(pm, i, nw = n)
-                        constraint_ne_voltage_magnitude_difference(pm, i, nw = n)
-                    end
-                    _PM.constraint_ne_thermal_limit_from(pm, i, nw = n)
-                    _PM.constraint_ne_thermal_limit_to(pm, i, nw = n)
-                else
-                    if is_frb_ne_branch(pm, i, nw = n)
-                        if is_oltc_ne_branch(pm, i, nw = n)
-                            Memento.error(_LOGGER, "addition of a candidate OLTC in parallel to an existing OLTC is not supported")
-                        else
-                            constraint_ne_power_losses_frb_parallel(pm, i, nw = n)
-                            constraint_ne_voltage_magnitude_difference_frb_parallel(pm, i, nw = n)
-                        end
-                    else
-                        constraint_ne_power_losses_parallel(pm, i, nw = n)
-                        constraint_ne_voltage_magnitude_difference_parallel(pm, i, nw = n)
-                    end
-                    constraint_ne_thermal_limit_from_parallel(pm, i, nw = n)
-                    constraint_ne_thermal_limit_to_parallel(pm, i, nw = n)
-                end
-                _PM.constraint_ne_voltage_angle_difference(pm, i, nw = n)
+                constraint_dist_ne_branch_tnep(pm, i; nw = n)
             end
         else # transmission
             for i in _PM.ids(pm, n, :ne_branch)
