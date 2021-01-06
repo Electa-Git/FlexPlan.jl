@@ -6,6 +6,7 @@ module FlexPlan
 import JuMP
 import JSON
 import CSV
+import DataFrames
 import Memento
 import PowerModels
 import PowerModelsACDC
