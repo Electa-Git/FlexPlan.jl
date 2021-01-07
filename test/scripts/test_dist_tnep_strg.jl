@@ -21,29 +21,35 @@ number_of_hours = 24    # Number of hourly optimization periods. Used profiles a
 scale_load      =  1.0  # Scaling factor of loads
 scale_gen       =  2.45 # Scaling factor of generators (increase to get an infeasible problem, decrease to avoid ne_storage)
 
+
 ## Load and preprocess data
 
-data = _PM.parse_file(data_file) # Create PowerModels data dictionary (AC networks and storage)
+# Create PowerModels data dictionary (AC networks and storage)
+data = _PM.parse_file(data_file)
 
 # Handle missing fields of the MATPOWER case file
 data["ne_branch"] = Dict{String,Any}()
-data["arcs_dcgrid_from_ne"] = Dict{String,Any}()
-data["arcs_dcgrid_to_ne"] = Dict{String,Any}()
 
-# Generate hourly time profiles for loads and generators. CIGRE distribution network, Italian profiles.
+# Generate hourly time profiles for loads and generators (base values from CIGRE distribution network, profiles from Italy data).
 extradata = _FP.create_profile_data_cigre_italy(data, number_of_hours; scale_load = scale_load, scale_gen = scale_gen)
 
-_PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
-_FP.add_storage_data!(data) # Add storage data to the data dictionary
+# Add storage data to the data dictionary
+_FP.add_storage_data!(data)
 
-# Create data dictionary where time series data is included at the right place
-mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+# Create multi-period data dictionary where time series data is included at the right place
+mn_data = _FP.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
 
 
 ## Solve problem
 
-# PowerModels(ACDC) and FlexPlan settings
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
+# PowerModels and FlexPlan settings
+s = Dict("output" => Dict("branch_flows" => true))
 
-result = _FP.strg_tnep_rad(mn_data, _FP.BFARadPowerModel, optimizer; multinetwork=true, setting=s)
+result = _FP.strg_tnep(mn_data, _FP.BFARadPowerModel, optimizer; multinetwork=true, setting=s)
 @assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
+
+
+## Write results
+
+# Text summary of the first period of the optimal solution
+#_PM.print_summary(result["solution"]["nw"]["1"])
