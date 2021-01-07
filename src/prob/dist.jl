@@ -1,8 +1,10 @@
-# Contains: problems defined on distribution networks; related functions
+# Contains functions related to distribution networks
 
-export opf_rad, tnep_rad, strg_tnep_rad, flex_tnep_rad
+export opf_rad, tnep_rad
 
-## Problems defined on distribution networks
+
+
+## Problems defined exclusively on distribution networks
 
 
 ### Optimal power flow
@@ -55,7 +57,7 @@ function build_opf_rad(pm::_PM.AbstractBFModel)
 end
 
 
-### Network expansion planning
+### Single-period network expansion planning
 # (TNEP acronym is maintained for consistency with transmission networks.)
 
 ""
@@ -66,23 +68,7 @@ function tnep_rad(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs
                          kwargs...)
 end
 
-""
-function strg_tnep_rad(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
-    return _PM.run_model(data, model_type, optimizer, post_strg_tnep;
-                         ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
-                         solution_processors = [_PM.sol_data_model!],
-                         kwargs...)
-end
-
-""
-function flex_tnep_rad(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
-    return _PM.run_model(data, model_type, optimizer, post_flex_tnep;
-                         ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
-                         solution_processors = [_PM.sol_data_model!],
-                         kwargs...)
-end
-
-"Network expansion planning problem for radial networks"
+"Single-period network expansion planning problem for radial networks"
 function build_tnep_rad(pm::_PM.AbstractBFModel)
     _PM.variable_bus_voltage(pm)
     _PM.variable_gen_power(pm)

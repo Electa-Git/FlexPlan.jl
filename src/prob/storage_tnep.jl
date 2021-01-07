@@ -6,6 +6,16 @@ function strg_tnep(data::Dict{String,Any}, model_type::Type, solver; ref_extensi
     return _PM.run_model(data, model_type, solver, post_strg_tnep; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
 end
 
+# for distribution models
+""
+function strg_tnep(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
+    return _PM.run_model(data, model_type, optimizer, post_strg_tnep;
+                         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+                         solution_processors = [_PM.sol_data_model!],
+                         kwargs...)
+end
+
+
 # Here the problem is defined, which is then sent to the solver.
 # It is basically a declarion of variables and constraint of the problem
 
