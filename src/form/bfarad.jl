@@ -3,7 +3,7 @@
 
 
 
-## Variables ##
+## Variables
 
 ""
 function _PM.variable_bus_voltage(pm::BFARadPowerModel; kwargs...)
@@ -153,52 +153,9 @@ function _PM.variable_ne_branch_power_imaginary(pm::BFARadPowerModel; nw::Int=pm
     report && _IM.sol_component_value_edge(pm, nw, :ne_branch, :qf, :qt, _PM.ref(pm, nw, :ne_arcs_from), _PM.ref(pm, nw, :ne_arcs_to), q_ne_expr)
 end
 
-function variable_oltc_branch_transform(pm::BFARadPowerModel; kwargs...)
-    variable_oltc_branch_transform_magnitude_sqr_inv(pm; kwargs...)
-end
-
-"variable: `0 <= ttmi[l]` for `l` in `oltc_branch`es"
-function variable_oltc_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    ttmi = _PM.var(pm, nw)[:ttmi] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :oltc_branch)], base_name="$(nw)_ttmi",
-        lower_bound = 0.0,
-        start = 1.0 / _PM.ref(pm,nw,:oltc_branch,i,"tap")^2
-    )
-
-    if bounded
-        for (i, br) in _PM.ref(pm, nw, :oltc_branch)
-            JuMP.set_lower_bound(ttmi[i], 1.0 / br["tm_max"]^2 )
-            JuMP.set_upper_bound(ttmi[i], 1.0 / br["tm_min"]^2 )
-        end
-    end
-
-    report && _IM.sol_component_value(pm, nw, :branch, :ttmi, _PM.ids(pm, nw, :oltc_branch), ttmi)
-end
-
-function variable_oltc_ne_branch_transform(pm::BFARadPowerModel; kwargs...)
-    variable_oltc_ne_branch_transform_magnitude_sqr_inv(pm; kwargs...)
-end
-
-"variable: `0 <= ttmi_ne[l]` for `l` in `oltc_ne_branch`es"
-function variable_oltc_ne_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    ttmi_ne = _PM.var(pm, nw)[:ttmi_ne] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :oltc_ne_branch)], base_name="$(nw)_ttmi_ne",
-        lower_bound = 0.0,
-        start = 1.0 / _PM.ref(pm,nw,:oltc_ne_branch,i,"tap")^2
-    )
-
-    if bounded
-        for (i, br) in _PM.ref(pm, nw, :oltc_ne_branch)
-            JuMP.set_lower_bound(ttmi_ne[i], 1.0 / br["tm_max"]^2 )
-            JuMP.set_upper_bound(ttmi_ne[i], 1.0 / br["tm_min"]^2 )
-        end
-    end
-
-    report && _IM.sol_component_value(pm, nw, :ne_branch, :ttmi, _PM.ids(pm, nw, :oltc_ne_branch), ttmi_ne)
-end
 
 
-## Constraints ## 
+## Constraints
 
 "Nothing to do, this model is lossless"
 function _PM.constraint_power_losses(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm)
@@ -360,7 +317,7 @@ function constraint_ne_thermal_limit_to_parallel(pm::BFARadPowerModel, n::Int, b
 end
 
 
-## Other functions ##
+## Other functions
 
 """
 Converts the solution data into the data model's standard space, polar voltages and rectangular power.
