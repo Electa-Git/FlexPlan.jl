@@ -34,6 +34,9 @@ end
 
 function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
     variable_storage_power_real_ne(pm; kwargs...)
+    variable_storage_power_imaginary_ne(pm; kwargs...)
+    variable_storage_power_control_imaginary_ne(pm; kwargs...)
+    variable_storage_current_ne(pm; kwargs...)
     variable_storage_energy_ne(pm; kwargs...)
     variable_storage_charge_ne(pm; kwargs...)
     variable_storage_discharge_ne(pm; kwargs...)
@@ -80,6 +83,11 @@ function variable_storage_power_imaginary_ne(pm::_PM.AbstractPowerModel; nw::Int
     report && _IM.sol_component_value(pm, nw, :ne_storage, :qs_ne, _PM.ids(pm, nw, :ne_storage), qs)
 end
 
+"apo models ignore reactive power flows"
+function variable_storage_power_imaginary_ne(pm::_PM.AbstractActivePowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+    report && _IM.sol_component_fixed(pm, nw, :ne_storage, :qs_ne, _PM.ids(pm, nw, :ne_storage), NaN)
+end
+
 function variable_storage_power_control_imaginary_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
     qsc = _PM.var(pm, nw)[:qsc_ne] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_qsc_ne",
@@ -101,6 +109,15 @@ function variable_storage_power_control_imaginary_ne(pm::_PM.AbstractPowerModel;
     end
 
     report && _IM.sol_component_value(pm, nw, :ne_storage, :qsc_ne, _PM.ids(pm, nw, :ne_storage), qsc)
+end
+
+"apo models ignore reactive power flows"
+function variable_storage_power_control_imaginary_ne(pm::_PM.AbstractActivePowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+    report && _IM.sol_component_fixed(pm, nw, :ne_storage, :qsc_ne, _PM.ids(pm, nw, :ne_storage), NaN)
+end
+
+"do nothing by default but some formulations require this"
+function variable_storage_current_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
 end
 
 function variable_storage_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
@@ -335,19 +352,58 @@ end
 ####################################################
 ############### Constraints
 ###################################################
-function constraint_storage_thermal_limit_ne(pm::_PM.AbstractPowerModel, n::Int, i, rating)
-    ps = _PM.var(pm, n, :ps_ne, i)
-    # qs = _PM.var(pm, n, :qs_ne, i)
 
-    JuMP.@constraint(pm.model, ps <= rating)
+function _PM.constraint_storage_thermal_limit(pm::BFARadPowerModel, n::Int, i, rating)
+    ps = _PM.var(pm, n, :ps, i)
+    qs = _PM.var(pm, n, :qs, i)
+
+    c_perp = cos(π/8) # ~0.92
+    c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
+
+    JuMP.@constraint(pm.model, -c_perp*rating <= ps      <= c_perp*rating)
+    JuMP.@constraint(pm.model, -c_perp*rating <=      qs <= c_perp*rating)
+    JuMP.@constraint(pm.model, -c_diag*rating <= ps + qs <= c_diag*rating)
+    JuMP.@constraint(pm.model, -c_diag*rating <= ps - qs <= c_diag*rating)
+end
+
+function constraint_storage_thermal_limit_ne(pm::_PM.AbstractActivePowerModel, n::Int, i, rating)
+    ps = _PM.var(pm, n, :ps_ne, i)
+
+    JuMP.lower_bound(ps) < -rating && JuMP.set_lower_bound(ps, -rating)
+    JuMP.upper_bound(ps) >  rating && JuMP.set_upper_bound(ps,  rating)
+end
+
+function constraint_storage_thermal_limit_ne(pm::BFARadPowerModel, n::Int, i, rating)
+    ps = _PM.var(pm, n, :ps_ne, i)
+    qs = _PM.var(pm, n, :qs_ne, i)
+
+    c_perp = cos(π/8) # ~0.92
+    c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
+
+    JuMP.@constraint(pm.model, -c_perp*rating <= ps      <= c_perp*rating)
+    JuMP.@constraint(pm.model, -c_perp*rating <=      qs <= c_perp*rating)
+    JuMP.@constraint(pm.model, -c_diag*rating <= ps + qs <= c_diag*rating)
+    JuMP.@constraint(pm.model, -c_diag*rating <= ps - qs <= c_diag*rating)
 end
 
 function constraint_storage_losses_ne(pm::_PM.AbstractAPLossLessModels, n::Int, i, bus, r, x, p_loss, q_loss)
-    ps =_PM. var(pm, n, :ps_ne, i)
+    ps = _PM.var(pm, n, :ps_ne, i)
     sc = _PM.var(pm, n, :sc_ne, i)
     sd = _PM.var(pm, n, :sd_ne, i)
 
     JuMP.@constraint(pm.model, ps + (sd - sc) == p_loss)
+end
+
+"Neglects the active and reactive loss terms associated with the squared current magnitude."
+function constraint_storage_losses_ne(pm::_PM.AbstractBFAModel, n::Int, i, bus, r, x, p_loss, q_loss)
+    ps  = _PM.var(pm, n, :ps_ne, i)
+    qs  = _PM.var(pm, n, :qs_ne, i)
+    sc  = _PM.var(pm, n, :sc_ne, i)
+    sd  = _PM.var(pm, n, :sd_ne, i)
+    qsc = _PM.var(pm, n, :qsc_ne, i)
+
+    JuMP.@constraint(pm.model, ps + (sd - sc) == p_loss)
+    JuMP.@constraint(pm.model, qs == qsc + q_loss)
 end
 
 function constraint_storage_state_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int, energy, charge_eff, discharge_eff, inflow, outflow, self_discharge_rate, time_elapsed)
@@ -450,6 +506,37 @@ end
 
 
 function constraint_storage_bounds_ne(pm::_PM.AbstractPowerModel, n::Int, i::Int)
+    se = _PM.var(pm, n, :se_ne, i)
+    sc = _PM.var(pm, n, :sc_ne, i)
+    sd = _PM.var(pm, n, :sd_ne, i)
+    ps = _PM.var(pm, n, :ps_ne, i)
+    qs = _PM.var(pm, n, :qs_ne, i)
+    z = _PM.var(pm, n, :z_strg_ne, i)
+
+    se_min = JuMP.lower_bound(se)
+    se_max = JuMP.upper_bound(se)
+    sc_min = JuMP.lower_bound(sc)
+    sc_max = JuMP.upper_bound(sc)
+    sd_min = JuMP.lower_bound(sd)
+    sd_max = JuMP.upper_bound(sd)
+    ps_min = JuMP.lower_bound(ps)
+    ps_max = JuMP.upper_bound(ps)
+    qs_min = JuMP.lower_bound(qs)
+    qs_max = JuMP.upper_bound(qs)
+
+    JuMP.@constraint(pm.model, se  <= se_max * z)
+    JuMP.@constraint(pm.model, se  >= se_min * z)
+    JuMP.@constraint(pm.model, sc  <= sc_max * z)
+    JuMP.@constraint(pm.model, sc  >= sc_min * z)
+    JuMP.@constraint(pm.model, sd  <= sd_max * z)
+    JuMP.@constraint(pm.model, sd  >= sd_min * z)
+    JuMP.@constraint(pm.model, ps  <= ps_max * z)
+    JuMP.@constraint(pm.model, ps  >= ps_min * z)
+    JuMP.@constraint(pm.model, qs  <= qs_max * z)
+    JuMP.@constraint(pm.model, qs  >= qs_min * z)
+end
+
+function constraint_storage_bounds_ne(pm::_PM.AbstractActivePowerModel, n::Int, i::Int)
     se = _PM.var(pm, n, :se_ne, i)
     sc = _PM.var(pm, n, :sc_ne, i)
     sd = _PM.var(pm, n, :sd_ne, i)
