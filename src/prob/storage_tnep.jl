@@ -6,6 +6,16 @@ function strg_tnep(data::Dict{String,Any}, model_type::Type, solver; ref_extensi
     return _PM.run_model(data, model_type, solver, post_strg_tnep; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
 end
 
+# for distribution models
+""
+function strg_tnep(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
+    return _PM.run_model(data, model_type, optimizer, post_strg_tnep;
+                         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+                         solution_processors = [_PM.sol_data_model!],
+                         kwargs...)
+end
+
+
 # Here the problem is defined, which is then sent to the solver.
 # It is basically a declarion of variables and constraint of the problem
 
@@ -122,6 +132,99 @@ for (n, networks) in pm.ref[:nw]
             if pm.ref[:nw][n][:convdc_ne][i]["islcc"] == 1
                 _PMACDC.constraint_conv_firing_angle_ne(pm, i; nw = n)
             end
+        end
+
+        for i in _PM.ids(pm, :storage, nw=n)
+            constraint_storage_excl_slack(pm, i, nw = n)
+            _PM.constraint_storage_thermal_limit(pm, i, nw = n)
+            _PM.constraint_storage_losses(pm, i, nw = n)
+        end
+        for i in _PM.ids(pm, :ne_storage, nw=n)
+            constraint_storage_excl_slack_ne(pm, i, nw = n)
+            constraint_storage_thermal_limit_ne(pm, i, nw = n)
+            constraint_storage_losses_ne(pm, i, nw = n)
+            constraint_storage_bounds_ne(pm, i, nw = n)
+        end
+    end
+    network_ids = sort(collect(_PM.nw_ids(pm)))
+    n_1 = network_ids[1]
+    n_last = network_ids[end]
+    for i in _PM.ids(pm, :storage, nw = n_1)
+        constraint_storage_state(pm, i, nw = n_1)
+        constraint_maximum_absorption(pm, i, nw = n_1)
+    end
+
+    for i in _PM.ids(pm, :ne_storage, nw = n_1)
+        constraint_storage_state_ne(pm, i, nw = n_1)
+        constraint_maximum_absorption_ne(pm, i, nw = n_1)
+    end
+
+    for i in _PM.ids(pm, :storage, nw = n_last)
+        constraint_storage_state_final(pm, i, nw = n_last)
+    end
+
+    for i in _PM.ids(pm, :ne_storage, nw = n_last)
+        constraint_storage_state_final_ne(pm, i, nw = n_last)
+    end
+
+    for n_2 in network_ids[2:end]
+        for i in _PM.ids(pm, :storage, nw = n_2)
+            constraint_storage_state(pm, i, n_1, n_2)
+            constraint_maximum_absorption(pm, i, n_1, n_2)
+        end
+        for i in _PM.ids(pm, :ne_storage, nw = n_2)
+            constraint_storage_state_ne(pm, i, n_1, n_2)
+            constraint_maximum_absorption_ne(pm, i, n_1, n_2)
+            constraint_storage_investment(pm, n_1, n_2, i)
+        end
+        n_1 = n_2
+    end
+
+end
+
+# distribution version
+""
+function post_strg_tnep(pm::_PM.AbstractBFModel)
+
+    for (n, networks) in pm.ref[:nw]
+        _PM.variable_bus_voltage(pm; nw = n)
+        _PM.variable_gen_power(pm; nw = n)
+        _PM.variable_branch_power(pm; nw = n)
+        _PM.variable_storage_power(pm; nw = n)
+        _PM.variable_branch_current(pm; nw = n)
+        variable_oltc_branch_transform(pm; nw = n)
+
+        variable_absorbed_energy(pm; nw = n)
+        variable_absorbed_energy_ne(pm; nw = n)
+
+        # new variables for TNEP problem
+        _PM.variable_ne_branch_indicator(pm; nw = n)
+        _PM.variable_ne_branch_power(pm; nw = n)
+        variable_ne_branch_current(pm; nw = n)
+        variable_oltc_ne_branch_transform(pm; nw = n)
+        variable_storage_power_ne(pm; nw = n)
+    end
+
+    objective_min_cost_storage(pm)
+
+    for (n, networks) in pm.ref[:nw]
+        _PM.constraint_model_current(pm; nw = n)
+        constraint_ne_model_current(pm; nw = n)
+
+        for i in _PM.ids(pm, n, :ref_buses)
+            _PM.constraint_theta_ref(pm, i, nw = n)
+        end
+
+        for i in _PM.ids(pm, n, :bus)
+            constraint_power_balance_acne_strg(pm, i; nw = n)
+        end
+
+        for i in _PM.ids(pm, n, :branch)
+            constraint_dist_branch_tnep(pm, i; nw = n)
+        end
+
+        for i in _PM.ids(pm, n, :ne_branch)
+            constraint_dist_ne_branch_tnep(pm, i; nw = n)
         end
 
         for i in _PM.ids(pm, :storage, nw=n)

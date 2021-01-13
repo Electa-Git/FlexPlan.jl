@@ -91,6 +91,9 @@ function add_flexible_demand_data!(data)
         if haskey(load_extra, "co2_cost")
             data["load"]["$idx"]["co2_cost"] = load_extra["co2_cost"]
         end
+        if haskey(load_extra, "pf_angle")
+            data["load"]["$idx"]["pf_angle"] = load_extra["pf_angle"]
+        end
         rescale_cost = x -> x*data["baseMVA"]
         rescale_power = x -> x/data["baseMVA"]
         _PM._apply_func!(data["load"]["$idx"], "cost_reduction", rescale_cost)
@@ -213,4 +216,94 @@ function create_profile_data_norway(data, number_of_hours)
     genprofile = ones(length(data["gen"]), number_of_hours)
 
     return data,loadprofile,genprofile
+end
+
+"Creates load and generation profiles for CIGRE distribution network from Italy data"
+function create_profile_data_cigre_italy(data, number_of_hours; scale_load = 1.0, scale_gen = 1.0)
+
+    ## Fixed parameters
+
+    file_load_ind    = "./test/data/CIGRE_industrial_loads.csv"
+    file_load_res    = "./test/data/CIGRE_residential_loads.csv"
+    file_profiles_pu = "./test/data/CIGRE_profiles_per_unit.csv"
+    scale_unit       = 0.001 # scale factor from CSV power data to FlexPlan power base: here converts from kVA to MVA
+
+    ## Import data
+
+    load_ind    = CSV.read(file_load_ind, DataFrames.DataFrame)
+    load_res    = CSV.read(file_load_res, DataFrames.DataFrame)
+    profiles_pu = CSV.read(file_profiles_pu, DataFrames.DataFrame; normalizenames=true, limit=number_of_hours)
+    if DataFrames.nrow(profiles_pu) < number_of_hours
+        Memento.error(_LOGGER, "insufficient number of rows in file \"$file_profiles_pu\" ($number_of_hours requested, $(length(profiles_pu)) found)")
+    end
+    DataFrames.select!(profiles_pu, :INDUSTRIAL_LOAD => :load_ind, :RESIDENTIAL_LOAD => :load_res, :PV => :pv, :WIND => :wind, :FUEL_CELL => :fuel_cell, :CHP => :chp)
+    profiles_pu = Dict(pairs(eachcol(profiles_pu)))
+
+    ## Prepare output structure
+
+    extradata = Dict{String,Any}()
+    extradata["dim"] = number_of_hours
+
+    ## Loads
+
+    # Compute active and reactive power base of industrial loads
+    DataFrames.rename!(load_ind, [:bus, :s, :cosϕ])
+    load_ind.p_ind = scale_load * scale_unit * load_ind.s .* load_ind.cosϕ
+    load_ind.q_ind = scale_load * scale_unit * load_ind.s .* sin.(acos.(load_ind.cosϕ))
+    DataFrames.select!(load_ind, :bus, :p_ind, :q_ind)
+
+    # Compute active and reactive power base of residential loads
+    DataFrames.rename!(load_res, [:bus, :s, :cosϕ])
+    load_res.p_res = scale_load * scale_unit * load_res.s .* load_res.cosϕ
+    load_res.q_res = scale_load * scale_unit * load_res.s .* sin.(acos.(load_res.cosϕ))
+    DataFrames.select!(load_res, :bus, :p_res, :q_res)
+
+    # Create a table of industrial and residential power bases, indexed by the load ids used by `data`
+    load_base = coalesce.(DataFrames.outerjoin(load_ind, load_res; on=:bus), 0.0)
+    load_base.bus = string.(load_base.bus)
+    bus_load_lookup = Dict{String,String}()
+    for (l, load) in data["load"]
+        bus_load_lookup["$(load["load_bus"])"] = l
+    end
+    DataFrames.transform!(load_base, :bus => DataFrames.ByRow(b -> bus_load_lookup[b]) => :load_id)
+
+    # Compute active and reactive power profiles of each load
+    extradata["load"] = Dict{String,Any}()
+    for l in eachrow(load_base)
+        extradata["load"][l.load_id] = Dict{String,Any}()
+        extradata["load"][l.load_id]["pd"] = l.p_ind .* profiles_pu[:load_ind] .+ l.p_res .* profiles_pu[:load_res]
+        extradata["load"][l.load_id]["qd"] = l.q_ind .* profiles_pu[:load_ind] .+ l.q_res .* profiles_pu[:load_res]
+    end
+
+    ## Generators
+
+    # Define a Dict for the technology of generators, indexed by the gen ids used by `data`
+    gen_tech = Dict{String,Symbol}()
+    gen_tech["1"]  = :pv
+    gen_tech["2"]  = :pv
+    gen_tech["3"]  = :pv
+    gen_tech["4"]  = :fuel_cell
+    gen_tech["5"]  = :pv
+    gen_tech["6"]  = :wind
+    gen_tech["7"]  = :pv
+    gen_tech["8"]  = :pv
+    gen_tech["9"]  = :chp
+    gen_tech["10"] = :chp
+    gen_tech["11"] = :pv
+    gen_tech["12"] = :fuel_cell
+    gen_tech["13"] = :pv
+
+    # Compute active and reactive power profiles of each generator
+    extradata["gen"]  = Dict{String,Any}()
+    for (g, gen) in data["gen"]
+        if haskey(gen_tech, g)
+            extradata["gen"][g] = Dict{String,Any}()
+            extradata["gen"][g]["pmax"] = scale_gen * gen["pmax"] .* profiles_pu[gen_tech[g]]
+            extradata["gen"][g]["pmin"] = scale_gen * gen["pmin"] .* profiles_pu[gen_tech[g]]
+            extradata["gen"][g]["qmax"] = scale_gen * gen["qmax"] .* ones(number_of_hours)
+            extradata["gen"][g]["qmin"] = scale_gen * gen["qmin"] .* ones(number_of_hours)
+        end
+    end
+
+    return extradata
 end

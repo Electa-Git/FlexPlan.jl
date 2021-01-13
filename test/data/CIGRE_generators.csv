@@ -1,0 +1,16 @@
+node	rated power [kW]	technology
+3	110	photovoltaic
+4	110	photovoltaic
+5	165	photovoltaic
+5	3300	battery
+5	181.5	fuel cell
+6	165	photovoltaic
+7	8250	wind turbine
+8	165	photovoltaic
+9	165	photovoltaic
+9	1705	CHP diesel
+9	1166	CHP fuel cell
+10	220	photovoltaic
+10	1100	battery
+10	77	fuel cell
+11	55	photovoltaic
