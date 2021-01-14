@@ -48,7 +48,9 @@ I_load_other = []            # Load point for other loads on the same radial aff
 i_branch_mon = 16              # Index of branch on which to monitor congestion
 do_force_congest = false      # True if forcing congestion by modifying branch flow rating of i_branch_congest
 rate_congest = 16            # Rating of branch on which to force congestion
-load_scaling_factor = 1.5       # Factor with which original base case load demand data should be scaled
+load_scaling_factor = 1.2       # Factor with which original base case load demand data should be scaled
+use_DC = true                      # True for using DC power flow model; false for using linearized power real-reactive flow model for radial networks
+do_replace_branch = true      # True if allowing replacement of branches
 
 # Vector of hours (time steps) included in case
 t_vec = start_hour:start_hour+(number_of_hours-1)
@@ -91,21 +93,34 @@ if do_force_congest
       data["branch"][string(i_branch_mon)]["rate_c"] = rate_congest
 end
 
-_PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
+if use_DC
+      _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
+end
 _FP.add_flexible_demand_data!(data) # Add flexible data model
 
 extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
-mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+if use_DC
+      mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+else
+      mn_data = _FP.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+end
 
 # Add PowerModels(ACDC) settings
-s = Dict("output" => Dict("branch_flows" => true), "allow_line_replacement" => do_replace_branch, "conv_losses_mp" => false, "process_data_internally" => false)
+if use_DC
+      s = Dict("output" => Dict("branch_flows" => true), "allow_line_replacement" => do_replace_branch, "conv_losses_mp" => false, "process_data_internally" => false)
+else
+      s = Dict("output" => Dict("branch_flows" => true))
+end
 
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
-
+if use_DC
+      result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
+else
+      result_test1 = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc, multinetwork=true; setting = s)
+end
 
 # Plot branch flow on congested branch
 if !isnan(i_branch_mon)
@@ -151,7 +166,11 @@ end
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
 branch_congest_flow = select(branch_mon, :pt)*-1
-branch_new_flow = select(branch_new, :p_ne_to)*-1
+if use_DC
+      branch_new_flow = select(branch_new, :p_ne_to)*-1
+else
+      branch_new_flow = select(branch_new, :pt)*-1
+end
 bus_mod_balance = branch_congest_flow - pflex_load_other
 stack_series = [branch_new_flow bus_mod_balance pnce_load_mon pcurt_load_mon]
 stack_labels = ["branch flow old branch" "branch flow new branch" "reduced load at buses" "curtailed load at buses" " " " "]
