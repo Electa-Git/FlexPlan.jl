@@ -16,7 +16,7 @@ function objective_min_cost_storage(pm::_PM.AbstractPowerModel)
                 gen_cost[(n,i)] = 0.0
             end
             if haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"] == true
-                gen_cost[(n,i)] = gen_cost[(n,i)] + gen["emission_factor"] * pg * pm.ref[:emission_cost]
+                gen_cost[(n,i)] = gen_cost[(n,i)] + gen["emission_factor"] * pg * pm.ref[:co2_emission_cost]
             end
         end
     end
@@ -53,7 +53,7 @@ function objective_min_cost_storage(pm::_PM.AbstractBFModel)
                 gen_cost[(n,i)] = 0.0
             end
             if haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"] == true
-                gen_cost[(n,i)] = gen_cost[(n,i)] + gen["emission_factor"] * pg * pm.ref[:emission_cost]
+                gen_cost[(n,i)] = gen_cost[(n,i)] + gen["emission_factor"] * pg * pm.ref[:co2_emission_cost]
             end
         end
     end

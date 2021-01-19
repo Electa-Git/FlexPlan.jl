@@ -65,8 +65,8 @@ function scale_cost_data!(data, scenario)
             load["co2_cost"] = load["co2_cost"] / scenario["hours"]  # co2 cost is given as total cost
         end
     end
-    if haskey(data, "emission_cost")
-        data["emission_cost"] = data["emission_cost"] * 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
+    if haskey(data, "co2_emission_cost")
+        data["co2_emission_cost"] = data["co2_emission_cost"] * 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
     end
 end
 
