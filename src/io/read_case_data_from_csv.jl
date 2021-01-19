@@ -7,7 +7,7 @@ field 'field_input' of the FlexPlan case input data Dict 'data'
 """
 function read_case_data_from_csv(data,filename,field_input)
     
-    case_input = CSV.read(filename)
+    case_input = CSV.read(filename,DataFrames.DataFrame)
     size_input = size(case_input)
     n_cols = size_input[2]
     n_data_rows = size_input[1]
