@@ -10,11 +10,6 @@ import InfrastructureModels; const _IM = InfrastructureModels
 import CSV
 import IndexedTables
 
-include("../../src/io/plots.jl")
-include("../../src/io/get_result.jl")
-include("../../src/io/get_data.jl")
-include("../../src/io/read_case_data_from_csv.jl")
-
 # Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
 #import Ipopt
@@ -78,7 +73,7 @@ end
 data,loadprofile,genprofile = _FP.create_profile_data_norway(data, number_of_hours)
 
 # Add extra_load array for demand flexibility model parameters
-data = read_case_data_from_csv(data,filename_load_extra,"load_extra")
+data = _FP.read_case_data_from_csv(data,filename_load_extra,"load_extra")
 
 # Scale load at all of the load points
 for i_load = 1:n_loads
@@ -124,15 +119,15 @@ end
 
 # Plot branch flow on congested branch
 if !isnan(i_branch_mon)
-      p_congest = plot_branch_flow(result_test1,i_branch_mon,data,"branch")
+      p_congest = _FP.plot_branch_flow(result_test1,i_branch_mon,data,"branch")
       savefig(p_congest,"branch_flow_congest")
 end
 
 # Extract results for branch to monitor
-branch_mon = get_vars(result_test1, "branch", string(i_branch_mon))
+branch_mon = _FP.get_vars(result_test1, "branch", string(i_branch_mon))
 
 # Extract results for new branch (assuming there only being one, and that it has a relevant placement)
-branch_new = get_vars(result_test1, "ne_branch","1")
+branch_new = _FP.get_vars(result_test1, "ne_branch","1")
 
 # Extract results for load points to monitor 
 # (this code got quite ugly but I do not want to re-write/extend the get_vars functions right now...)
@@ -144,7 +139,7 @@ ence_load_mon = zeros(number_of_hours,1)
 pshift_up_load_mon = zeros(number_of_hours,1)
 pshift_down_load_mon = zeros(number_of_hours,1)
 for i_load_mon in I_load_mon
-      load_mon = get_vars(result_test1, "load", string(i_load_mon))
+      load_mon = _FP.get_vars(result_test1, "load", string(i_load_mon))
       global pflex_load_mon += select(load_mon, :pflex)
       global pnce_load_mon += select(load_mon, :pnce)
       global pcurt_load_mon += select(load_mon, :pcurt)
@@ -158,7 +153,7 @@ end
 pflex_load_other = zeros(number_of_hours,1)
 pd_load_other = zeros(number_of_hours,1)
 for i_load_other in I_load_other
-      load_other = get_vars(result_test1, "load", string(i_load_other))
+      load_other = _FP.get_vars(result_test1, "load", string(i_load_other))
       global pflex_load_other += select(load_other, :pflex)
       global pd_load_other += transpose(extradata["load"][string(i_load_other)]["pd"])
 end
