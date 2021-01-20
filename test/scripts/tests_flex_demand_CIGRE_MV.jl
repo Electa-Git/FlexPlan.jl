@@ -31,7 +31,7 @@ import Cbc
 #scs = JuMP.with_optimizer(SCS.Optimizer, max_iters=100000)
 #ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1e-4, print_level=0)
 #cplex = JuMP.with_optimizer(CPLEX.Optimizer)
-cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
+cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, seconds = 60, print_level=0)
 #gurobi = JuMP.with_optimizer(Gurobi.Optimizer)
 #mosek = JuMP.with_optimizer(Mosek.Optimizer)
 #juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
@@ -48,8 +48,8 @@ I_load_other = []            # Load point for other loads on the same radial aff
 i_branch_mon = 16              # Index of branch on which to monitor congestion
 do_force_congest = false      # True if forcing congestion by modifying branch flow rating of i_branch_congest
 rate_congest = 16            # Rating of branch on which to force congestion
-load_scaling_factor = 1.2       # Factor with which original base case load demand data should be scaled
-use_DC = true                      # True for using DC power flow model; false for using linearized power real-reactive flow model for radial networks
+load_scaling_factor = 1.6       # Factor with which original base case load demand data should be scaled
+use_DC = false                      # True for using DC power flow model; false for using linearized power real-reactive flow model for radial networks
 do_replace_branch = true      # True if allowing replacement of branches
 
 # Vector of hours (time steps) included in case
@@ -65,9 +65,7 @@ filename_load_extra = "./test/data/CIGRE_MV_benchmark_network_flex_load_extra.cs
 data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
 
 # Handle possible missing auxiliary fields of the MATPOWER case file
-#fieldnames = ["storage","ne_storage","ne_branch","branchdc_ne","busdc","convdc","branchdc","busdc_ne","convdc_ne","storage_extra"]
 field_names = ["busdc","branchdc","convdc"]
-#field_names = ["ne_storage","ne_branch","branchdc_ne"]
 for field_name in field_names
       if !haskey(data,field_name)
             data[field_name] = Dict{String,Any}()
