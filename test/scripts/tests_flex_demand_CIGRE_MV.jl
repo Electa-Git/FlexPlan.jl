@@ -7,8 +7,8 @@ import FlexPlan; const _FP = FlexPlan
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
 import InfrastructureModels; const _IM = InfrastructureModels
-import CSV
-import IndexedTables
+import IndexedTables; const _IT = IndexedTables
+
 
 # Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
@@ -26,7 +26,7 @@ import Cbc
 #scs = JuMP.with_optimizer(SCS.Optimizer, max_iters=100000)
 #ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1e-4, print_level=0)
 #cplex = JuMP.with_optimizer(CPLEX.Optimizer)
-cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, seconds = 60, print_level=0)
+cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, seconds = 20, print_level=0)
 #gurobi = JuMP.with_optimizer(Gurobi.Optimizer)
 #mosek = JuMP.with_optimizer(Mosek.Optimizer)
 #juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
@@ -138,12 +138,12 @@ pshift_up_load_mon = zeros(number_of_hours,1)
 pshift_down_load_mon = zeros(number_of_hours,1)
 for i_load_mon in I_load_mon
       load_mon = _FP.get_vars(result_test1, "load", string(i_load_mon))
-      global pflex_load_mon += select(load_mon, :pflex)
-      global pnce_load_mon += select(load_mon, :pnce)
-      global pcurt_load_mon += select(load_mon, :pcurt)
-      global ence_load_mon += select(load_mon, :ence)
-      global pshift_up_load_mon += select(load_mon, :pshift_up)
-      global pshift_down_load_mon += select(load_mon, :pshift_down)
+      global pflex_load_mon += _IT.select(load_mon, :pflex)
+      global pnce_load_mon += _IT.select(load_mon, :pnce)
+      global pcurt_load_mon += _IT.select(load_mon, :pcurt)
+      global ence_load_mon += _IT.select(load_mon, :ence)
+      global pshift_up_load_mon += _IT.select(load_mon, :pshift_up)
+      global pshift_down_load_mon += _IT.select(load_mon, :pshift_down)
       global pd_load_mon += transpose(extradata["load"][string(i_load_mon)]["pd"])
 end
 
@@ -152,22 +152,22 @@ pflex_load_other = zeros(number_of_hours,1)
 pd_load_other = zeros(number_of_hours,1)
 for i_load_other in I_load_other
       load_other = _FP.get_vars(result_test1, "load", string(i_load_other))
-      global pflex_load_other += select(load_other, :pflex)
+      global pflex_load_other += _IT.select(load_other, :pflex)
       global pd_load_other += transpose(extradata["load"][string(i_load_other)]["pd"])
 end
 
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
-branch_congest_flow = select(branch_mon, :pt)*-1
+branch_congest_flow = _IT.select(branch_mon, :pt)*-1
 if use_DC
-      branch_new_flow = select(branch_new, :p_ne_to)*-1
+      branch_new_flow = _IT.select(branch_new, :p_ne_to)*-1
 else
-      branch_new_flow = select(branch_new, :pt)*-1
+      branch_new_flow = _IT.select(branch_new, :pt)*-1
 end
 bus_mod_balance = branch_congest_flow - pflex_load_other
 stack_series = [branch_new_flow bus_mod_balance pnce_load_mon pcurt_load_mon]
 stack_labels = ["branch flow old branch" "branch flow new branch" "reduced load at buses" "curtailed load at buses" " " " "]
-stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
+stacked_plot = _FP.stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
 load_input = pd_load_mon + pd_load_other
 plot!(t_vec, load_input, color=:red, width=3.0, label="base demand", line=:dash)
 load_flex = pflex_load_mon + pflex_load_other
@@ -181,7 +181,7 @@ plot_not_served = plot(t_vec, ence_load_mon, color=:black, width=3.0,
 
 # Make legend in energy not served plot
 pos = (0,.7)
-v1legend = stackedarea([0], [[0] [0] [0] [0] [0]], label=stack_labels)
+v1legend = _FP.stackedarea([0], [[0] [0] [0] [0] [0]], label=stack_labels)
 plot!([0], label = "base demand", color=:red, line=:dash, width=3.0)
 plot!([0], label = "flexible demand", color=:blue, line=:dash, width=3.0)
 plot!([0], label = "total energy not served", color=:black, width=3.0, showaxis=false, grid=false,
@@ -197,19 +197,19 @@ savefig(vertical_plot, "load_mod_balance_vertical.png")
 # Plot the shifted demand
 stack_series = pshift_up_load_mon
 label = "pshift_up"
-plot_energy_shift = stackedarea(t_vec, stack_series,  labels=label, alpha=0.7, color=:blue, legend=false)
+plot_energy_shift = _FP.stackedarea(t_vec, stack_series,  labels=label, alpha=0.7, color=:blue, legend=false)
 stack_series = pshift_down_load_mon*-1
 label = "pshift_down"
-stackedarea!(t_vec, stack_series, labels=label, xlabel="time (h)", ylabel="load shifted (p.u.)",
+_FP.stackedarea!(t_vec, stack_series, labels=label, xlabel="time (h)", ylabel="load shifted (p.u.)",
              alpha=0.7, color=:red, legend=false, gridalpha=0.5)
 
 # Make legend in shifted demand plot
 pos = (0,.7)
-v2legend = stackedarea([0], [[0] [0] [0] [0] [0]], label=stack_labels)
+v2legend = _FP.stackedarea([0], [[0] [0] [0] [0] [0]], label=stack_labels)
 plot!([0], label = "base demand", color=:red, line=:dash, width=3.0)
 plot!([0], label = "flexible demand", color=:blue, line=:dash, width=3.0)
-stackedarea!([0],[0],label="load shift up", color=:blue)
-stackedarea!([0],[0], showaxis=false, grid=false, label="load shift down", legend=pos, color=:red,
+_FP.stackedarea!([0],[0],label="load shift up", color=:blue)
+_FP.stackedarea!([0],[0], showaxis=false, grid=false, label="load shift down", legend=pos, color=:red,
              foreground_color_legend = nothing)
 # Add the two plots (energy balance and shifted demand) vertially
 #   and the legend on the side (with a given width -> .2w)
