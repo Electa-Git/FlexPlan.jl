@@ -8,7 +8,7 @@ import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
 import InfrastructureModels; const _IM = InfrastructureModels
 import IndexedTables; const _IT = IndexedTables
-
+using Plots
 
 # Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
@@ -60,7 +60,7 @@ filename_load_extra = "./test/data/CIGRE_MV_benchmark_network_flex_load_extra.cs
 data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
 
 # Handle possible missing auxiliary fields of the MATPOWER case file
-field_names = ["busdc","branchdc","convdc"]
+field_names = ["busdc","busdc_ne","branchdc","branchdc_ne","convdc","convdc_ne"]
 for field_name in field_names
       if !haskey(data,field_name)
             data[field_name] = Dict{String,Any}()
