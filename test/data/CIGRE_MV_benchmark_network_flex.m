@@ -91,26 +91,6 @@ mpc.ne_branch = [
 	15     1  0.000475     0.004775    0.000000     40     40     40     1     0         1    -60     60     0.2  0    1;
 ];
 
-
-
-%% candidate dc bus data
-%column_names%   busdc_i grid    Pdc     Vdc     basekVdc    Vdcmax  Vdcmin  Cdc
-mpc.busdc_ne = [
-3              1       0       1       20         1.1     0.9     0;
-];
-
-%% candidate dc branches
-%column_names%   fbusdc  tbusdc  r      l        c   rateA   rateB   rateC status cost co2_cost
-mpc.branchdc_ne = [
-   1    3   0.01    0.00    0.00  330.0     0.0     0.0     1.0     2.3 0.5;
-];
-
-%% candidate converters
-%column_names%   busdc_i busac_i type_dc type_ac P_g   Q_g  islcc  Vtar rtf xtf  transformer tm   bf filter    rc      xc  reactor   basekVac Vmmax   Vmmin   Imax    status   LossA LossB  LossCrec LossCinv  droop Pdcset    Vdcset  dVdcset Pacmax Pacmin Qacmax Qacmin cost co2_cost
-mpc.convdc_ne = [
-3       2   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 330 -330 50 -50 3 0.5;
-];
-
 %% storage data
 %   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status
 mpc.storage = [
