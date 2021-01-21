@@ -1,5 +1,5 @@
 using Plots
-
+using DataStructures
 
 function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_gen_ids = nothing)
     # Plots load and generation profile data at grid level.
@@ -388,23 +388,98 @@ end
     end
 end
 
-
-function plot_energy_balance(result::Dict, bus::Int)
-
-    utypes = ["load", "branch", "branchdc"]
-
+function plot_energy_balance_scenarios(data::Dict, result::Dict, scen_type::String, bus::Int)
+    contribution_dict = get_energy_contribution_at_bus(data, bus)
+    scen_times = data[scen_type]
+    pos_plots = []
+    neg_plots = []
+    plot_data = OrderedDict()
+    color_palette = palette(:tab10)
+    cmap = Dict()
+    for (scenario, t_map) in scen_times
+        pos_label = []
+        neg_label = []
+        pos = []
+        neg = []
+        time = []
+        for (utype, unit_dict) in contribution_dict
+            for (unit, var_dict) in unit_dict
+                for (var, contr) in var_dict
+                    res = get_scenario_res(result, scen_times, scenario, utype, unit, [var])
+                    if length(colnames(res)) < 3
+                        continue
+                    end
+                    var_id = join([utype, unit, "-", var], " ")
+                    if var_id ∉ keys(cmap)
+                        cmap[var_id] = color_palette[length(cmap)+1]
+                    end
+                    var_res = select(res, 3)*contr
+                    var_neg = [abs(min(0,i)) for i in var_res]
+                    var_pos = [max(0,i) for i in var_res]
+                    if isempty(time)
+                        time = select(res, 1)
+                    end
+                    if sum(var_pos) > 0
+                        if isempty(pos)
+                            pos = var_pos
+                            pos_label = [var_id]
+                        else
+                            pos = hcat(pos, var_pos)
+                            pos_label = hcat(pos_label, var_id)
+                        end
+                    end
+                    if sum(var_neg) > 0
+                        if isempty(neg)
+                            neg = var_neg
+                            neg_label = [var_id]
+                        else
+                            neg = hcat(neg, var_neg)
+                            neg_label = hcat(neg_label, var_id)
+                        end       
+                    end 
+                end
+            end
+        end
+        
+        plot_data[join(["scenario", scenario], " ")] = Dict("time" => time,
+                                                       "pos" => pos,
+                                                       "neg" => neg*-1,
+                                                       "neg_label" => neg_label,
+                                                       "pos_label" => pos_label,
+                                                       "xlabel" => "Time (h)",
+                                                       "ylabel" => "Power injection (MWh)")
+    end
+    for (k,v) in plot_data
+        pos_colors = [cmap[i] for i in v["pos_label"]]
+        areaplot = stackedarea(v["time"], v["pos"], color = pos_colors, title = k, legend=false)
+        neg_colors = [cmap[i] for i in v["neg_label"]]
+        stackedarea!(v["time"], v["neg"], color = neg_colors)
+        xlabel!("Time (h)")
+        ylabel!("Energy (MWh)")
+        plot_data[k]["plot"] = areaplot
+    end
+    sort!(plot_data)
+    p1 = plot([v["plot"] for (k,v) in plot_data]..., color = cmap, layout = (length(plot_data),1))
+    dummy = zeros(1,length(cmap))
+    p2= stackedarea([0], dummy, label = permutedims([i for i in keys(cmap)]),
+                    color = permutedims([i for i in values(cmap)]),
+                    showaxis=false, grid=false, legend=(0,.7)) 
+    plots = plot(p1,p2, layout = @layout([A B{.28w}]), size=(550, 600))
+    display(plots)
+    return plots
+end
 
 
 # Get variables per unit by times
-load5 = _FP.get_res(result, "load", "5")
-branchdc_1 = _FP.get_res(result, "branchdc", "1")
-branchdc_2 = _FP.get_res(result, "branchdc", "2")
-branchdc_ne_3 = _FP.get_res(result, "branchdc_ne", "3")
+#load5 = _FP.get_res(result, "load", "5")
+#branchdc_1 = _FP.get_res(result, "branchdc", "1")
+#branchdc_2 = _FP.get_res(result, "branchdc", "2")
+#branchdc_ne_3 = _FP.get_res(result, "branchdc_ne", "3")
 
-t_vec = Array(1:dim)
+#t_vec = Array(1:dim)
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
-stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pnce) select(load5, :pcurt) select(load5, :pinter)]
-replace!(stack_series, NaN=>0)
-stack_labels = ["dc branch 2" "new dc branch 3" "dc branch 1"  "reduced load" "curtailed load" "energy not served"]
-stacked_plot = _FP.stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
+#stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pnce) select(load5, :pcurt) select(load5, :pinter)]
+#replace!(stack_series, NaN=>0)
+#stack_labels = ["dc branch 2" "new dc branch 3" "dc branch 1"  "reduced load" "curtailed load" "energy not served"]
+#stacked_plot = _FP.stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)

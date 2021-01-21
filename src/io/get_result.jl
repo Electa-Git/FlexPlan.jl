@@ -1,5 +1,5 @@
 using JuliaDB
-
+using Statistics
 
 function get_data(data_dict::Dict, utype::String, unit::String,
     variables::Array = [])
@@ -36,7 +36,11 @@ function get_scenario_res(res_dict::Dict, scen_dict::Dict, scenario::String, uty
     scen_times = sort(collect(values(scen_dict[scenario])))
     res = get_vars(res_dict["solution"]["nw"], utype, unit, variables, scen_times)
     real_times = sort([parse(Int64,i) for i in keys(scen_dict[scenario])])
-    return reindex(res, real_times)
+    if isempty(res)
+        return res
+    else
+        return reindex(res, real_times)
+    end
 end
 
 function get_vars(dict::Dict, utype::String, unit::String, variables::Array=[], times::Array=[])
@@ -44,13 +48,15 @@ function get_vars(dict::Dict, utype::String, unit::String, variables::Array=[], 
     value = []
     # loop through times
     for (t, tres) in dict
-        println(t)
         time = parse(Int64,t)
         # filter on times
         if time ∉ times && !isempty(times)
             continue
         end
         row_val = Any[time]
+        if utype ∉ keys(tres)
+            continue
+        end
         # get all variables for unit
         if unit in keys(tres[utype])
             for (var,val) in tres[utype][unit]
@@ -138,51 +144,40 @@ end
 function get_energy_contribution_at_bus(data::Dict, bus::Int)
 
     en_con = Dict()
-
-    # Add contribution from generators
-    for (g, gen) in data["gen"]
-        if gen["gen_bus"] == bus
-            if "gen" ∉ keys(en_con)
-                en_con["gen"] = Dict()
+    enbal_contr = Dict("gen" => Dict("gen_bus" => Dict("pg" => 1
+                                       )
+                        ),
+         "load" => Dict("load_bus" =>Dict("pl" =>-1,
+                                      "pflex" => -1,
+                                      "pnce" => 1,
+                                      "pcurt" => 1,
+                                      "pinter" => 1
+                                     )
+                        ),
+         "branch" => Dict("f_bus" => Dict("pf"=> -1),
+                          "t_bus" => Dict("pt"=> -1)
+                            ),
+         "ne_branch" => Dict("f_bus" => Dict("p_ne_fr" => -1),
+                             "t_bus" => Dict("p_ne_to" => -1)
+                            ),
+         "storage" => Dict("storage_bus" => Dict("sc" => -1,
+                                                 "sd" => 1)
+                            ),
+         "ne_storage" => Dict("storage_bus" => Dict("sc_ne" => -1,
+                                                    "sd_ne" => 1)
+                             )
+        )
+    # Add contribution from units
+    for (utype, contr_dict) in enbal_contr
+        for (u, unit) in data[utype]
+            for (bus_id, vars) in contr_dict
+                if unit[bus_id] == bus
+                    if utype ∉ keys(en_con)
+                        en_con[utype] = Dict()
+                    end
+                    en_con[utype][u] = vars
+                end
             end
-            en_con["gen"][g] = Dict("pg" => 1)
-        end
-    end
-
-    # Add contribution from loads
-    for (l, load) in data["load"]
-        if load["load_bus"] == bus
-            if "load" ∉ keys(en_con)
-                en_con["load"] = Dict()
-            end
-            en_con["load"][l] = Dict("pl" => -1)
-            en_con["load"][l] = Dict("pnce" => 1)
-            en_con["load"][l] = Dict("pcurt" => 1)
-            en_con["load"][l] = Dict("pinter" => 1)
-        end
-    end
-
-    # Add contribution from branches
-    for (b, branch) in data["branch"]
-        if "branch" ∉ keys(en_con)
-            en_con["branch"] = Dict()
-        end
-        if branch["f_bus"] == bus
-            en_con["branch"][b] = Dict("pt" => -1)
-        elseif branch["t_bus"] == bus
-            en_con["branch"][b] = Dict("pt" => 1)
-        end
-    end
-
-    # Add contribution from new branches
-    for (b, branch) in data["ne_branch"]
-        if "ne_branch" ∉ keys(en_con)
-            en_con["ne_branch"] = Dict()
-        end
-        if branch["f_bus"] == bus
-            en_con["ne_branch"][b] = Dict("p_ne_fr" => -1)
-        elseif branch["t_bus"] == bus
-            en_con["ne_branch"][b] = Dict("p_ne_fr" => 1)
         end
     end
 
@@ -195,9 +190,9 @@ function get_energy_contribution_at_bus(data::Dict, bus::Int)
                     en_con["branchdc"] = Dict()
                 end
                 if branchdc["fbusdc"] == busdc
-                    en_con["branchdc"][b] = Dict("pt" => -1)
+                    en_con["branchdc"][b] = Dict("pf" => -1)
                 elseif branchdc["tbusdc"] == busdc
-                    en_con["branchdc"][b] = Dict("pt" => 1)
+                    en_con["branchdc"][b] = Dict("pt" => -1)
                 end
             end
         end
@@ -211,12 +206,62 @@ function get_energy_contribution_at_bus(data::Dict, bus::Int)
                     en_con["branchdc_ne"] = Dict()
                 end
                 if branchdc_ne["fbusdc"] == busdc
-                    en_con["branchdc_ne"][b] = Dict("pt" => -1)
+                    en_con["branchdc_ne"][b] = Dict("pf" => -1)
                 elseif branchdc_ne["tbusdc"] == busdc
-                    en_con["branchdc_ne"][b] = Dict("pt" => 1)
+                    en_con["branchdc_ne"][b] = Dict("pt" => -1)
                 end
             end
         end
     end
     return en_con
+end
+
+function get_scenario_inv(result, scen_times)
+    temp_res = Dict()
+    units = Dict()
+    for s in keys(scen_times)
+        temp_res[s] = Dict()
+        for utype in get_utypes(result)
+            vars = get_utype_vars(result,utype)
+            if "built" in vars
+                build_str = "built"
+            elseif "isbuilt" in vars
+                build_str = "isbuilt" 
+            else
+                continue
+            end
+            temp_res[s][Symbol(utype)] = OrderedDict()
+            if length(keys(result["solution"]["nw"]["1"][utype])) > 0
+                units[utype] = sort!(collect(keys(result["solution"]["nw"]["1"][utype])))
+                for unit in units[utype]
+                    res = get_scenario_res(result, scen_times, s, utype, unit, [build_str])
+                    val = mean(select(res,3))
+                    #temp_res[s][utype][unit] = val
+                    temp_res[s][Symbol(utype)][unit] = val
+                end
+            end
+        end
+    end
+    # Create table from dict
+    res = Dict()
+    for (scen, sres) in temp_res
+        res[scen] = OrderedDict{Symbol,AbstractVector}()
+        max_length = maximum([length(i) for i in values(sres)])
+        for (utype, unit_dict) in sres
+            res[scen][utype] = []
+            for i in range(1,stop = max_length)
+                i_str = string(i)
+                if i_str ∉ keys(unit_dict)
+                    append!(res[scen][utype], NaN)
+                else
+                    append!(res[scen][utype], unit_dict[i_str])
+                end
+            end
+        end
+        cols = [:unit]
+        append!(cols, keys(sres))
+        res[scen][:unit] = collect(1:max_length)
+        res[scen] = select(table(res[scen]), tuple(cols...))
+    end
+    return res
 end

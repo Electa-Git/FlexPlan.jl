@@ -29,36 +29,44 @@ cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
 juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
 
 ################# INPUT PARAMETERS ######################
-number_of_hours = 20 # Number of time points
+number_of_hours = 60 # Number of time points
 file = "./test/data/case6_reliability.m"  #Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines and candidate storage
 
 scenario = Dict{String, Any}("hours" => number_of_hours, "contingency" => Dict{String, Any}())
 scenario["contingency"]["0"] = Dict{String, Any}()
+scenario["contingency"]["0"]["year"] = 2019
 scenario["contingency"]["0"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time
 scenario["contingency"]["0"]["probability"] = 0.98
 scenario["contingency"]["0"]["faults"] = Dict()
 scenario["contingency"]["1"] = Dict{String, Any}()
+scenario["contingency"]["1"]["year"] = 2019
 scenario["contingency"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time
 scenario["contingency"]["1"]["probability"] = 0.01
-scenario["contingency"]["1"]["faults"] = Dict("branch" => [2])  
+scenario["contingency"]["1"]["faults"] = Dict("branchdc" => [1])  
 scenario["contingency"]["2"] = Dict{String, Any}()
+scenario["contingency"]["2"]["year"] = 2019
 scenario["contingency"]["2"]["start"] = 1546300800000 #1514764800000   # 01.01.2018:00:00 in epoch time  
 scenario["contingency"]["2"]["probability"] = 0.01
-scenario["contingency"]["2"]["faults"] = Dict("branchdc" => [2])
-scenario["utypes"] = ["branch", "branchdc"] # type of lines considered in contingencies
+scenario["contingency"]["2"]["faults"] = Dict("branchdc_ne" => [3])
+scenario["contingency"]["3"] = Dict{String, Any}()
+scenario["contingency"]["3"]["year"] = 2019
+scenario["contingency"]["3"]["start"] = 1546300800000 #1514764800000   # 01.01.2018:00:00 in epoch time  
+scenario["contingency"]["3"]["probability"] = 0.01
+scenario["contingency"]["3"]["faults"] = Dict("branchdc" => [2])
+scenario["utypes"] = [ "branchdc", "branchdc_ne"] # type of lines considered in contingencies
 scenario["planning_horizon"] = 1 # in years, to scale generation cost  
 #######################cs######################################
 # TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments for the Italian case
 
 data = _PM.parse_file(file) # Create PowerModels data dictionary (AC networks and storage)
-data, contingency_profile = _FP.create_contingency_data_italy(data, scenario) # create laod and generation profiles
+data, contingency_profile, loadprofile, genprofile = _FP.create_contingency_data_italy(data, scenario) # create load and generation profiles
 _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
 _FP.add_storage_data!(data) # Add addtional storage data model
 _FP.add_flexible_demand_data!(data) # Add flexible data model
 _FP.scale_cost_data!(data, scenario) # Scale cost data
 
 dim = number_of_hours * length(data["contingency"])
-extradata = _FP.create_contingency_data(dim, data, contingency_profile) # create a dictionary to pass time series data to data dictionary
+extradata = _FP.create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "contingency", "contingency_prob", "name", "source_version", "per_unit"]))
 
@@ -100,6 +108,8 @@ branchdc_ne_3 = _FP.get_res(result, "branchdc_ne", "3")
 t_vec = Array(1:dim)
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
+using JuliaDB
+using Plots
 stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pnce) select(load5, :pcurt) select(load5, :pinter)]
 replace!(stack_series, NaN=>0)
 stack_labels = ["dc branch 2" "new dc branch 3" "dc branch 1"  "reduced load" "curtailed load" "energy not served"]
@@ -113,21 +123,25 @@ _FP.plot_res!(result, "load", string(bus_nr),"pflex", label="flexible demand",
 #... save figure
 savefig(stacked_plot, "bus5_balance.png")
 
+
+
 # Plot energy not served
-plot_not_served = plot_var(result_test1, "load", "5", "ence", color=:black, width=3.0,
+plot_not_served = _FP.plot_res(result, "load", "5", "ence", color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
                            ylabel="energy (p.u.)", legend=false, gridalpha=0.5)
 
+enbal_plot = _FP.plot_energy_balance_scenarios(data, result, "contingency", 5)
+savefig(enbal_plot, "bus5_enbal.png")
 # Make legend in new plot
-pos = (0,.7)
-v1legend = stackedarea([0], [[0] [0] [0] [0] [0]], label=stack_labels)
-plot!([0], label = "base demand", color=:red, line=:dash, width=3.0)
-plot!([0], label = "flexible demand", color=:blue, line=:dash, width=3.0)
-plot!([0], label = "total energy not served", color=:black, width=3.0, showaxis=false, grid=false,
-      legend=pos, foreground_color_legend = nothing)
+#pos = (0,.7)
+#v1legend = stackedarea([0], [[0] [0] [0] [0] [0]], label=stack_labels)
+#plot!([0], label = "base demand", color=:red, line=:dash, width=3.0)
+#plot!([0], label = "flexible demand", color=:blue, line=:dash, width=3.0)
+#plot!([0], label = "total energy not served", color=:black, width=3.0, showaxis=false, grid=false,
+#      legend=pos, foreground_color_legend = nothing)
 
 # Add the two plots (energy balance and shifted demand) vertially
 #   and the legend on the side (with a given width -> .2w)
-vertical_plot = plot(stacked_plot, plot_not_served, v1legend, layout = @layout([[A; B] C{.22w}]),
-                     size=(700, 400))
-savefig(vertical_plot, "bus5_balance_vertical.png")
+#vertical_plot = plot(stacked_plot, plot_not_served, v1legend, layout = @layout([[A; B] C{.22w}]),
+#                     size=(700, 400))
+#savefig(vertical_plot, "bus5_balance_vertical.png")
