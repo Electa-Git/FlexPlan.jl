@@ -45,7 +45,6 @@ do_force_congest = false      # True if forcing congestion by modifying branch f
 rate_congest = 16            # Rating of branch on which to force congestion
 load_scaling_factor = 1.6       # Factor with which original base case load demand data should be scaled
 use_DC = false                      # True for using DC power flow model; false for using linearized power real-reactive flow model for radial networks
-do_replace_branch = true      # True if allowing replacement of branches
 
 # Vector of hours (time steps) included in case
 t_vec = start_hour:start_hour+(number_of_hours-1)
@@ -101,6 +100,11 @@ end
 
 # Add PowerModels(ACDC) settings
 if use_DC
+      if length(data["ne_branch"]) > 0
+            do_replace_branch =  ( data["ne_branch"]["1"]["replace"] == 1 )
+      else
+            do_replace_branch = false  
+      end
       s = Dict("output" => Dict("branch_flows" => true), "allow_line_replacement" => do_replace_branch, "conv_losses_mp" => false, "process_data_internally" => false)
 else
       s = Dict("output" => Dict("branch_flows" => true))
@@ -165,7 +169,7 @@ else
       branch_new_flow = _IT.select(branch_new, :pt)*-1
 end
 bus_mod_balance = branch_congest_flow - pflex_load_other
-stack_series = [branch_new_flow bus_mod_balance pnce_load_mon pcurt_load_mon]
+stack_series = [bus_mod_balance branch_new_flow pnce_load_mon pcurt_load_mon]
 stack_labels = ["branch flow old branch" "branch flow new branch" "reduced load at buses" "curtailed load at buses" " " " "]
 stacked_plot = _FP.stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
 load_input = pd_load_mon + pd_load_other
