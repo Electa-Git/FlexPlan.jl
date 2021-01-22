@@ -469,7 +469,37 @@ function plot_energy_balance_scenarios(data::Dict, result::Dict, scen_type::Stri
     return plots
 end
 
+function plot_inv_matrix(result, scen_times, scenario)
+    rectangle(w, h, x, y) = Shape(x .+ [0,w,w,0], y .+ [0,0,h,h])
+    iplt = plot()
+    scen_inv = get_scenario_inv(result, scen_times)
+    inv_res = scen_inv[scenario]
+    index = select(inv_res, :unit)
+    xlabel = []
+    xlabel_pos = []
+    ylabel = index
+    ylabel_pos = 0.5 .+ index
+    for (x, col) in enumerate(colnames(inv_res))
+        if col != :unit
+            append!(xlabel_pos, x - 0.5)
+            append!(xlabel, [string(col)])
+            vals = select(inv_res, col)
+            for (i,v) in zip(index, vals)
+                if v == 1
+                    plot!(rectangle(1,1,x-1,i), opacity=.5, color = "green", label = "")
+                elseif v == 0
+                    plot!(rectangle(1,1,x-1,i), opacity=.5, color = "red", label = "")
+                end
+            end
+        end
+    end
 
+    plot!(title="is built?",yticks=(ylabel_pos, ylabel), xticks=(xlabel_pos, xlabel), legend = true)
+    ylabel!("unit number")
+    plot!(rectangle(0,0,1,1), opacity=.5, label = "True", color = "green")
+    plot!(rectangle(0,0,1,1), opacity=.5, label = "False", color = "red")
+    display(iplt)
+end
 # Get variables per unit by times
 #load5 = _FP.get_res(result, "load", "5")
 #branchdc_1 = _FP.get_res(result, "branchdc", "1")
