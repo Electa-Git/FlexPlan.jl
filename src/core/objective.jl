@@ -3,28 +3,9 @@
 ##################################################################
 function objective_min_cost_storage(pm::_PM.AbstractPowerModel)
     add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
-    gen_cost = Dict()
-    for (n, nw_ref) in _PM.nws(pm)
-        for (i,gen) in nw_ref[:gen]
-            pg = _PM.var(pm, n, :pg, i)
-            if length(gen["cost"]) == 1
-                gen_cost[(n,i)] = gen["cost"][1]
-            elseif length(gen["cost"]) == 2
-                gen_cost[(n,i)] = gen["cost"][1]*pg + gen["cost"][2]
-            elseif length(gen["cost"]) == 3
-                gen_cost[(n,i)] = gen["cost"][2]*pg + gen["cost"][3]
-            else
-                gen_cost[(n,i)] = 0.0
-            end
-            if add_co2_cost
-                gen_cost[(n,i)] = gen_cost[(n,i)] + gen["emission_factor"] * pg * pm.ref[:co2_emission_cost]
-            end
-        end
-    end
-
     return JuMP.@objective(pm.model, Min,
         sum(
-            sum(gen_cost[(n,i)] for (i,gen) in pm.ref[:nw][n][:gen])
+            calc_gen_cost(pm, n, add_co2_cost)
             + calc_convdc_ne_cost(pm, n, add_co2_cost)
             + calc_ne_branch_cost(pm, n, add_co2_cost)
             + calc_branchdc_ne_cost(pm, n, add_co2_cost)
@@ -38,28 +19,9 @@ end
 ##################################################################
 function objective_min_cost_flex(pm::_PM.AbstractPowerModel)
     add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
-    gen_cost = Dict()
-    for (n, nw_ref) in _PM.nws(pm)
-        for (i,gen) in nw_ref[:gen]
-            pg = _PM.var(pm, n, :pg, i)
-            if length(gen["cost"]) == 1
-                gen_cost[(n,i)] = gen["cost"][1]
-            elseif length(gen["cost"]) == 2
-                gen_cost[(n,i)] = gen["cost"][1]*pg + gen["cost"][2]
-            elseif length(gen["cost"]) == 3
-                gen_cost[(n,i)] = gen["cost"][2]*pg + gen["cost"][3]
-            else
-                gen_cost[(n,i)] = 0.0
-            end
-            if add_co2_cost
-                gen_cost[(n,i)] = gen_cost[(n,i)] + gen["emission_factor"] * pg * pm.ref[:co2_emission_cost]
-            end
-        end
-    end
-
     return JuMP.@objective(pm.model, Min,
         sum(
-            sum(gen_cost[(n,i)] for (i,gen) in pm.ref[:nw][n][:gen])
+            calc_gen_cost(pm, n, add_co2_cost)
             + calc_convdc_ne_cost(pm, n, add_co2_cost)
             + calc_ne_branch_cost(pm, n, add_co2_cost)
             + calc_branchdc_ne_cost(pm, n, add_co2_cost)
@@ -74,30 +36,10 @@ end
 ##########################################################################
 function objective_stoch_flex(pm::_PM.AbstractPowerModel)
     add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
-    gen_cost = Dict()
-    for (s, scenario) in pm.ref[:scenario]
-        for (sc, n) in scenario
-            for (i,gen) in pm.ref[:nw][n][:gen]
-                pg = _PM.var(pm, n, :pg, i)
-                if length(gen["cost"]) == 1
-                    gen_cost[(n,i)] = gen["cost"][1]
-                elseif length(gen["cost"]) == 2
-                    gen_cost[(n,i)] = (gen["cost"][1]*pg + gen["cost"][2])
-                elseif length(gen["cost"]) == 3
-                    gen_cost[(n,i)] = (gen["cost"][2]*pg + gen["cost"][3])
-                else
-                    gen_cost[(n,i)] = 0.0
-                end
-                if add_co2_cost
-                    gen_cost[(n,i)] = gen_cost[(n,i)] + gen["emission_factor"] * pg * pm.ref[:co2_emission_cost]
-                end
-            end
-        end
-    end
     return JuMP.@objective(pm.model, Min,
         sum(pm.ref[:scenario_prob][s] * 
             sum(
-                sum(gen_cost[(n,i)] for (i,gen) in pm.ref[:nw][n][:gen])
+                calc_gen_cost(pm, n, add_co2_cost)
                 + calc_convdc_ne_cost(pm, n, add_co2_cost)
                 + calc_ne_branch_cost(pm, n, add_co2_cost)
                 + calc_branchdc_ne_cost(pm, n, add_co2_cost)
@@ -113,10 +55,32 @@ end
 ##################### Auxiliary functions
 ##########################################################################
 
+function calc_gen_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
+
+    function calc_single_gen_cost(i, g_cost)
+        len = length(g_cost)      
+        cost = 0.0
+        if len >= 1
+            cost = g_cost[len] # Constant term
+            if len >= 2
+                cost += g_cost[len-1] * _PM.var(pm,n,:pg,i) # Adds linear term
+            end
+        end
+        return cost
+    end
+
+    gen = _PM.ref(pm, n, :gen)
+    cost = sum(calc_single_gen_cost(i,g["cost"]) for (i,g) in gen)
+    if add_co2_cost
+        cost += sum(g["emission_factor"] * _PM.var(pm,n,:pg,i) * pm.ref[:co2_emission_cost] for (i,g) in gen)
+    end
+    return cost
+end
+
 function calc_convdc_ne_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
     cost = 0.0
-    if haskey(pm.ref[:nw][n],:convdc_ne)
-        convdc_ne = pm.ref[:nw][n][:convdc_ne]
+    if haskey(_PM.ref(pm, n), :convdc_ne)
+        convdc_ne = _PM.ref(pm, n, :convdc_ne)
         if !isempty(convdc_ne)    
             cost = sum(conv["cost"]*_PM.var(pm, n, :conv_ne, i) for (i,conv) in convdc_ne)
             if add_co2_cost
@@ -129,8 +93,8 @@ end
 
 function calc_ne_branch_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
     cost = 0.0
-    if haskey(pm.ref[:nw][n],:ne_branch)
-        ne_branch = pm.ref[:nw][n][:ne_branch]
+    if haskey(_PM.ref(pm, n), :ne_branch)
+        ne_branch = _PM.ref(pm, n, :ne_branch)
         if !isempty(ne_branch)
             cost = sum(branch["construction_cost"]*_PM.var(pm, n, :branch_ne, i) for (i,branch) in ne_branch)
             if add_co2_cost
@@ -143,8 +107,8 @@ end
 
 function calc_branchdc_ne_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
     cost = 0.0
-    if haskey(pm.ref[:nw][n],:branchdc_ne)
-        branchdc_ne = pm.ref[:nw][n][:branchdc_ne]
+    if haskey(_PM.ref(pm, n), :branchdc_ne)
+        branchdc_ne = _PM.ref(pm, n, :branchdc_ne)
         if !isempty(branchdc_ne)
             cost = sum(branch["cost"]*_PM.var(pm, n, :branchdc_ne, i) for (i,branch) in branchdc_ne)
             if add_co2_cost
@@ -157,8 +121,8 @@ end
 
 function calc_ne_storage_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
     cost = 0.0
-    if haskey(pm.ref[:nw][n],:ne_storage)
-        ne_storage = pm.ref[:nw][n][:ne_storage]
+    if haskey(_PM.ref(pm, n), :ne_storage)
+        ne_storage = _PM.ref(pm, n, :ne_storage)
         if !isempty(ne_storage)
             cost = sum((storage["eq_cost"] + storage["inst_cost"])*_PM.var(pm, n, :z_strg_ne, i) for (i,storage) in ne_storage)
             if add_co2_cost
@@ -170,7 +134,7 @@ function calc_ne_storage_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::
 end
 
 function calc_load_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
-    load = pm.ref[:nw][n][:load]
+    load = _PM.ref(pm, n, :load)
     cost = sum(
                 l["cost_shift_up"]*_PM.var(pm, n, :pshift_up, i)
                 +
