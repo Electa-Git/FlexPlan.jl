@@ -10,11 +10,6 @@ import InfrastructureModels; const _IM = InfrastructureModels
 import CSV
 import IndexedTables
 
-include("../../src/io/plots.jl")
-include("../../src/io/get_result.jl")
-include("../../src/io/get_data.jl")
-include("../../src/io/read_case_data_from_csv.jl")
-
 # Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
 #import Ipopt
@@ -48,7 +43,9 @@ I_load_other = []            # Load point for other loads on the same radial aff
 i_branch_mon = 16              # Index of branch on which to monitor congestion
 do_force_congest = false      # True if forcing congestion by modifying branch flow rating of i_branch_congest
 rate_congest = 16            # Rating of branch on which to force congestion
-load_scaling_factor = 1.5       # Factor with which original base case load demand data should be scaled
+load_scaling_factor = 1.2       # Factor with which original base case load demand data should be scaled
+use_DC = true                      # True for using DC power flow model; false for using linearized power real-reactive flow model for radial networks
+do_replace_branch = true      # True if allowing replacement of branches
 
 # Vector of hours (time steps) included in case
 t_vec = start_hour:start_hour+(number_of_hours-1)
@@ -76,7 +73,7 @@ end
 data,loadprofile,genprofile = _FP.create_profile_data_norway(data, number_of_hours)
 
 # Add extra_load array for demand flexibility model parameters
-data = read_case_data_from_csv(data,filename_load_extra,"load_extra")
+data = _FP.read_case_data_from_csv(data,filename_load_extra,"load_extra")
 
 # Scale load at all of the load points
 for i_load = 1:n_loads
@@ -91,33 +88,46 @@ if do_force_congest
       data["branch"][string(i_branch_mon)]["rate_c"] = rate_congest
 end
 
-_PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
+if use_DC
+      _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
+end
 _FP.add_flexible_demand_data!(data) # Add flexible data model
 
 extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
-mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+if use_DC
+      mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+else
+      mn_data = _FP.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+end
 
 # Add PowerModels(ACDC) settings
-s = Dict("output" => Dict("branch_flows" => true), "allow_line_replacement" => do_replace_branch, "conv_losses_mp" => false, "process_data_internally" => false)
+if use_DC
+      s = Dict("output" => Dict("branch_flows" => true), "allow_line_replacement" => do_replace_branch, "conv_losses_mp" => false, "process_data_internally" => false)
+else
+      s = Dict("output" => Dict("branch_flows" => true))
+end
 
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
-
+if use_DC
+      result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
+else
+      result_test1 = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc, multinetwork=true; setting = s)
+end
 
 # Plot branch flow on congested branch
 if !isnan(i_branch_mon)
-      p_congest = plot_branch_flow(result_test1,i_branch_mon,data,"branch")
+      p_congest = _FP.plot_branch_flow(result_test1,i_branch_mon,data,"branch")
       savefig(p_congest,"branch_flow_congest")
 end
 
 # Extract results for branch to monitor
-branch_mon = get_vars(result_test1, "branch", string(i_branch_mon))
+branch_mon = _FP.get_vars(result_test1, "branch", string(i_branch_mon))
 
 # Extract results for new branch (assuming there only being one, and that it has a relevant placement)
-branch_new = get_vars(result_test1, "ne_branch","1")
+branch_new = _FP.get_vars(result_test1, "ne_branch","1")
 
 # Extract results for load points to monitor 
 # (this code got quite ugly but I do not want to re-write/extend the get_vars functions right now...)
@@ -129,7 +139,7 @@ ence_load_mon = zeros(number_of_hours,1)
 pshift_up_load_mon = zeros(number_of_hours,1)
 pshift_down_load_mon = zeros(number_of_hours,1)
 for i_load_mon in I_load_mon
-      load_mon = get_vars(result_test1, "load", string(i_load_mon))
+      load_mon = _FP.get_vars(result_test1, "load", string(i_load_mon))
       global pflex_load_mon += select(load_mon, :pflex)
       global pnce_load_mon += select(load_mon, :pnce)
       global pcurt_load_mon += select(load_mon, :pcurt)
@@ -143,7 +153,7 @@ end
 pflex_load_other = zeros(number_of_hours,1)
 pd_load_other = zeros(number_of_hours,1)
 for i_load_other in I_load_other
-      load_other = get_vars(result_test1, "load", string(i_load_other))
+      load_other = _FP.get_vars(result_test1, "load", string(i_load_other))
       global pflex_load_other += select(load_other, :pflex)
       global pd_load_other += transpose(extradata["load"][string(i_load_other)]["pd"])
 end
@@ -151,7 +161,11 @@ end
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
 branch_congest_flow = select(branch_mon, :pt)*-1
-branch_new_flow = select(branch_new, :p_ne_to)*-1
+if use_DC
+      branch_new_flow = select(branch_new, :p_ne_to)*-1
+else
+      branch_new_flow = select(branch_new, :pt)*-1
+end
 bus_mod_balance = branch_congest_flow - pflex_load_other
 stack_series = [branch_new_flow bus_mod_balance pnce_load_mon pcurt_load_mon]
 stack_labels = ["branch flow old branch" "branch flow new branch" "reduced load at buses" "curtailed load at buses" " " " "]

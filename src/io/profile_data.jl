@@ -65,8 +65,8 @@ function scale_cost_data!(data, scenario)
             load["co2_cost"] = load["co2_cost"] / scenario["hours"]  # co2 cost is given as total cost
         end
     end
-    if haskey(data, "emission_cost")
-        data["emission_cost"] = data["emission_cost"] * 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
+    if haskey(data, "co2_emission_cost")
+        data["co2_emission_cost"] = data["co2_emission_cost"] * 8760 / scenario["hours"] * scenario["planning_horizon"] # scale hourly costs to the planning horizon
     end
 end
 
@@ -203,7 +203,7 @@ function create_profile_data_norway(data, number_of_hours)
 # - for now generation profile is constant at 1.0
 # - for now works only for single scenario
 
-    demand_data = CSV.read("./test/data/demand_Norway_2015.csv")
+    demand_data = CSV.read("./test/data/demand_Norway_2015.csv", DataFrames.DataFrame)
     demand = demand_data[:,2:end]
     n_hours_data = size(demand,1)
     n_loads_data = size(demand,2)
