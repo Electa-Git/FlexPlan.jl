@@ -23,8 +23,8 @@ end
 # Here the problem is defined, which is then sent to the solver.
 # It is basically a declaration of variables and constraints of the problem
 
-""
-function post_flex_tnep(pm::_PM.AbstractPowerModel)
+"Builds transmission model."
+function post_flex_tnep(pm::_PM.AbstractPowerModel; build_objective::Bool=true)
 # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl    
     for (n, networks) in pm.ref[:nw]
         _PM.variable_bus_voltage(pm; nw = n)
@@ -53,7 +53,9 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
     end
 #OBJECTIVE see objective.jl
-    objective_min_cost_flex(pm)
+    if build_objective
+        objective_min_cost_flex(pm)
+    end
 #CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: flexible_demand.jl   
     for (n, networks) in pm.ref[:nw]
         _PM.constraint_model_voltage(pm; nw = n)
@@ -221,9 +223,8 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
     end
 end
 
-# distribution version
-""
-function post_flex_tnep(pm::_PM.AbstractBFModel)
+"Builds distribution model."
+function post_flex_tnep(pm::_PM.AbstractBFModel; build_objective::Bool=true)
 
     for (n, networks) in pm.ref[:nw]
         _PM.variable_bus_voltage(pm; nw = n)
@@ -245,7 +246,9 @@ function post_flex_tnep(pm::_PM.AbstractBFModel)
         variable_storage_power_ne(pm; nw = n)
     end
 
-    objective_min_cost_flex(pm)
+    if build_objective
+        objective_min_cost_flex(pm)
+    end
 
     for (n, networks) in pm.ref[:nw]
         _PM.constraint_model_current(pm; nw = n)
