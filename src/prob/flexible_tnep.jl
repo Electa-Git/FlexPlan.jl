@@ -1,23 +1,27 @@
 export flex_tnep
 
-""
-function flex_tnep(data::Dict{String,Any}, model_type::Type, solver; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
-    s = setting
-    return _PM.run_model(data, model_type, solver, post_flex_tnep; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
+"TNEP with flexible loads and storage, for transmission networks"
+function flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
+    return _PM.run_model(
+        data, model_type, optimizer, post_flex_tnep;
+        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        kwargs...
+    )
 end
 
-# for distribution models
-""
-function flex_tnep(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
-    return _PM.run_model(data, model_type, optimizer, post_flex_tnep;
-                         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
-                         solution_processors = [_PM.sol_data_model!],
-                         kwargs...)
+"TNEP with flexible loads and storage, for distribution networks"
+function flex_tnep(data::Dict{String,Any}, model_type::Type{BF}, optimizer; kwargs...) where BF <: _PM.AbstractBFModel
+    return _PM.run_model(
+        data, model_type, optimizer, post_flex_tnep;
+        ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+        solution_processors = [_PM.sol_data_model!],
+        kwargs...
+    )
 end
 
 
 # Here the problem is defined, which is then sent to the solver.
-# It is basically a declarion of variables and constraint of the problem
+# It is basically a declaration of variables and constraints of the problem
 
 ""
 function post_flex_tnep(pm::_PM.AbstractPowerModel)
