@@ -158,9 +158,11 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
     end
     
     for (s, scenario) in pm.ref[:scenario]
+
         network_ids = sort(collect(n for (sc, n) in scenario))
         n_1 = network_ids[1]
         n_last = network_ids[end]
+
         # NW = 1
         for i in _PM.ids(pm, :storage, nw = n_1)
             constraint_storage_state(pm, i, nw = n_1)
@@ -179,6 +181,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
                 constraint_shift_down_state(pm, i, nw = n_1)
             end
         end
+
         # NW = last
         for i in _PM.ids(pm, :storage, nw = n_last)
             constraint_storage_state_final(pm, i, nw = n_last)
@@ -215,8 +218,10 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             n_1 = n_2
         end
     end
+
     network_ids = sort(collect(_PM.nw_ids(pm)))
     n_1 = network_ids[1]
+    
     for n_2 in network_ids[2:end]
         for i in _PM.ids(pm, :load, nw = n_2)
             constraint_flex_investment(pm, n_1, n_2, i)
@@ -297,9 +302,11 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
     end
 
     for (s, scenario) in pm.ref[:scenario]
+
         network_ids = sort(collect(n for (sc, n) in scenario))
         n_1 = network_ids[1]
         n_last = network_ids[end]
+
         # NW = 1
         for i in _PM.ids(pm, :storage, nw = n_1)
             constraint_storage_state(pm, i, nw = n_1)
@@ -318,6 +325,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
                 constraint_shift_down_state(pm, i, nw = n_1)
             end
         end
+
         # NW = last
         for i in _PM.ids(pm, :storage, nw = n_last)
             constraint_storage_state_final(pm, i, nw = n_last)
@@ -354,9 +362,15 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
             n_1 = n_2
         end
     end
+
     network_ids = sort(collect(_PM.nw_ids(pm)))
     n_1 = network_ids[1]
+    
     for n_2 in network_ids[2:end]
+        for i in _PM.ids(pm, :ne_branch, nw = n_2)
+            # Constrains binary activation variable of ne_branch i to the same value in n_2-1 and n_2 nws
+            _PMACDC.constraint_candidate_acbranches_mp(pm, n_2, i)
+        end
         for i in _PM.ids(pm, :load, nw = n_2)
             constraint_flex_investment(pm, n_1, n_2, i)
         end
