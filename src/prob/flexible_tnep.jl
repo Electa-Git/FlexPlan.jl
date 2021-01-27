@@ -19,6 +19,17 @@ function flex_tnep(data::Dict{String,Any}, model_type::Type{BF}, optimizer; kwar
     )
 end
 
+"TNEP with flexible loads and storage, combines transmission and distribution networks"
+function flex_tnep(t_data::Dict{String,Any}, d_data::Dict{String,Any}, t_model_type::Type, d_model_type::Type{BF}, optimizer; kwargs...) where BF <: _PM.AbstractBFModel
+    return run_model(
+        t_data, d_data, t_model_type, d_model_type, optimizer, post_flex_tnep;
+        t_ref_extensions = [_PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!],
+        d_ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, add_candidate_storage!],
+        t_solution_processors = [_PM.sol_data_model!],
+        d_solution_processors = [_PM.sol_data_model!],
+        kwargs...
+    )
+end
 
 # Here the problem is defined, which is then sent to the solver.
 # It is basically a declaration of variables and constraints of the problem
@@ -355,4 +366,24 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; build_objective::Bool=true)
         end
         n_1 = n_2
     end
+end
+
+"Builds combined transmission and distribution model."
+function post_flex_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
+
+    # Transmission variables and constraints
+    post_flex_tnep(t_pm; build_objective = false)
+
+    # Distribution variables and constraints
+    post_flex_tnep(d_pm; build_objective = false)
+
+    # Variables related to the combined model
+    # (No new variables are needed here.)
+    
+    # Constraints related to the combined model
+    constraint_td_coupling(t_pm, d_pm)
+
+    # Objective function of the combined model
+    objective_min_cost_flex(t_pm, d_pm)
+
 end
