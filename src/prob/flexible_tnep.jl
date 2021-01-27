@@ -155,9 +155,11 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
     end
+
     network_ids = sort(collect(_PM.nw_ids(pm)))
     n_1 = network_ids[1]
     n_last = network_ids[end]
+
     # NW = 1
     for i in _PM.ids(pm, :storage, nw = n_1)
         constraint_storage_state(pm, i, nw = n_1)
@@ -282,9 +284,11 @@ function post_flex_tnep(pm::_PM.AbstractBFModel)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
     end
+
     network_ids = sort(collect(_PM.nw_ids(pm)))
     n_1 = network_ids[1]
     n_last = network_ids[end]
+    
     # NW = 1
     for i in _PM.ids(pm, :storage, nw = n_1)
         constraint_storage_state(pm, i, nw = n_1)
@@ -320,6 +324,10 @@ function post_flex_tnep(pm::_PM.AbstractBFModel)
 
     # NW = 2......last
     for n_2 in network_ids[2:end]
+        for i in _PM.ids(pm, :ne_branch, nw = n_2)
+            # Constrains binary activation variable of ne_branch i to the same value in n_2-1 and n_2 nws
+            _PMACDC.constraint_candidate_acbranches_mp(pm, n_2, i)
+        end
         for i in _PM.ids(pm, :storage, nw = n_2)
             constraint_storage_state(pm, i, n_1, n_2)
             constraint_maximum_absorption(pm, i, n_1, n_2)
