@@ -19,7 +19,6 @@ import JuMP: with_optimizer
 export with_optimizer
 
 import Plots
-import PlotlyJS
 
 # Create our module level logger (this will get precompiled)
 const _LOGGER = Memento.getlogger(@__MODULE__)
