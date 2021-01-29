@@ -41,11 +41,11 @@ for p1 in 0:0.1:1
 
     scenario = Dict{String, Any}("hours" => number_of_hours, "planning_horizon" => planning_horizon, "sc_years" => Dict{String, Any}())
     scenario["sc_years"]["1"] = Dict{String, Any}()
-    scenario["sc_years"]["1"]["year"] = 2019
+    scenario["sc_years"]["1"]["series_number"] = 2019
     scenario["sc_years"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time
     scenario["sc_years"]["1"]["probability"] = p1  
     scenario["sc_years"]["2"] = Dict{String, Any}()
-    scenario["sc_years"]["2"]["year"] = 2018
+    scenario["sc_years"]["2"]["series_number"] = 2018
     scenario["sc_years"]["2"]["start"] = 1514764800000   # 01.01.2018:00:00 in epoch time  
     scenario["sc_years"]["2"]["probability"] = p2
     #######################cs######################################

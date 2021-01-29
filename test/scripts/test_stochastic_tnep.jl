@@ -35,11 +35,11 @@ file = "./test/data/case6_less_res.m"  #Input case, in matpower m-file format: H
 
 scenario = Dict{String, Any}("hours" => number_of_hours, "planning_horizon" => planning_horizon, "sc_years" => Dict{String, Any}())
 scenario["sc_years"]["1"] = Dict{String, Any}()
-scenario["sc_years"]["1"]["year"] = 2019
+scenario["sc_years"]["1"]["series_number"] = 2019
 scenario["sc_years"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time
 scenario["sc_years"]["1"]["probability"] = 0.5  
 scenario["sc_years"]["2"] = Dict{String, Any}()
-scenario["sc_years"]["2"]["year"] = 2019 #2018
+scenario["sc_years"]["2"]["series_number"] = 2019 #2018
 scenario["sc_years"]["2"]["start"] = 1546300800000 #1514764800000   # 01.01.2018:00:00 in epoch time  
 scenario["sc_years"]["2"]["probability"] = 0.5
 #######################cs######################################

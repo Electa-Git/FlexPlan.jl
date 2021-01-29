@@ -1,4 +1,6 @@
 using Plots
+using PlotlyJS
+
 
 
 function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_gen_ids = nothing)
@@ -56,7 +58,7 @@ function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_ge
             end
         end
         plot!(hours,tot_trad_cap_pu,label="Trad. generation capacity (p.u.)")
-        plot!(hours,tot_res_cap_pu,label="RES generation capacity (p.u.)")
+        plot!(hours,tot_res_cap_pu,label="RES generation capacity (p.u.)",ylims = "(0,12)")
     end
 
     return p
@@ -204,7 +206,7 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
     if !isempty(input_data)
         rate_a = zeros(n_branches, 1)
         for i_branch = 1:n_branches
-            rate_a[i_branch] = data[branch_type][string(i_branch)][rate_key]
+            rate_a[i_branch] = input_data["nw"]["1"][branch_type][string(i_branch)][rate_key]
         end
     else
         rate_a = []
@@ -285,20 +287,20 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
         pnce[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pnce"]           
         pcurt[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pcurt"]           
     end
-    
+    plotlyjs()
     # Plotting demand variables
-    p = plot(xlabel="Time step", ylabel="Load (p.u.)")
+    p = Plots.plot(xlabel="Time step", ylabel="Load (p.u.)",legend= :outertopright)
     
-    plot!(p, t_vec, pd, label=string("Reference demand"))
+    Plots.plot!(p, t_vec, pd, label=string("Reference demand"),legend= :outertopright)
     
     # If no demand shifting or curtailment, this should plot the same as the reference demand above
-    plot!(p, t_vec, pflex, label=string("Actual (flexible) demand"))
+    Plots.plot!(p, t_vec, pflex, label=string("Actual (flexible) demand"),legend=:outertopright)
     
     #  If no demand shifting or curtailment, this should all be zeros
-    plot!(p, t_vec, pshift_down, label=string("Downwards load shifting"))
-    plot!(p, t_vec, pshift_up, label=string("Upwards demand shifting"))
-    plot!(p, t_vec, pnce, label=string("Not consumed energy"))
-    plot!(p, t_vec, pcurt, label=string("Demand curtailment"))    
+    Plots.plot!(p, t_vec, pshift_down, label=string("Downwards load shifting"),legend= :outertopright)
+    Plots.plot!(p, t_vec, pshift_up, label=string("Upwards demand shifting"),legend= :outertopright)
+    Plots.plot!(p, t_vec, pnce, label=string("Not consumed energy"),legend= :outertopright)
+    Plots.plot!(p, t_vec, pcurt, label=string("Demand curtailment"),legend= :outertopright)    
 
     return p
 end
