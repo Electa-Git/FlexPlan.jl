@@ -39,6 +39,7 @@ number_of_hours = 24          # Number of time steps
 start_hour = 1                # First time step
 n_loads = 13                  # Number of load points
 I_load_mon = 1:10                # The load point on which we monitor the load demand
+I_bus_mon = 1:11              # The buses for which voltage magnitude is to be monitored
 I_load_other = []            # Load point for other loads on the same radial affecting congestion
 i_branch_mon = 16              # Index of branch on which to monitor congestion
 do_force_congest = false      # True if forcing congestion by modifying branch flow rating of i_branch_congest
@@ -159,6 +160,15 @@ for i_load_other in I_load_other
       global pflex_load_other += _IT.select(load_other, :pflex)
       global pd_load_other += transpose(extradata["load"][string(i_load_other)]["pd"])
 end
+
+# Plot bus voltage magnitudes
+i_bus = I_bus_mon[1]
+voltage_plot = _FP.plot_var(result_test1,"bus",string(i_bus),"vm",label = string("bus ", i_bus), xlabel = "Hour", ylabel = "Voltage magnitude (p.u.)")
+for i_bus in I_bus_mon[2:end]
+      _FP.plot_var!(result_test1,"bus",string(i_bus),"vm")
+      voltage_plot.series_list[end].plotattributes[:label] = string("bus ", i_bus)
+end
+savefig(voltage_plot, "voltage.png")
 
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
