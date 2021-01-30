@@ -86,8 +86,10 @@ mpc.branch = [
 ];
 
 
-%column_names% f_bus	t_bus	br_r	br_x	br_b	rate_a	rate_b	rate_c	tap	shift	br_status	angmin	angmax	construction_cost co2_cost replace
+%% network expansion branch data
+%column_names% f_bus t_bus     br_r        br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost replace tm_min tm_max
 mpc.ne_branch = [
-	15     1  0.000475     0.004775    0.000000     40     40     40     1     0         1    -60     60     0.1  0    1;
+                   1     2  0.001766025  0.0025239   0.026786052  18     18     18     0     0         1    -60     60                 1       0    0.0    0.0;
+                   2     3  0.002768025  0.0079118   0.041983812  18     18     18     0     0         1    -60     60                 1       0    0.0    0.0;
 ];
 

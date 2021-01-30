@@ -38,10 +38,10 @@ cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, seconds = 20, print_level=0)
 number_of_hours = 24          # Number of time steps
 start_hour = 1                # First time step
 n_loads = 13                  # Number of load points
-I_load_mon = 1:10                # The load point on which we monitor the load demand
+I_load_mon = 2:10                # The load point on which we monitor the load demand
 I_bus_mon = 1:11              # The buses for which voltage magnitude is to be monitored
 I_load_other = []            # Load point for other loads on the same radial affecting congestion
-i_branch_mon = 16              # Index of branch on which to monitor congestion
+i_branch_mon = 1              # Index of branch on which to monitor congestion
 do_force_congest = false      # True if forcing congestion by modifying branch flow rating of i_branch_congest
 rate_congest = 16            # Rating of branch on which to force congestion
 load_scaling_factor = 1.0       # Factor with which original base case load demand data should be scaled
@@ -118,6 +118,11 @@ if use_DC
       result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
 else
       result_test1 = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc, multinetwork=true; setting = s)
+end
+
+# Printing to screen the branch investment decisions in the solution 
+for i_ne_branch = 1:length(result_test1["solution"]["nw"]["1"]["ne_branch"])
+      println("Is candidate branch ", i_ne_branch, " built: ", result_test1["solution"]["nw"]["1"]["ne_branch"][string(i_ne_branch)]["built"])
 end
 
 # Plot branch flow on congested branch
