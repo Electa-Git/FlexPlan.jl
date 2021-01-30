@@ -163,7 +163,7 @@ end
 
 # Plot bus voltage magnitudes
 i_bus = I_bus_mon[1]
-voltage_plot = _FP.plot_var(result_test1,"bus",string(i_bus),"vm",label = string("bus ", i_bus), xlabel = "Hour", ylabel = "Voltage magnitude (p.u.)")
+voltage_plot = _FP.plot_var(result_test1,"bus",string(i_bus),"vm",label = string("bus ", i_bus), xlabel = "time (h)", ylabel = "voltage magnitude (p.u.)")
 for i_bus in I_bus_mon[2:end]
       _FP.plot_var!(result_test1,"bus",string(i_bus),"vm")
       voltage_plot.series_list[end].plotattributes[:label] = string("bus ", i_bus)
@@ -180,8 +180,8 @@ else
 end
 bus_mod_balance = branch_congest_flow - pflex_load_other
 stack_series = [bus_mod_balance branch_new_flow pnce_load_mon pcurt_load_mon]
-stack_labels = ["branch flow old branch" "branch flow new branch" "reduced load at buses" "curtailed load at buses" " " " "]
-stacked_plot = _FP.stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
+stack_labels = ["branch flow old branch" "branch flow new branch" "reduced load at buses" "curtailed load at buses"]
+stacked_plot = _FP.stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false, ylabel = "load (MW)")
 load_input = pd_load_mon + pd_load_other
 plot!(t_vec, load_input, color=:red, width=3.0, label="base demand", line=:dash)
 load_flex = pflex_load_mon + pflex_load_other
@@ -191,11 +191,11 @@ savefig(stacked_plot, "load_mod_balance.png")
 # Plot energy not served
 plot_not_served = plot(t_vec, ence_load_mon, color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
-                           ylabel="energy (p.u.)", legend=false, gridalpha=0.5)
+                           ylabel="energy (MWh)", legend=false, gridalpha=0.5)
 
 # Make legend in energy not served plot
 pos = (0,.7)
-v1legend = _FP.stackedarea([0], [[0] [0] [0] [0] [0]], label=stack_labels)
+v1legend = _FP.stackedarea([0], [[0] [0] [0] [0]], label=stack_labels)
 plot!([0], label = "base demand", color=:red, line=:dash, width=3.0)
 plot!([0], label = "flexible demand", color=:blue, line=:dash, width=3.0)
 plot!([0], label = "total energy not served", color=:black, width=3.0, showaxis=false, grid=false,
@@ -214,12 +214,12 @@ label = "pshift_up"
 plot_energy_shift = _FP.stackedarea(t_vec, stack_series,  labels=label, alpha=0.7, color=:blue, legend=false)
 stack_series = pshift_down_load_mon*-1
 label = "pshift_down"
-_FP.stackedarea!(t_vec, stack_series, labels=label, xlabel="time (h)", ylabel="load shifted (p.u.)",
+_FP.stackedarea!(t_vec, stack_series, labels=label, xlabel="time (h)", ylabel="load shifted (MW)",
              alpha=0.7, color=:red, legend=false, gridalpha=0.5)
 
 # Make legend in shifted demand plot
 pos = (0,.7)
-v2legend = _FP.stackedarea([0], [[0] [0] [0] [0] [0]], label=stack_labels)
+v2legend = _FP.stackedarea([0], [[0] [0] [0] [0]], label=stack_labels)
 plot!([0], label = "base demand", color=:red, line=:dash, width=3.0)
 plot!([0], label = "flexible demand", color=:blue, line=:dash, width=3.0)
 _FP.stackedarea!([0],[0],label="load shift up", color=:blue)
