@@ -43,6 +43,17 @@ function get_scenario_res(res_dict::Dict, scen_dict::Dict, scenario::String, uty
     end
 end
 
+function get_scenario_data(mn_data::Dict, scen_dict::Dict, scenario::String, utype::String, unit::String, variables::Array=[])
+    scen_times = sort(collect(values(scen_dict[scenario])))
+    res = get_vars(mn_data["nw"], utype, unit, variables, scen_times)
+    real_times = sort([parse(Int64,i) for i in keys(scen_dict[scenario])])
+    if isempty(res)
+        return res
+    else
+        return reindex(res, real_times)
+    end
+end
+
 function get_vars(dict::Dict, utype::String, unit::String, variables::Array=[], times::Array=[])
     name = [:time]
     value = []
@@ -148,10 +159,13 @@ function get_energy_contribution_at_bus(data::Dict, bus::Int)
                                        )
                         ),
          "load" => Dict("load_bus" =>Dict("pl" =>-1,
-                                      "pflex" => -1,
+                                      #"pflex" => -1,
+                                      "pd" => -1,
                                       "pnce" => 1,
                                       "pcurt" => 1,
-                                      "pinter" => 1
+                                      "pinter" => 1,
+                                      "pshift_up" => -1,
+                                      "pshift_down" => 1
                                      )
                         ),
          "branch" => Dict("f_bus" => Dict("pf"=> -1),

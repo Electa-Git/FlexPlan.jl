@@ -388,9 +388,8 @@ end
     end
 end
 
-function plot_energy_balance_scenarios(data::Dict, result::Dict, scen_type::String, bus::Int)
-    contribution_dict = get_energy_contribution_at_bus(data, bus)
-    scen_times = data[scen_type]
+function plot_energy_balance_scenarios(mn_data::Dict, result::Dict, scen_times::Dict, bus::Int)
+    contribution_dict = get_energy_contribution_at_bus(mn_data["nw"]["1"], bus)
     pos_plots = []
     neg_plots = []
     plot_data = OrderedDict()
@@ -405,21 +404,22 @@ function plot_energy_balance_scenarios(data::Dict, result::Dict, scen_type::Stri
         for (utype, unit_dict) in contribution_dict
             for (unit, var_dict) in unit_dict
                 for (var, contr) in var_dict
-                    res = get_scenario_res(result, scen_times, scenario, utype, unit, [var])
+                    if var == "pd"
+                        res = get_scenario_data(mn_data, scen_times, scenario, utype, unit, [var])
+                    else
+                        res = get_scenario_res(result, scen_times, scenario, utype, unit, [var])
+                    end
                     if length(colnames(res)) < 3
                         continue
                     end
                     var_id = join([utype, unit, "-", var], " ")
-                    if var_id ∉ keys(cmap)
-                        cmap[var_id] = color_palette[length(cmap)+1]
-                    end
                     var_res = select(res, 3)*contr
                     var_neg = [abs(min(0,i)) for i in var_res]
                     var_pos = [max(0,i) for i in var_res]
                     if isempty(time)
                         time = select(res, 1)
                     end
-                    if sum(var_pos) > 0
+                    if sum(var_pos) > 0.1
                         if isempty(pos)
                             pos = var_pos
                             pos_label = [var_id]
@@ -428,7 +428,7 @@ function plot_energy_balance_scenarios(data::Dict, result::Dict, scen_type::Stri
                             pos_label = hcat(pos_label, var_id)
                         end
                     end
-                    if sum(var_neg) > 0
+                    if sum(var_neg) > 0.1
                         if isempty(neg)
                             neg = var_neg
                             neg_label = [var_id]
@@ -437,6 +437,9 @@ function plot_energy_balance_scenarios(data::Dict, result::Dict, scen_type::Stri
                             neg_label = hcat(neg_label, var_id)
                         end       
                     end 
+                    if var_id ∉ keys(cmap) && (sum(var_pos) > 0.1 || sum(var_neg) > 0.1)
+                        cmap[var_id] = color_palette[length(cmap)+1]
+                    end
                 end
             end
         end
@@ -453,18 +456,21 @@ function plot_energy_balance_scenarios(data::Dict, result::Dict, scen_type::Stri
         pos_colors = [cmap[i] for i in v["pos_label"]]
         areaplot = stackedarea(v["time"], v["pos"], color = pos_colors, title = k, legend=false)
         neg_colors = [cmap[i] for i in v["neg_label"]]
-        stackedarea!(v["time"], v["neg"], color = neg_colors)
+        stackedarea!(v["time"], v["neg"], color = neg_colors, size=(700, 230))
         xlabel!("Time (h)")
         ylabel!("Energy (MWh)")
         plot_data[k]["plot"] = areaplot
     end
     sort!(plot_data)
-    p1 = plot([v["plot"] for (k,v) in plot_data]..., color = cmap, layout = (length(plot_data),1))
+    nplots = length(plot_data)
+    plots = [v["plot"] for (k,v) in plot_data]
+    p1 = plot(plots..., color = cmap, layout = (nplots, 1))
     dummy = zeros(1,length(cmap))
-    p2= stackedarea([0], dummy, label = permutedims([i for i in keys(cmap)]),
+    p2 = stackedarea([0], dummy, label = permutedims([i for i in keys(cmap)]),
                     color = permutedims([i for i in values(cmap)]),
-                    showaxis=false, grid=false, legend=(0,.7)) 
-    plots = plot(p1,p2, layout = @layout([A B{.28w}]), size=(550, 600))
+                    showaxis=false, grid=false, legend=(0.15,.5)) 
+    plots = plot(p1,p2, layout = @layout([A B{.23w}]), size=(800, 230*nplots+10))
+    #plots = plot(p1, p2, layout = @layout([A; B]), size=(400*nplots, 300))
     display(plots)
     return plots
 end

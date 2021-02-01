@@ -108,5 +108,5 @@ function constraint_power_balance_reliability(pm::_PM.AbstractDCPModel, n::Int, 
     pinter = _PM.var(pm, n, :pinter)
     v = 1
 
-    JuMP.@constraint(pm.model, sum(p[a] for a in bus_arcs) + sum(p_ne[a] for a in bus_arcs_ne) + sum(pconv_grid_ac[c] for c in bus_convs_ac) + sum(pconv_grid_ac_ne[c] for c in bus_convs_ac_ne)  == sum(pg[g] for g in bus_gens) - sum(ps[s] for s in bus_storage) -sum(ps_ne[s] for s in bus_storage_ne) - sum(pflex[d] for d in bus_loads) - sum(pinter[d] for d in bus_loads) - sum(gs[s] for s in bus_shunts)*v^2)
+    JuMP.@constraint(pm.model, sum(p[a] for a in bus_arcs) + sum(p_ne[a] for a in bus_arcs_ne) + sum(pconv_grid_ac[c] for c in bus_convs_ac) + sum(pconv_grid_ac_ne[c] for c in bus_convs_ac_ne)  == sum(pg[g] for g in bus_gens) - sum(ps[s] for s in bus_storage) -sum(ps_ne[s] for s in bus_storage_ne) - sum(pflex[d] for d in bus_loads) + sum(pinter[d] for d in bus_loads) - sum(gs[s] for s in bus_shunts)*v^2)
 end

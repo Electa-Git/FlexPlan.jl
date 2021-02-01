@@ -12,6 +12,7 @@ end
 ""
 function post_reliability_tnep(pm::_PM.AbstractPowerModel)
 # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl    
+    base_nw = [parse(Int, i) for i in keys(pm.ref[:contingency]["0"])] # reliability specific - networks (times) in base scenario without contingencies
     for (n, networks) in pm.ref[:nw]
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
@@ -26,8 +27,9 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
         variable_absorbed_energy(pm; nw = n)
         variable_absorbed_energy_ne(pm; nw = n)
         variable_flexible_demand(pm; nw = n)
-        variable_demand_interruption(pm; nw = n) # reliability specific
-
+        if n ∉ base_nw
+            variable_demand_interruption(pm; nw = n) # reliability specific
+        end
         # new variables for TNEP problem
         _PM.variable_ne_branch_indicator(pm; nw = n)
         _PM.variable_ne_branch_power(pm; nw = n)
@@ -52,7 +54,11 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
         end
 
         for i in _PM.ids(pm, n, :bus)
-            constraint_power_balance_reliability(pm, i; nw = n) # reliability specific
+            if n ∉ base_nw
+                constraint_power_balance_reliability(pm, i; nw = n) # reliability specific
+            else
+                constraint_power_balance_acne_dcne_flex(pm, i; nw = n)
+            end
         end
         if haskey(pm.setting, "allow_line_replacement") && pm.setting["allow_line_replacement"] == true
             for i in _PM.ids(pm, n, :branch)
@@ -204,6 +210,16 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             end
             n_1 = n_2
         end
+        # reliability specific:
+        for (sc, n_2) in contingency
+            n_1 = parse(Int, sc)
+            if n_1 != n_2
+                for i in _PM.ids(pm, :load, nw = n_2)
+                    constraint_contingency_pcurt(pm, n_1, n_2, i)
+                end
+            end
+        end
+        #
     end
     network_ids = sort(collect(_PM.nw_ids(pm)))
     n_1 = network_ids[1]

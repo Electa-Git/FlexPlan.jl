@@ -130,7 +130,7 @@ function objective_reliability(pm::_PM.AbstractPowerModel)
     return JuMP.@objective(pm.model, Min,
     sum(pm.ref[:contingency_prob][s] * 
         sum(
-            sum(gen_cost[(n,i)] for (i,gen) in pm.ref[:nw][n][:gen]) + calculate_inv_cost(pm, n, is_reliability=true)
+            sum(gen_cost[(n,i)] for (i,gen) in pm.ref[:nw][n][:gen]) + calculate_inv_cost(pm, n, is_contingency=true)
             for (sc, n) in contingency # All times in a contingency scenario
                 ) 
         for (s, contingency) in pm.ref[:contingency] # All contingency
@@ -138,7 +138,7 @@ function objective_reliability(pm::_PM.AbstractPowerModel)
     )
 end
 
-function calculate_inv_cost(pm::_PM.AbstractPowerModel, n::Int; is_reliability::Bool=false)
+function calculate_inv_cost(pm::_PM.AbstractPowerModel, n::Int; is_contingency::Bool=false)
     if haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"] == true
         inv_cost = (
             sum(conv["cost"]*_PM.var(pm, n, :conv_ne, i) for (i,conv) in pm.ref[:nw][n][:convdc_ne])
@@ -186,8 +186,10 @@ function calculate_inv_cost(pm::_PM.AbstractPowerModel, n::Int; is_reliability::
         sum(load["cost_investment"]*_PM.var(pm, n, :z_flex, i) for (i,load) in pm.ref[:nw][n][:load])
         )
     end
-    if is_reliability
-        inv_cost += sum(load["cost_voll"]*_PM.var(pm, n, :pinter, i) for (i,load) in pm.ref[:nw][n][:load])
+    if is_contingency
+        if n ∉ [parse(Int, i) for i in keys(pm.ref[:contingency]["0"])]
+            inv_cost += sum(load["cost_voll"]*_PM.var(pm, n, :pinter, i) for (i,load) in pm.ref[:nw][n][:load])
+        end
     end
     return inv_cost
 end
