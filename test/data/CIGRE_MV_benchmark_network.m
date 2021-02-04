@@ -6,8 +6,9 @@ function mpc = CIGRE_MV_benchmark_network
 % Energy Resources", CIGRE, Technical Brochure 575, 2014.
 %
 % EDITS:
-% - branch data: angmin and angmax set to -60 and 60 degrees respectively to comply with
-%   PowerModels' requirements.
+% - branch: angmin and angmax set to -60 and 60 degrees respectively to comply with PowerModels'
+%   requirements;
+% - generator: batteries are not considered.
 
 %% MATPOWER Case Format : Version 2
 mpc.version = '2';
@@ -43,7 +44,6 @@ mpc.gen = [
         3  0.012  0.000    0.005    -0.005  1     1          1    0.02      0.0   0   0      0      0      0      0        0       0       0      0   0;
         4  0.012  0.000    0.005    -0.005  1     1          1    0.02      0.0   0   0      0      0      0      0        0       0       0      0   0;
         5  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
-        5  0.554  0.000    0.241    -0.241  1     1          1    0.60      0.0   0   0      0      0      0      0        0       0       0      0   0;
         5  0.013  0.000    0.006    -0.006  1     1          1    0.033     0.0   0   0      0      0      0      0        0       0       0      0   0;
         6  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
         7  1.500  0.000    0.654    -0.654  1     1          1    1.50      0.0   0   0      0      0      0      0        0       0       0      0   0;
@@ -52,7 +52,6 @@ mpc.gen = [
         9  0.310  0.000    0.135    -0.135  1     1          1    0.31      0.0   0   0      0      0      0      0        0       0       0      0   0;
         9  0.214  0.000    0.093    -0.093  1     1          1    0.212     0.0   0   0      0      0      0      0        0       0       0      0   0;
        10  0.025  0.000    0.011    -0.011  1     1          1    0.04      0.0   0   0      0      0      0      0        0       0       0      0   0;
-       10  0.185  0.000    0.081    -0.081  1     1          1    0.20      0.0   0   0      0      0      0      0        0       0       0      0   0;
        10  0.006  0.000    0.003    -0.003  1     1          1    0.014     0.0   0   0      0      0      0      0        0       0       0      0   0;
        11  0.006  0.000    0.003    -0.003  1     1          1    0.01      0.0   0   0      0      0      0      0        0       0       0      0   0;
        15  0.000  0.000  100.0    -100.0    1     1          1  100.0    -100.0   0   0      0      0      0      0        0       0       0      0   0;
