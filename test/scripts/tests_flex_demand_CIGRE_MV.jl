@@ -41,10 +41,10 @@ n_loads = 13                  # Number of load points
 I_load_mon = 2:10                # The load point on which we monitor the load demand
 I_bus_mon = 1:11              # The buses for which voltage magnitude is to be monitored
 I_load_other = []            # Load point for other loads on the same radial affecting congestion
-i_branch_mon = 1              # Index of branch on which to monitor congestion
+i_branch_mon = 2              # Index of branch on which to monitor congestion
 do_force_congest = false      # True if forcing congestion by modifying branch flow rating of i_branch_congest
 rate_congest = 16            # Rating of branch on which to force congestion
-load_scaling_factor = 0.85       # Factor with which original base case load demand data should be scaled
+load_scaling_factor = 0.8       # Factor with which original base case load demand data should be scaled
 use_DC = false                      # True for using DC power flow model; false for using linearized power real-reactive flow model for radial networks
 
 # Vector of hours (time steps) included in case
@@ -135,7 +135,7 @@ end
 branch_mon = _FP.get_vars(result_test1, "branch", string(i_branch_mon))
 
 # Extract results for new branch (assuming there only being one, and that it has a relevant placement)
-branch_new = _FP.get_vars(result_test1, "ne_branch","1")
+branch_new = _FP.get_vars(result_test1, "ne_branch","2")
 
 # Extract results for load points to monitor 
 # (this code got quite ugly but I do not want to re-write/extend the get_vars functions right now...)

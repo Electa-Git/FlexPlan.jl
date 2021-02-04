@@ -23,14 +23,16 @@ n_loads = 13                  # Number of load points
 use_DC = false                              # True for using DC power flow model; false for using linearized power real-reactive flow model for radial networks
 
 # Values for sensitivity analysis of factor with which original base case load demand data should be scaled
-vec_load_scaling_factor = [0.8 0.85 0.9]     
+vec_load_scaling_factor = [0.8 0.825 0.85 0.875 0.9 0.925 0.95 0.975 1.0]     
 #vec_load_scaling_factor = [0.8 0.85 0.9 0.95 1.0]     
 
 # Values for sensitivity analysis of p_shift_down and p_shift_up (demand flexibility potential)
-vec_p_shift_max = [0.1 0.2 0.3]     
+vec_p_shift_max = [0.0 0.1 0.2 0.3]     
+#vec_p_shift_max = [0.0]     
 
 # Values for sensitivity analysis of p_shift_down and p_shift_up (demand flexibility potential)
-vec_t_grace = [2]     
+vec_t_grace = [2 6 10]     
+#vec_t_grace = [2]     
 
 # Vector of hours (time steps) included in case
 t_vec = start_hour:start_hour + (number_of_hours - 1)
