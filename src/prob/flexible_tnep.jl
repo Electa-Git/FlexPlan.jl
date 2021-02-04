@@ -1,26 +1,30 @@
 export flex_tnep
 
-""
-function flex_tnep(data::Dict{String,Any}, model_type::Type, solver; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
-    s = setting
-    return _PM.run_model(data, model_type, solver, post_flex_tnep; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
+"TNEP with flexible loads and storage, for transmission networks"
+function flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
+    return _PM.run_model(
+        data, model_type, optimizer, post_flex_tnep;
+        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        kwargs...
+    )
 end
 
-# for distribution models
-""
-function flex_tnep(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
-    return _PM.run_model(data, model_type, optimizer, post_flex_tnep;
-                         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
-                         solution_processors = [_PM.sol_data_model!],
-                         kwargs...)
+"TNEP with flexible loads and storage, for distribution networks"
+function flex_tnep(data::Dict{String,Any}, model_type::Type{BF}, optimizer; kwargs...) where BF <: _PM.AbstractBFModel
+    return _PM.run_model(
+        data, model_type, optimizer, post_flex_tnep;
+        ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+        solution_processors = [_PM.sol_data_model!],
+        kwargs...
+    )
 end
 
 
 # Here the problem is defined, which is then sent to the solver.
-# It is basically a declarion of variables and constraint of the problem
+# It is basically a declaration of variables and constraints of the problem
 
-""
-function post_flex_tnep(pm::_PM.AbstractPowerModel)
+"Builds transmission model."
+function post_flex_tnep(pm::_PM.AbstractPowerModel; build_objective::Bool=true)
 # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl    
     for (n, networks) in pm.ref[:nw]
         _PM.variable_bus_voltage(pm; nw = n)
@@ -49,7 +53,9 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
     end
 #OBJECTIVE see objective.jl
-    objective_min_cost_flex(pm)
+    if build_objective
+        objective_min_cost_flex(pm)
+    end
 #CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: flexible_demand.jl   
     for (n, networks) in pm.ref[:nw]
         _PM.constraint_model_voltage(pm; nw = n)
@@ -209,7 +215,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
                 constraint_ence_state(pm, i, n_1, n_2)
                 constraint_shift_up_state(pm, n_1, n_2, i)
                 constraint_shift_down_state(pm, n_1, n_2, i) 
-                constraint_shift_duration(pm, n_2, i)
+                constraint_shift_duration(pm, n_2, network_ids, i)
                 constraint_flex_investment(pm, n_1, n_2, i)
             end
         end
@@ -217,9 +223,8 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel)
     end
 end
 
-# distribution version
-""
-function post_flex_tnep(pm::_PM.AbstractBFModel)
+"Builds distribution model."
+function post_flex_tnep(pm::_PM.AbstractBFModel; build_objective::Bool=true)
 
     for (n, networks) in pm.ref[:nw]
         _PM.variable_bus_voltage(pm; nw = n)
@@ -241,7 +246,9 @@ function post_flex_tnep(pm::_PM.AbstractBFModel)
         variable_storage_power_ne(pm; nw = n)
     end
 
-    objective_min_cost_flex(pm)
+    if build_objective
+        objective_min_cost_flex(pm)
+    end
 
     for (n, networks) in pm.ref[:nw]
         _PM.constraint_model_current(pm; nw = n)
@@ -342,7 +349,7 @@ function post_flex_tnep(pm::_PM.AbstractBFModel)
                 constraint_ence_state(pm, i, n_1, n_2)
                 constraint_shift_up_state(pm, n_1, n_2, i)
                 constraint_shift_down_state(pm, n_1, n_2, i) 
-                constraint_shift_duration(pm, n_2, i)
+                constraint_shift_duration(pm, n_2, network_ids, i)
                 constraint_flex_investment(pm, n_1, n_2, i)
             end
         end

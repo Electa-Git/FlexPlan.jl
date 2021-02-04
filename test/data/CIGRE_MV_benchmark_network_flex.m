@@ -91,6 +91,9 @@ mpc.ne_branch = [
 	15     1  0.000475     0.004775    0.000000     40     40     40     1     0         1    -60     60     0.2  0    1;
 ];
 
+% hours
+mpc.time_elapsed = 1.0
+
 %% storage data
 %   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status
 mpc.storage = [
