@@ -251,7 +251,7 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; build_objective::Bool=true)
 
         # new variables for TNEP problem
         _PM.variable_ne_branch_indicator(pm; nw = n)
-        _PM.variable_ne_branch_power(pm; nw = n)
+        _PM.variable_ne_branch_power(pm; nw = n, bounded = false) # Bounds computed here would be too limiting in the case of ne_branches added in parallel
         variable_ne_branch_current(pm; nw = n)
         variable_oltc_ne_branch_transform(pm; nw = n)
         variable_storage_power_ne(pm; nw = n)

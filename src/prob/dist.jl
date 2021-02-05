@@ -71,7 +71,7 @@ function build_tnep_rad(pm::_PM.AbstractBFModel)
     variable_oltc_branch_transform(pm)
 
     _PM.variable_ne_branch_indicator(pm)
-    _PM.variable_ne_branch_power(pm)
+    _PM.variable_ne_branch_power(pm, bounded = false) # Bounds computed here would be too limiting in the case of ne_branches added in parallel
     variable_ne_branch_current(pm)
     variable_oltc_ne_branch_transform(pm)
 
