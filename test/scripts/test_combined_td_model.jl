@@ -90,10 +90,10 @@ end
 
 printstyled("\n\n==========================   Power exchange at PCCs   ==========================\n\n", bold=true, color=:cyan)
 using Printf
-println("Power in MW, positive if from transmission to distribution\n")
+println("Power in MW and MVar, positive if from transmission to distribution\n")
 print("period ")
 for sub_nw in 1:sub_nws
-    @printf("%10s", "dist$sub_nw")
+    @printf("%13s%10s", "p_dist$sub_nw", "q_dist$sub_nw")
 end
 println()
 for t_nw in 1:t_nws 
@@ -109,7 +109,8 @@ for t_nw in 1:t_nws
         t_p_in = t_res["gen"]["$t_gen"]["pg"] * t_mbase
         d_p_in = d_res["gen"]["$d_gen"]["pg"] * d_mbase
         @assert d_p_in ≈ -t_p_in
-        @printf("%10.3f", d_p_in)
+        d_q_in = d_res["gen"]["$d_gen"]["qg"] * d_mbase
+        @printf("%13.3f%10.3f", d_p_in, d_q_in)
     end
     println()
 end
