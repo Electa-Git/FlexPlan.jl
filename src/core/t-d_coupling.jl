@@ -91,12 +91,13 @@ In transmission network data structure:
 
 In distribution network data structure:
 - add the key `t_coupling_gen` that stores the id of the newly added transmission generator;
-- add the key `d_coupling_gen` that stores the id of the generator connected to the reference bus.
+- add the key `d_coupling_gen` that stores the id of the generator connected to the reference bus;
+- add the key `sub_nw`, that is an unique integer identifier of the physical distribution network.
 
 This function is intended to be the last that edits transmission and distribution single-network
 data structures: it should be called just before `multinetwork_data()`.
 """
-function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any}; t_bus::Int)
+function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any}; t_bus::Int, sub_nw::Int)
 
     ## Data extraction from distribution data
 
@@ -145,39 +146,30 @@ function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any
     d_data["t_coupling_gen"] = t_gen
     d_data["d_coupling_gen"] = d_gen
 
+    # Store the id of the physical distribution network
+    d_data["sub_nw"] = sub_nw
+
 end
 
 """
 Connect each distribution nw to the corresponding transmission nw and apply coupling constraints.
 
 The coupling constraint is applied to the two generators that each distribution nw indicates.
-
-Assumptions:
-- If `t_pm` has N nws, then `d_pm` has D*N nws, where D is the number of physical distribution
-  networks.
-- Transmission nws are numbered from 1 to N.
-- Distribution nws are numbered from N+1 to (D+1)*N.
 """
 function constraint_td_coupling(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
-    t_nws = length(_PM.nw_ids(t_pm))
-    d_nws = length(_PM.nw_ids(d_pm))
+    t_nws = sort(collect(_PM.nw_ids(t_pm)))
 
-    if d_nws % t_nws != 0
-        Memento.error(_LOGGER, "The number of nws in dist model ($d_nws) is not a multiple of the number of nws in transm model ($t_nws).")
-    end
-    sub_nws = d_nws ÷ t_nws
-
-    for sub_nw in 1:sub_nws
-        for t_nw in 1:t_nws 
-            d_nw = sub_nw * t_nws + t_nw
-
+    for (sub_nw, nw_ids) in d_pm.ref[:sub_nw]
+        d_nws = sort(collect(nw_ids))
+        for i in 1:length(t_nws)
+            t_nw = t_nws[i] 
+            d_nw = d_nws[i]
             t_gen = _PM.ref(d_pm, d_nw, :t_coupling_gen) # Note: t_coupling_gen is defined in dist nw
             d_gen = _PM.ref(d_pm, d_nw, :d_coupling_gen)
             t_mbase = _PM.ref(t_pm, t_nw, :gen, t_gen, "mbase")
             d_mbase = _PM.ref(d_pm, d_nw, :gen, d_gen, "mbase")
-            td_mbase_ratio = t_mbase/d_mbase
 
-            constraint_td_coupling(t_pm, d_pm, t_nw, d_nw, t_gen, d_gen, td_mbase_ratio)
+            constraint_td_coupling(t_pm, d_pm, t_nw, d_nw, t_gen, d_gen, t_mbase, d_mbase)
         end
     end
 
@@ -186,8 +178,8 @@ end
 """
 State the active power conservation between a distribution nw and the corresponding transmission nw.
 """
-function constraint_td_coupling(t_pm::_PM.AbstractActivePowerModel, d_pm::_PM.AbstractBFModel, t_nw::Int, d_nw::Int, t_gen::Int, d_gen::Int, td_mbase_ratio::Float64)
-    t_p_out = _PM.var(t_pm, t_nw, :pg, t_gen)
-    d_p_out = _PM.var(d_pm, d_nw, :pg, d_gen)
-    JuMP.@constraint(t_pm.model, td_mbase_ratio*t_p_out + d_p_out == 0.0) # t_pm.model == d_pm.model
+function constraint_td_coupling(t_pm::_PM.AbstractActivePowerModel, d_pm::_PM.AbstractBFModel, t_nw::Int, d_nw::Int, t_gen::Int, d_gen::Int, t_mbase::Float64, d_mbase::Float64)
+    t_p_in = _PM.var(t_pm, t_nw, :pg, t_gen)
+    d_p_in = _PM.var(d_pm, d_nw, :pg, d_gen)
+    JuMP.@constraint(t_pm.model, t_mbase*t_p_in + d_mbase*d_p_in == 0.0) # t_pm.model == d_pm.model
 end
