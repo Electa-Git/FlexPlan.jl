@@ -45,8 +45,8 @@ function multinetwork_data(
     delete!(template_nw, "name") # In case is not passed among global keys
 
     # If the multinetwork is intended to store data belonging to different physical networks, add or update sub_nw lookup dict
-    if haskey(sn_data, "sub_nw")
-        sub_nw = sn_data["sub_nw"]
+    if haskey(sn_data, "td_coupling")
+        sub_nw = sn_data["td_coupling"]["sub_nw"]
         if !haskey(mn_data, "sub_nw")
             mn_data["sub_nw"] = Dict{String,Set{Int}}()
         end

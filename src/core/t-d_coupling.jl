@@ -92,21 +92,19 @@ end
 """
 Add to transmission and distribution single-network data structures the data needed for T&D coupling.
 
-In transmission network data structure:
-- add a coupling generator connected to `t_bus`, that is the bus to which the distribution network
-  is to be connected.
-
-In distribution network data structure:
-- add a coupling generator connected to the reference bus; if already existing, its parameters are
-  overwritten;
-- add the key `t_coupling_gen` that stores the id of the newly added transmission generator;
-- add the key `d_coupling_gen` that stores the id of the generator connected to the reference bus;
-- add the key `sub_nw`, that is an unique integer identifier of the physical distribution network.
-
-A bound on reactive power exchanged between transmission and distribution networks is defined: it
-is computed as a fraction `qs_ratio_bound` of the rated power of the distribution network (based on
-the rated power of existing and candidate branches connected to the reference bus); default value is
-0.48 as per “Network Code on Demand Connection” – Commission Regulation (EU) 2016/1388.
+- Add to transmission network data structure a coupling generator connected to `t_bus`, that is the
+  bus to which the distribution network is to be connected.
+- Add to distribution network data structure a coupling generator connected to the reference bus; if
+  already existing, its parameters are overwritten.
+- Define a bound on reactive power exchanged between transmission and distribution networks: it is
+  computed as a fraction `qs_ratio_bound` of the rated power of the distribution network (based on
+  the rated power of existing and candidate branches connected to the reference bus); default value
+  is 0.48 as per “Network Code on Demand Connection” – Commission Regulation (EU) 2016/1388.
+- Add to distribution network data structure the key `td_coupling` that contains:
+  - `t_gen`: the id of the coupling generator of transmission network;
+  - `d_gen`: the id of the coupling generator of distribution network;
+  - `qs_ratio_bound`: the aforementioned allowable fraction of the rated power;
+  - `sub_nw`: an unique integer identifier of the physical distribution network.
 
 This function is intended to be the last that edits transmission and distribution single-network
 data structures: it should be called just before `multinetwork_data()`.
@@ -183,13 +181,12 @@ function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any
     d_gen["ncost"]      = 0 # Number of cost coefficients
     d_gen["cost"]       = Any[]
 
-   # Store the parameters needed to later build the coupling constraint
-    d_data["t_coupling_gen"] = t_gen_idx
-    d_data["d_coupling_gen"] = d_gen_idx
-    d_data["coupling_qs_ratio_bound"] = qs_ratio_bound
-
-    # Store the id of the physical distribution network
-    d_data["sub_nw"] = sub_nw
+    # Store the parameters needed to later build the coupling constraint
+    d_data["td_coupling"] = Dict{String,Any}()
+    d_data["td_coupling"]["t_gen"] = t_gen_idx
+    d_data["td_coupling"]["d_gen"] = d_gen_idx
+    d_data["td_coupling"]["qs_ratio_bound"] = qs_ratio_bound
+    d_data["td_coupling"]["sub_nw"] = sub_nw
 
 end
 
@@ -226,8 +223,8 @@ end
 State the power conservation between a distribution nw and the corresponding transmission nw.
 """
 function constraint_td_coupling_power_balance(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel, t_nw::Int, d_nw::Int)
-    t_gen = _PM.ref(d_pm, d_nw, :t_coupling_gen) # Note: t_coupling_gen is defined in dist nw
-    d_gen = _PM.ref(d_pm, d_nw, :d_coupling_gen)
+    t_gen = _PM.ref(d_pm, d_nw, :td_coupling, "t_gen") # Note: is defined in dist nw
+    d_gen = _PM.ref(d_pm, d_nw, :td_coupling, "d_gen")
     t_mbase = _PM.ref(t_pm, t_nw, :gen, t_gen, "mbase")
     d_mbase = _PM.ref(d_pm, d_nw, :gen, d_gen, "mbase")
 
@@ -239,7 +236,7 @@ end
 Apply bounds on reactive power exchanged between a distribution nw and the corresponding transmission nw.
 """
 function constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel, d_nw::Int)
-    d_gen = _PM.ref(d_pm, d_nw, :d_coupling_gen)
+    d_gen = _PM.ref(d_pm, d_nw, :td_coupling, "d_gen")
 
     constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel, d_nw::Int, d_gen::Int)
 end
@@ -283,7 +280,7 @@ function constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel,
         s_rate = sum(branch["rate_a"] for (b,branch) in _PM.ref(d_pm, d_nw, :frb_branch))
     end
 
-    qs_ratio_bound = _PM.ref(d_pm, d_nw, :coupling_qs_ratio_bound) # Allowable fraction of rated apparent power
+    qs_ratio_bound = _PM.ref(d_pm, d_nw, :td_coupling, "qs_ratio_bound") # Allowable fraction of rated apparent power
 
     q = _PM.var(d_pm, d_nw, :qg, d_gen) # Exchanged reactive power (positive if from T to D)
 
