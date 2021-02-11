@@ -19,6 +19,17 @@ function flex_tnep(data::Dict{String,Any}, model_type::Type{BF}, optimizer; kwar
     )
 end
 
+"TNEP with flexible loads and storage, combines transmission and distribution networks"
+function flex_tnep(t_data::Dict{String,Any}, d_data::Dict{String,Any}, t_model_type::Type, d_model_type::Type{BF}, optimizer; kwargs...) where BF <: _PM.AbstractBFModel
+    return run_model(
+        t_data, d_data, t_model_type, d_model_type, optimizer, post_flex_tnep;
+        t_ref_extensions = [_PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!],
+        d_ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, add_candidate_storage!],
+        t_solution_processors = [_PM.sol_data_model!],
+        d_solution_processors = [_PM.sol_data_model!],
+        kwargs...
+    )
+end
 
 # Here the problem is defined, which is then sent to the solver.
 # It is basically a declaration of variables and constraints of the problem
@@ -292,67 +303,97 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; build_objective::Bool=true)
         end
     end
 
-    network_ids = sort(collect(_PM.nw_ids(pm)))
-    n_1 = network_ids[1]
-    n_last = network_ids[end]
+    # Constraints that link multiple networks (grouped by subnetwork, if applicable)
+    if haskey(pm.ref, :sub_nw)
+        sub_nws = pm.ref[:sub_nw]
+    else
+        sub_nws = Dict{String,Set{Int}}("0" => _PM.nw_ids(pm))
+    end
     
-    # NW = 1
-    for i in _PM.ids(pm, :storage, nw = n_1)
-        constraint_storage_state(pm, i, nw = n_1)
-        constraint_maximum_absorption(pm, i, nw = n_1)
-    end
+    for (sub_nw, nw_ids) in sub_nws
 
-    for i in _PM.ids(pm, :ne_storage, nw = n_1)
-        constraint_storage_state_ne(pm, i, nw = n_1)
-        constraint_maximum_absorption_ne(pm, i, nw = n_1)
-    end
+        network_ids = sort(collect(nw_ids))
+        n_1 = network_ids[1]
+        n_last = network_ids[end]
+        
+        # NW = 1
+        for i in _PM.ids(pm, :storage, nw = n_1)
+            constraint_storage_state(pm, i, nw = n_1)
+            constraint_maximum_absorption(pm, i, nw = n_1)
+        end
 
-    for i in _PM.ids(pm, :load, nw = n_1)
-        if _PM.ref(pm, n_1, :load, i, "flex") == 1
-            constraint_ence_state(pm, i, nw = n_1)
-            constraint_shift_up_state(pm, i, nw = n_1)
-            constraint_shift_down_state(pm, i, nw = n_1)
+        for i in _PM.ids(pm, :ne_storage, nw = n_1)
+            constraint_storage_state_ne(pm, i, nw = n_1)
+            constraint_maximum_absorption_ne(pm, i, nw = n_1)
         end
-    end
-    # NW = last
-    for i in _PM.ids(pm, :storage, nw = n_last)
-        constraint_storage_state_final(pm, i, nw = n_last)
-    end
 
-    for i in _PM.ids(pm, :ne_storage, nw = n_last)
-        constraint_storage_state_final_ne(pm, i, nw = n_last)
-    end
-
-    for i in _PM.ids(pm, :load, nw = n_last)
-        if _PM.ref(pm, n_last, :load, i, "flex") == 1
-            constraint_shift_state_final(pm, i, nw = n_last)
-        end
-    end
-
-    # NW = 2......last
-    for n_2 in network_ids[2:end]
-        for i in _PM.ids(pm, :ne_branch, nw = n_2)
-            # Constrains binary activation variable of ne_branch i to the same value in n_2-1 and n_2 nws
-            _PMACDC.constraint_candidate_acbranches_mp(pm, n_2, i)
-        end
-        for i in _PM.ids(pm, :storage, nw = n_2)
-            constraint_storage_state(pm, i, n_1, n_2)
-            constraint_maximum_absorption(pm, i, n_1, n_2)
-        end
-        for i in _PM.ids(pm, :ne_storage, nw = n_2)
-            constraint_storage_state_ne(pm, i, n_1, n_2)
-            constraint_maximum_absorption_ne(pm, i, n_1, n_2)
-            constraint_storage_investment(pm, n_1, n_2, i)
-        end
-        for i in _PM.ids(pm, :load, nw = n_2)
-            if _PM.ref(pm, n_2, :load, i, "flex") == 1
-                constraint_ence_state(pm, i, n_1, n_2)
-                constraint_shift_up_state(pm, n_1, n_2, i)
-                constraint_shift_down_state(pm, n_1, n_2, i) 
-                constraint_shift_duration(pm, n_2, network_ids, i)
-                constraint_flex_investment(pm, n_1, n_2, i)
+        for i in _PM.ids(pm, :load, nw = n_1)
+            if _PM.ref(pm, n_1, :load, i, "flex") == 1
+                constraint_ence_state(pm, i, nw = n_1)
+                constraint_shift_up_state(pm, i, nw = n_1)
+                constraint_shift_down_state(pm, i, nw = n_1)
             end
         end
-        n_1 = n_2
+        # NW = last
+        for i in _PM.ids(pm, :storage, nw = n_last)
+            constraint_storage_state_final(pm, i, nw = n_last)
+        end
+
+        for i in _PM.ids(pm, :ne_storage, nw = n_last)
+            constraint_storage_state_final_ne(pm, i, nw = n_last)
+        end
+
+        for i in _PM.ids(pm, :load, nw = n_last)
+            if _PM.ref(pm, n_last, :load, i, "flex") == 1
+                constraint_shift_state_final(pm, i, nw = n_last)
+            end
+        end
+
+        # NW = 2......last
+        for n_2 in network_ids[2:end]
+            for i in _PM.ids(pm, :ne_branch, nw = n_2)
+                # Constrains binary activation variable of ne_branch i to the same value in n_2-1 and n_2 nws
+                _PMACDC.constraint_candidate_acbranches_mp(pm, n_2, i)
+            end
+            for i in _PM.ids(pm, :storage, nw = n_2)
+                constraint_storage_state(pm, i, n_1, n_2)
+                constraint_maximum_absorption(pm, i, n_1, n_2)
+            end
+            for i in _PM.ids(pm, :ne_storage, nw = n_2)
+                constraint_storage_state_ne(pm, i, n_1, n_2)
+                constraint_maximum_absorption_ne(pm, i, n_1, n_2)
+                constraint_storage_investment(pm, n_1, n_2, i)
+            end
+            for i in _PM.ids(pm, :load, nw = n_2)
+                if _PM.ref(pm, n_2, :load, i, "flex") == 1
+                    constraint_ence_state(pm, i, n_1, n_2)
+                    constraint_shift_up_state(pm, n_1, n_2, i)
+                    constraint_shift_down_state(pm, n_1, n_2, i) 
+                    constraint_shift_duration(pm, n_2, network_ids, i)
+                    constraint_flex_investment(pm, n_1, n_2, i)
+                end
+            end
+            n_1 = n_2
+        end
     end
+end
+
+"Builds combined transmission and distribution model."
+function post_flex_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
+
+    # Transmission variables and constraints
+    post_flex_tnep(t_pm; build_objective = false)
+
+    # Distribution variables and constraints
+    post_flex_tnep(d_pm; build_objective = false)
+
+    # Variables related to the combined model
+    # (No new variables are needed here.)
+    
+    # Constraints related to the combined model
+    constraint_td_coupling(t_pm, d_pm)
+
+    # Objective function of the combined model
+    objective_min_cost_flex(t_pm, d_pm)
+
 end

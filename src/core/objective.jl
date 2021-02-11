@@ -31,6 +31,30 @@ function objective_min_cost_flex(pm::_PM.AbstractPowerModel)
     )
 end
 
+function objective_min_cost_flex(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractPowerModel)
+    add_co2_cost = haskey(t_pm.setting, "add_co2_cost") && t_pm.setting["add_co2_cost"] # Note: t_pm.setting == d_pm.setting
+    return JuMP.@objective(t_pm.model, Min, # Note: t_pm.model == d_pm.model
+        # Cost related to transmission (multi)network
+        sum(
+            calc_gen_cost(t_pm, n, add_co2_cost)
+            + calc_convdc_ne_cost(t_pm, n, add_co2_cost)
+            + calc_ne_branch_cost(t_pm, n, add_co2_cost)
+            + calc_branchdc_ne_cost(t_pm, n, add_co2_cost)
+            + calc_ne_storage_cost(t_pm, n, add_co2_cost)
+            + calc_load_cost(t_pm, n, add_co2_cost)
+        for (n, nw_ref) in _PM.nws(t_pm))
+        +
+        # Cost related to distribution (multi)network
+        # Note: distribution networks do not have DC components (modeling decision)
+        sum(
+            calc_gen_cost(d_pm, n, add_co2_cost)
+            + calc_ne_branch_cost(d_pm, n, add_co2_cost)
+            + calc_ne_storage_cost(d_pm, n, add_co2_cost)
+            + calc_load_cost(d_pm, n, add_co2_cost)
+        for (n, nw_ref) in _PM.nws(d_pm))
+    )
+end
+
 ##########################################################################
 ##################### Stochastic objective with storage & flex candidates
 ##########################################################################
