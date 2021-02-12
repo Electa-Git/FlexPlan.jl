@@ -388,7 +388,7 @@ end
     end
 end
 
-function plot_energy_balance_scenarios(mn_data::Dict, result::Dict, scen_times::Dict, bus::Int)
+function plot_energy_balance_scenarios(mn_data::Dict, result::Dict, scen_times::Dict, bus::Int; legend_pos="below")
     contribution_dict = get_energy_contribution_at_bus(mn_data["nw"]["1"], bus)
     pos_plots = []
     neg_plots = []
@@ -462,14 +462,36 @@ function plot_energy_balance_scenarios(mn_data::Dict, result::Dict, scen_times::
         plot_data[k]["plot"] = areaplot
     end
     sort!(plot_data)
-    nplots = length(plot_data)
     plots = [v["plot"] for (k,v) in plot_data]
-    p1 = plot(plots..., color = cmap, layout = (nplots, 1))
+    nplots = length(plot_data)
+    plot_rows = Int(max(ceil(nplots/2),1))
+    plot_layout = (plot_rows, 2)
     dummy = zeros(1,length(cmap))
-    p2 = stackedarea([0], dummy, label = permutedims([i for i in keys(cmap)]),
-                    color = permutedims([i for i in values(cmap)]),
-                    showaxis=false, grid=false, legend=(0.15,.5)) 
-    plots = plot(p1,p2, layout = @layout([A B{.23w}]), size=(800, 230*nplots+10))
+    if Bool(nplots%2)
+        p2 = stackedarea([0], dummy, label = permutedims([i for i in keys(cmap)]),
+        color = permutedims([i for i in values(cmap)]), size=(150, 230),
+        showaxis=false, grid=false, legend=(0.2,.7), legendfontsize=10)
+        plots = vcat(plots, p2)
+    end
+    if nplots == 1
+        p1 = plot(plots[1], plots[2], layout = @layout([A{0.95h} B{0.3w}]), size=(800, 230*plot_rows))
+    else
+        p1 = plot(plots..., color = cmap, layout = plot_layout)
+    end
+    
+    if Bool(nplots%2)
+        plots = plot(p1, size=(800, 230*plot_rows))
+    elseif legend_pos == "below"
+        p2 = stackedarea([0], dummy, label = permutedims([i for i in keys(cmap)]),
+        color = permutedims([i for i in values(cmap)]),
+        showaxis=false, grid=false, legend=(0.4,.95), legendfontsize=10)
+        plots = plot(p1,p2, layout = @layout([A; B{0.2h}]), size=(800, 230*plot_rows))
+    elseif legend_pos == "right"
+        p2 = stackedarea([0], dummy, label = permutedims([i for i in keys(cmap)]),
+        color = permutedims([i for i in values(cmap)]),
+        showaxis=false, grid=false, legend=(0.15,.5), legendfontsize=10)
+        plots = plot(p1,p2, layout = @layout([A{0.95h} B{0.2w}]), size=(800, 230*plot_rows))
+    end
     #plots = plot(p1, p2, layout = @layout([A; B]), size=(400*nplots, 300))
     display(plots)
     return plots
