@@ -19,9 +19,8 @@ number_of_hours = 24
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 
 
-## Transmission network instance (all data preparation except for multinetwork_data() call)
+## Scenario
 
-t_file = "./test/data/combined_td_model/t_case6.m" # Input case for transmission network
 scenario = Dict{String, Any}("hours" => number_of_hours, "sc_years" => Dict{String, Any}())
 scenario["sc_years"]["1"] = Dict{String, Any}()
 scenario["sc_years"]["1"]["year"] = 2019
@@ -29,12 +28,13 @@ scenario["sc_years"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch
 scenario["sc_years"]["1"]["probability"] = 1   # 01.01.2019:00:00 in epoch time
 scenario["planning_horizon"] = 1 # in years, to scale generation cost  
 
-t_data = _PM.parse_file(t_file)
+
+## Transmission network instance (all data preparation except for multinetwork_data() call)
+
+t_file = "./test/data/combined_td_model/t_case6.m" # Input case for transmission network
+
+t_data = _FP.parse_file(t_file, scenario)
 t_data, t_loadprofile, t_genprofile = _FP.create_profile_data_italy(t_data, scenario) # Create load and generation profiles
-_PMACDC.process_additional_data!(t_data)
-_FP.add_storage_data!(t_data)
-_FP.add_flexible_demand_data!(t_data)
-_FP.scale_cost_data!(t_data, scenario)
 t_extradata = _FP.create_profile_data(scenario["hours"]*length(t_data["scenario"]), t_data, t_loadprofile, t_genprofile) # Create a dictionary to pass time series data to data dictionary
 
 
