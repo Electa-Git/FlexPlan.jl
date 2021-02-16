@@ -90,28 +90,25 @@ end
 ## Functions that manipulate data structures
 
 """
-Add to transmission and distribution single-network data structures the data needed for T&D coupling.
+Add to distribution single-network data structures the data needed for T&D coupling.
 
-- Add to transmission network data structure a coupling generator connected to `t_bus`, that is the
-  bus to which the distribution network is to be connected.
 - Add to distribution network data structure a coupling generator connected to the reference bus; if
-  already existing, its parameters are overwritten.
+  it already exists, overwrite all its parameters except cost.
 - Define a bound on reactive power exchanged between transmission and distribution networks: it is
   computed as a fraction `qs_ratio_bound` of the rated power of the distribution network (based on
   the rated power of existing and candidate branches connected to the reference bus); default value
   is 0.48 as per “Network Code on Demand Connection” – Commission Regulation (EU) 2016/1388.
 - Add to distribution network data structure the key `td_coupling` that contains:
-  - `t_gen`: the id of the coupling generator of transmission network;
   - `d_gen`: the id of the coupling generator of distribution network;
   - `qs_ratio_bound`: the aforementioned allowable fraction of the rated power;
   - `sub_nw`: an unique integer identifier of the physical distribution network.
 
-This function is intended to be the last that edits transmission and distribution single-network
-data structures: it should be called just before `multinetwork_data()`.
-"""
-function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any}; t_bus::Int, sub_nw::Int, qs_ratio_bound::Float64=0.48)
+Return `d_gen`.
 
-    ## Data extraction from distribution data
+This function is intended to be the last that edits distribution single-network data structures: it
+should be called just before `multinetwork_data()`.
+"""
+function add_td_coupling_data!(d_data::Dict{String,Any}; sub_nw::Int, qs_ratio_bound::Float64=0.48)
 
     # Get the reference bus id
     d_ref_buses = [b for (b,bus) in d_data["bus"] if bus["bus_type"] == 3]
@@ -132,7 +129,54 @@ function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any
         + sum(branch["rate_a"] for (b,branch) in d_data["ne_branch"] if (branch["f_bus"]==d_ref_bus || branch["t_bus"]==d_ref_bus) && branch["br_status"]==1) # In t_bus here, the t stands for "to" (not for "transmission" as in the rest of the function)
     )
 
-    ## Operations in transmission data
+    # Add a coupling generator connected to d_ref_bus (or use existing one) to model the transmission network
+    if isempty(d_ref_gens)
+        d_gen_idx = length(d_data["gen"]) + 1 # Assumes that gens have contiguous indices starting from 1, as should be
+        d_data["gen"]["$d_gen_idx"] = Dict{String,Any}(
+            "gen_bus" => d_ref_bus,
+            "index"   => d_gen_idx,
+            "model"   => 2, # Cost model (2 => polynomial cost)
+            "ncost"   => 0, # Number of cost coefficients
+            "cost"    => Any[]
+        )
+    else
+        d_gen_idx = parse(Int, first(d_ref_gens))
+    end
+
+    # Set coupling generator parameters
+    d_gen = d_data["gen"]["$d_gen_idx"]
+    d_gen["mbase"]      = d_data["baseMVA"]
+    d_gen["pmin"]       = -d_s_rate
+    d_gen["pmax"]       =  d_s_rate
+    d_gen["qmin"]       = -d_s_rate
+    d_gen["qmax"]       =  d_s_rate
+    d_gen["gen_status"] = 1
+
+    # Store the T&D coupling parameters
+    d_data["td_coupling"] = Dict{String,Any}()
+    d_data["td_coupling"]["qs_ratio_bound"] = qs_ratio_bound
+    d_data["td_coupling"]["sub_nw"] = sub_nw
+    d_data["td_coupling"]["d_gen"] = d_gen_idx
+
+end
+
+"""
+Add to transmission and distribution single-network data structures the data needed for T&D coupling.
+
+In addition to `add_td_coupling_data!(d_data; sub_nw, qs_ratio_bound)`, do the following:
+- Add to transmission network data structure a coupling generator connected to `t_bus`, that is the
+  bus to which the distribution network is to be connected.
+- Add to `td_coupling` dict of distribution network an entry `t_gen` for the id of the coupling
+  generator of transmission network.
+
+Return `t_gen`.
+
+This function is intended to be the last that edits transmission and distribution single-network
+data structures: it should be called just before `multinetwork_data()`.
+"""
+function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any}; t_bus::Int, sub_nw::Int, qs_ratio_bound::Float64=0.48)
+
+    d_gen_idx = add_td_coupling_data!(d_data; sub_nw, qs_ratio_bound)
 
     # Check that t_bus exists
     if !haskey(t_data["bus"], "$t_bus")
@@ -140,7 +184,7 @@ function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any
     end
 
     # Add a coupling generator connected to t_bus, to model the distribution network
-    t_s_rate = (d_data["baseMVA"]/t_data["baseMVA"]) * d_s_rate
+    t_s_rate = (d_data["baseMVA"]/t_data["baseMVA"]) * d_data["gen"]["$d_gen_idx"]["pmax"]
     t_gen_idx = length(t_data["gen"]) + 1 # Assumes that gens have contiguous indices starting from 1, as should be
     t_data["gen"]["$t_gen_idx"] = Dict{String,Any}(
         "gen_bus"    => t_bus,
@@ -156,37 +200,8 @@ function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any
         "cost"       => Any[]
     )
 
-    ## Operations in distribution data
-
-    # Add a coupling generator connected to d_ref_bus (or use existing one) to model the transmission network
-    if isempty(d_ref_gens)
-        d_gen_idx = length(d_data["gen"]) + 1 # Assumes that gens have contiguous indices starting from 1, as should be
-        d_data["gen"]["$d_gen_idx"] = Dict{String,Any}(
-            "gen_bus" => d_ref_bus,
-            "index"   => d_gen_idx,
-        )
-    else
-        d_gen_idx = parse(Int, first(d_ref_gens))
-    end
-
-    # Set coupling generator parameters
-    d_gen = d_data["gen"]["$d_gen_idx"]
-    d_gen["mbase"]      = d_data["baseMVA"]
-    d_gen["pmin"]       = -d_s_rate
-    d_gen["pmax"]       =  d_s_rate
-    d_gen["qmin"]       = -d_s_rate
-    d_gen["qmax"]       =  d_s_rate
-    d_gen["gen_status"] = 1
-    d_gen["model"]      = 2 # Cost model (2 => polynomial cost)
-    d_gen["ncost"]      = 0 # Number of cost coefficients
-    d_gen["cost"]       = Any[]
-
-    # Store the parameters needed to later build the coupling constraint
-    d_data["td_coupling"] = Dict{String,Any}()
+    # Add generator id to T&D coupling parameters
     d_data["td_coupling"]["t_gen"] = t_gen_idx
-    d_data["td_coupling"]["d_gen"] = d_gen_idx
-    d_data["td_coupling"]["qs_ratio_bound"] = qs_ratio_bound
-    d_data["td_coupling"]["sub_nw"] = sub_nw
 
 end
 
