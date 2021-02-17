@@ -6,11 +6,9 @@ function mpc = CIGRE_MV_benchmark_network_strg
 % Energy Resources", CIGRE, Technical Brochure 575, 2014.
 %
 % EDITS:
-% - generator:
-%   - moved those representing storage to 'storage' table;
-%   - all generators are non-dispatchable in active power;
-% - branch: angmin and angmax set to -60 and 60 degrees respectively to comply with
-%   PowerModels' requirements;
+% - generator: all generators are non-dispatchable in active power;
+% - branch: angmin and angmax set to -60 and 60 degrees respectively to comply with PowerModels'
+%   requirements;
 % - generator cost: linear in active power, zero-cost reactive power, equal prices
 %   for distributed generators, grid exchanges cost twice;
 % - storage: the one in bus 5 is already present, while the one in bus 10 is an expansion candidate.

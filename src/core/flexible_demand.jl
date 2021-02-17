@@ -142,20 +142,20 @@ function constraint_fixed_demand(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.
     constraint_fixed_demand(pm, nw, i)
 end
 
-function constraint_shift_duration(pm::_PM.AbstractPowerModel, nw::Int , i::Int)
-    constraint_shift_duration_up(pm, nw, i)
-    constraint_shift_duration_down(pm, nw, i)
+function constraint_shift_duration(pm::_PM.AbstractPowerModel, nw::Int, network_ids, i::Int)
+    constraint_shift_duration_up(pm, nw, network_ids, i)
+    constraint_shift_duration_down(pm, nw, network_ids, i)
 end
 #
-function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, nw::Int, i::Int)
+function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, nw::Int, network_ids, i::Int)
     load = _PM.ref(pm, nw, :load, i)
-    start_grace = max(nw-load["t_grace_up"],1)
+    start_grace = max(nw-load["t_grace_up"],network_ids[1])
     constraint_shift_duration_up(pm, nw, i, start_grace)
 end
 #
-function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, nw::Int, i::Int)
+function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, nw::Int, network_ids, i::Int)
     load = _PM.ref(pm, nw, :load, i)
-    start_grace = max(nw-load["t_grace_down"],1)
+    start_grace = max(nw-load["t_grace_down"],network_ids[1])
     constraint_shift_duration_down(pm, nw, i, start_grace)
 end
 

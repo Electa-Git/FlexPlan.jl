@@ -6,21 +6,20 @@ function mpc = CIGRE_MV_benchmark_network_tnep
 % Energy Resources", CIGRE, Technical Brochure 575, 2014.
 %
 % EDITS:
-% - branch data: angmin and angmax set to -60 and 60 degrees respectively to comply with
-%   PowerModels' requirements;
+% - branch: angmin and angmax set to -60 and 60 degrees respectively to comply with PowerModels'
+%   requirements;
+% - generator: batteries are not considered;
 % - added generator cost data: linear in active power, zero-cost reactive power, equal prices for
 %   distributed generators, grid exchanges cost twice;
-% - (8 MW, 2 MVar) of load moved from bus 1 to bus 2 to force the building of a new line;
-% - (12 MW, 3 MVar) of load moved from bus 12 to bus 13 to force the building of a new line;
+% - a fixed 1.0 tap ratio is assigned to the transformer of branch 17;
 % - added candidate branches:
-%   | row |  buses  |     type    |    investment type   | built? |        reason         |
-%   |-----|---------|-------------|----------------------|--------|-----------------------|
-%   |     | ( 1, 2) |     line    |      replacement     |  yes   |                       |
-%   |     | ( 1, 2) |     line    |      replacement     |   no   | costs more than other |
-%   |     | ( 2, 3) |     line    |      replacement     |   no   | not needed            |
-%   |     | (12,13) |     line    | addition in parallel |   no   | insufficient capacity |
-%   |     | (12,13) |     line    | addition in parallel |  yes   |                       |
-%   |     | (13,14) |     line    | addition in parallel |   no   | not needed            |
+%   | id |  buses  | branch type |    investment type   |
+%   |----|---------|-------------|----------------------|
+%   |  1 | (15, 1) | transformer |      replacement     |
+%   |  2 | (15,12) | transformer | addition in parallel |
+%   |  3 | (12,13) |     line    |      replacement     |
+%   |  4 | (12,13) |     line    |      replacement     |
+%   |  5 | (13,14) |     line    | addition in parallel |
 
 %% MATPOWER Case Format : Version 2
 mpc.version = '2';
@@ -32,8 +31,8 @@ mpc.baseMVA = 1;
 %% bus data
 % bus_i type      pd       qd   gs   bs bus_area   vm   va base_kv zone    vmax    vmin
 mpc.bus = [
-     1    1   11.839    2.637    0    0        1    1    0      20    1    1.05    0.95;
-     2    1    8.000    2.000    0    0        1    1    0      20    1    1.05    0.95;
+     1    1   19.839    4.637    0    0        1    1    0      20    1    1.05    0.95;
+     2    1    0.000    0.000    0    0        1    1    0      20    1    1.05    0.95;
      3    1    0.502    0.209    0    0        1    1    0      20    1    1.05    0.95;
      4    1    0.432    0.108    0    0        1    1    0      20    1    1.05    0.95;
      5    1    0.728    0.182    0    0        1    1    0      20    1    1.05    0.95;
@@ -43,10 +42,10 @@ mpc.bus = [
      9    1    0.574    0.356    0    0        1    1    0      20    1    1.05    0.95;
     10    1    0.543    0.161    0    0        1    1    0      20    1    1.05    0.95;
     11    1    0.330    0.083    0    0        1    1    0      20    1    1.05    0.95;
-    12    1    8.010    1.693    0    0        1    1    0      20    1    1.05    0.95;
-    13    1   12.034    3.021    0    0        1    1    0      20    1    1.05    0.95;
+    12    1   20.010    4.693    0    0        1    1    0      20    1    1.05    0.95;
+    13    1    0.034    0.021    0    0        1    1    0      20    1    1.05    0.95;
     14    1    0.540    0.258    0    0        1    1    0      20    1    1.05    0.95;
-    15    3    0.000    0.000    0    0        1    1    0     220    1    1.5     0.5 ;
+    15    3    0.000    0.000    0    0        1    1    0     220    1    1.00    1.00;
 ];
 
 %% generator data
@@ -56,7 +55,6 @@ mpc.gen = [
         3  0.012  0.000    0.005    -0.005  1     1          1    0.02      0.0   0   0      0      0      0      0        0       0       0      0   0;
         4  0.012  0.000    0.005    -0.005  1     1          1    0.02      0.0   0   0      0      0      0      0        0       0       0      0   0;
         5  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
-        5  0.554  0.000    0.241    -0.241  1     1          1    0.60      0.0   0   0      0      0      0      0        0       0       0      0   0;
         5  0.013  0.000    0.006    -0.006  1     1          1    0.033     0.0   0   0      0      0      0      0        0       0       0      0   0;
         6  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
         7  1.500  0.000    0.654    -0.654  1     1          1    1.50      0.0   0   0      0      0      0      0        0       0       0      0   0;
@@ -65,7 +63,6 @@ mpc.gen = [
         9  0.310  0.000    0.135    -0.135  1     1          1    0.31      0.0   0   0      0      0      0      0        0       0       0      0   0;
         9  0.214  0.000    0.093    -0.093  1     1          1    0.212     0.0   0   0      0      0      0      0        0       0       0      0   0;
        10  0.025  0.000    0.011    -0.011  1     1          1    0.04      0.0   0   0      0      0      0      0        0       0       0      0   0;
-       10  0.185  0.000    0.081    -0.081  1     1          1    0.20      0.0   0   0      0      0      0      0        0       0       0      0   0;
        10  0.006  0.000    0.003    -0.003  1     1          1    0.014     0.0   0   0      0      0      0      0        0       0       0      0   0;
        11  0.006  0.000    0.003    -0.003  1     1          1    0.01      0.0   0   0      0      0      0      0        0       0       0      0   0;
        15  0.000  0.000  100.0    -100.0    1     1          1  100.0    -100.0   0   0      0      0      0      0        0       0       0      0   0;
@@ -112,25 +109,22 @@ mpc.branch_oltc = [
                   0.0    0.0;
                   0.0    0.0;
                   0.9    1.1;
-                  0.9    1.1;
+                  1.0    1.0;
 ];
 
 %% network expansion branch data
-%column_names% f_bus t_bus     br_r        br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost replace tm_min tm_max
+%column_names% f_bus t_bus     br_r       br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost replace tm_min tm_max
 mpc.ne_branch = [
-                   1     2  0.001766025  0.0025239   0.026786052  18     18     18     0     0         1    -60     60                 2       0    0.0    0.0;
-                   1     2  0.00117735   0.0016826   0.017857368  27     27     27     0     0         1    -60     60                 3       0    0.0    0.0;
-                   2     3  0.002768025  0.0079118   0.041983812  18     18     18     0     0         1    -60     60                 2       0    0.0    0.0;
-                  12    13  0.006124725  0.00447435  0.006204432   7.5    7.5    7.5   0     0         1    -60     60                 1       1    0.0    0.0;
-                  12    13  0.0030623625 0.002237175 0.003102216  15     15     15     0     0         1    -60     60                 2       1    0.0    0.0;
-                  13    14  0.0018724875 0.001367925 0.001896856  15     15     15     0     0         1    -60     60                 1       1    0.0    0.0;
+                  15     1  0.0002375   0.0023875   0.000000     50     50     50     1     0         1    -60     60              0.8        1    0.9    1.1;
+                  15    12  0.000475    0.004775    0.000000     25     25     25     1     0         1    -60     60              0.75       0    1.0    1.0;
+                  12    13  0.003062363 0.002237175 0.003102216  15     15     15     0     0         1    -60     60              0.73       1    0.0    0.0;
+                  12    13  0.003062363 0.002237175 0.003102216  15     15     15     0     0         1    -60     60              0.78       1    0.0    0.0;
+                  13    14  0.003744975 0.00273585  0.003793712   7.5    7.5    7.5   0     0         1    -60     60              0.45       0    0.0    0.0;
 ];
 
 %% generator cost data
 % model startup shutdown ncost  cost
 mpc.gencost = [
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
       2     0.0      0.0     2   50.0  0.0;
       2     0.0      0.0     2   50.0  0.0;
       2     0.0      0.0     2   50.0  0.0;
