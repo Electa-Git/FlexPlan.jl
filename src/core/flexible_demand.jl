@@ -35,8 +35,6 @@ end
 function variable_total_flex_demand_reactive(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
     qflex = _PM.var(pm, nw)[:qflex] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_qflex",
-        lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * (1 + _PM.ref(pm, nw, :load, i, "p_shift_up_max")), # not strictly nessesary and could be removed - redundant due to other bounds,
         start = _PM.comp_start_value(_PM.ref(pm, nw, :load, i), "qd")
     )
 
