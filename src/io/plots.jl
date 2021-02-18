@@ -228,7 +228,7 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
     if !isempty(input_data)
         rate_a = zeros(n_branches, 1)
         for i_branch = 1:n_branches
-            rate_a[i_branch] = data[branch_type][string(i_branch)][rate_key]
+            rate_a[i_branch] = input_data[branch_type][string(i_branch)][rate_key]
         end
     else
         rate_a = []
