@@ -207,6 +207,26 @@ end
 
 
 
+## Solution processors
+
+"Add T&D coupling data to solution"
+function sol_td_coupling!(pm::_PM.AbstractBFModel, solution::Dict{String,Any})
+    if haskey(solution, "nw")
+        nws_sol = solution["nw"]
+    else
+        nws_sol = Dict("0" => solution)
+    end
+
+    for (nw, nw_sol) in nws_sol
+        d_gen = _PM.ref(pm, parse(Int,nw), :td_coupling, "d_gen")
+        nw_sol["td_coupling"] = Dict{String,Any}()
+        nw_sol["td_coupling"]["p"] = nw_sol["gen"]["$d_gen"]["pg"]
+        nw_sol["td_coupling"]["q"] = nw_sol["gen"]["$d_gen"]["qg"]
+    end
+end
+
+
+
 ## Functions that group constraint templates, provided for convenience
 
 """

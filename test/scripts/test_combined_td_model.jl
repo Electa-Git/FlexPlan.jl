@@ -98,15 +98,12 @@ for t_nw in 1:t_nws
     for sub_nw in 1:sub_nws
         d_nw = sub_nw * t_nws + t_nw
         t_gen = d_mn_data["nw"]["$d_nw"]["td_coupling"]["t_gen"] # Note: is defined in dist nw
-        d_gen = d_mn_data["nw"]["$d_nw"]["td_coupling"]["d_gen"]
-        t_mbase = t_mn_data["nw"]["$t_nw"]["gen"]["$t_gen"]["mbase"]
-        d_mbase = d_mn_data["nw"]["$d_nw"]["gen"]["$d_gen"]["mbase"]
         t_res = result["solution"]["nw"]["$t_nw"]
         d_res = result["solution"]["nw"]["$d_nw"]
-        t_p_in = t_res["gen"]["$t_gen"]["pg"] * t_mbase
-        d_p_in = d_res["gen"]["$d_gen"]["pg"] * d_mbase
+        t_p_in = t_res["gen"]["$t_gen"]["pg"] * t_res["baseMVA"]
+        d_p_in = d_res["td_coupling"]["p"] * d_res["baseMVA"]
         @assert d_p_in ≈ -t_p_in
-        d_q_in = d_res["gen"]["$d_gen"]["qg"] * d_mbase
+        d_q_in = d_res["td_coupling"]["q"] * d_res["baseMVA"]
         @printf("%13.3f%10.3f", d_p_in, d_q_in)
     end
     println()

@@ -14,7 +14,7 @@ function flex_tnep(data::Dict{String,Any}, model_type::Type{BF}, optimizer; kwar
     return _PM.run_model(
         data, model_type, optimizer, post_flex_tnep;
         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
-        solution_processors = [_PM.sol_data_model!],
+        solution_processors = [_PM.sol_data_model!, sol_td_coupling!],
         kwargs...
     )
 end
@@ -26,7 +26,7 @@ function flex_tnep(t_data::Dict{String,Any}, d_data::Dict{String,Any}, t_model_t
         t_ref_extensions = [_PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!],
         d_ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, add_candidate_storage!],
         t_solution_processors = [_PM.sol_data_model!],
-        d_solution_processors = [_PM.sol_data_model!],
+        d_solution_processors = [_PM.sol_data_model!, sol_td_coupling!],
         kwargs...
     )
 end
