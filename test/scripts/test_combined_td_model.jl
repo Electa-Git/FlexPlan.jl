@@ -44,11 +44,8 @@ d_file     = "test/data/combined_td_model/d_cigre.m" # Input case for distributi
 scale_load = 1.0 # Scaling factor of loads
 scale_gen  = 1.0 # Scaling factor of generators
 
-d_data_1 = _PM.parse_file(d_file)
-_FP.add_storage_data!(d_data_1)
-_FP.add_flexible_demand_data!(d_data_1)
-_FP.scale_cost_data!(d_data_1, scenario)
-d_extradata = _FP.create_profile_data_cigre_italy(d_data_1, number_of_hours; scale_load, scale_gen) # Generate hourly time profiles for loads and generators (base values from CIGRE distribution network, profiles from Italy data).
+d_data_1 = _FP.parse_file(d_file, scenario)
+d_extradata = _FP.create_profile_data_cigre(d_data_1, number_of_hours; scale_load, scale_gen) # Generate hourly time profiles for loads and generators, based on CIGRE benchmark distribution network.
 _FP.add_td_coupling_data!(t_data, d_data_1; t_bus = 1, sub_nw = 1) # The first distribution network is connected to bus 1 of transmission network.
 
 
