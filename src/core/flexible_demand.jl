@@ -13,15 +13,32 @@ function variable_flexible_demand(pm::_PM.AbstractPowerModel; kwargs...)
     variable_flexible_demand_investment(pm; kwargs...)
 end
 #
-function variable_total_flex_demand(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_total_flex_demand(pm::_PM.AbstractPowerModel; kwargs...)
+    variable_total_flex_demand_active(pm; kwargs...)
+    variable_total_flex_demand_reactive(pm; kwargs...)
+end
+
+function variable_total_flex_demand_active(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
     pflex = _PM.var(pm, nw)[:pflex] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pflex",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * (1 + _PM.ref(pm, nw, :load, i, "p_shift_up_max")),
+        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * (1 + _PM.ref(pm, nw, :load, i, "p_shift_up_max")), # not strictly nessesary and could be removed - redundant due to other bounds
         start = _PM.comp_start_value(_PM.ref(pm, nw, :load, i), "pd")
     )
 
     report && _IM.sol_component_value(pm, nw, :load, :pflex, _PM.ids(pm, nw, :load), pflex)
+end
+
+function variable_total_flex_demand_reactive(pm::_PM.AbstractActivePowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+end
+
+function variable_total_flex_demand_reactive(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+    qflex = _PM.var(pm, nw)[:qflex] = JuMP.@variable(pm.model,
+        [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_qflex",
+        start = _PM.comp_start_value(_PM.ref(pm, nw, :load, i), "qd")
+    )
+
+    report && _IM.sol_component_value(pm, nw, :load, :qflex, _PM.ids(pm, nw, :load), qflex)
 end
 
 function variable_demand_reduction(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
@@ -125,20 +142,20 @@ function constraint_fixed_demand(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.
     constraint_fixed_demand(pm, nw, i)
 end
 
-function constraint_shift_duration(pm::_PM.AbstractPowerModel, nw::Int , i::Int)
-    constraint_shift_duration_up(pm, nw, i)
-    constraint_shift_duration_down(pm, nw, i)
+function constraint_shift_duration(pm::_PM.AbstractPowerModel, nw::Int, network_ids, i::Int)
+    constraint_shift_duration_up(pm, nw, network_ids, i)
+    constraint_shift_duration_down(pm, nw, network_ids, i)
 end
 #
-function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, nw::Int, i::Int)
+function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, nw::Int, network_ids, i::Int)
     load = _PM.ref(pm, nw, :load, i)
-    start_grace = max(nw-load["t_grace_up"],1)
+    start_grace = max(nw-load["t_grace_up"],network_ids[1])
     constraint_shift_duration_up(pm, nw, i, start_grace)
 end
 #
-function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, nw::Int, i::Int)
+function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, nw::Int, network_ids, i::Int)
     load = _PM.ref(pm, nw, :load, i)
-    start_grace = max(nw-load["t_grace_down"],1)
+    start_grace = max(nw-load["t_grace_down"],network_ids[1])
     constraint_shift_duration_down(pm, nw, i, start_grace)
 end
 
@@ -151,8 +168,10 @@ function constraint_shift_state_final(pm::_PM.AbstractPowerModel, i::Int; nw::In
 end
 
 function constraint_total_flexible_demand(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
-    load = _PM.ref(pm, nw, :load, i)
-    constraint_total_flexible_demand(pm, nw, i, load["pd"])
+    load     = _PM.ref(pm, nw, :load, i)
+    pd       = load["pd"]
+    pf_angle = get(load, "pf_angle", 0.0) # power factor angle, in radians
+    constraint_total_flexible_demand(pm, nw, i, pd, pf_angle)
 end
 
 function constraint_ence_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
@@ -221,16 +240,27 @@ function constraint_fixed_demand(pm::_PM.AbstractPowerModel, n::Int, i)
     JuMP.@constraint(pm.model, z_flex == 0)
 end
 
-function constraint_total_flexible_demand(pm::_PM.AbstractPowerModel, n::Int, i, pd)
-    pshift_up = _PM.var(pm, n, :pshift_up, i)
+function constraint_total_flexible_demand(pm::_PM.AbstractPowerModel, n::Int, i, pd, pf_angle)
+    pflex       = _PM.var(pm, n, :pflex, i)
+    qflex       = _PM.var(pm, n, :qflex, i)
+    pnce        = _PM.var(pm, n, :pnce, i)
+    pshift_up   = _PM.var(pm, n, :pshift_up, i)
     pshift_down = _PM.var(pm, n, :pshift_down, i)
-    pnce = _PM.var(pm, n, :pnce, i)
-    pflex = _PM.var(pm, n, :pflex, i)
-    pcurt = _PM.var(pm, n, :pcurt, i)
+    pcurt       = _PM.var(pm, n, :pcurt, i)
+
+    JuMP.@constraint(pm.model, pflex == pd - pnce + pshift_up - pshift_down - pcurt)
+    JuMP.@constraint(pm.model, qflex == tan(pf_angle) * pflex)
+end
+
+function constraint_total_flexible_demand(pm::_PM.AbstractActivePowerModel, n::Int, i, pd, pf_angle)
+    pflex       = _PM.var(pm, n, :pflex, i)
+    pnce        = _PM.var(pm, n, :pnce, i)
+    pshift_up   = _PM.var(pm, n, :pshift_up, i)
+    pshift_down = _PM.var(pm, n, :pshift_down, i)
+    pcurt       = _PM.var(pm, n, :pcurt, i)
 
     JuMP.@constraint(pm.model, pflex == pd - pnce + pshift_up - pshift_down - pcurt)
 end
-
 
 function constraint_flex_bounds_ne(pm::_PM.AbstractPowerModel, n::Int, i::Int)
     pshift_up = _PM.var(pm, n, :pshift_up, i)

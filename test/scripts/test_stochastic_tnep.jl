@@ -29,20 +29,19 @@ cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
 juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
 
 ################# INPUT PARAMETERS ######################
-number_of_hours = 20 # Number of time points
-file = "./test/data/case6_all_candidates.m"  #Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines and candidate storage
+number_of_hours = 144 # Number of time points
+planning_horizon = 10 # years to scale generation costs
+file = "./test/data/case6_less_res.m"  #Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines and candidate storage
 
-scenario = Dict{String, Any}("hours" => number_of_hours, "sc_years" => Dict{String, Any}())
+scenario = Dict{String, Any}("hours" => number_of_hours, "planning_horizon" => planning_horizon, "sc_years" => Dict{String, Any}())
 scenario["sc_years"]["1"] = Dict{String, Any}()
 scenario["sc_years"]["1"]["year"] = 2019
 scenario["sc_years"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time
-scenario["sc_years"]["1"]["probability"] = 1
-scenario["planning_horizon"] = 1 # in years, to scale generation cost    
+scenario["sc_years"]["1"]["probability"] = 0.5  
 scenario["sc_years"]["2"] = Dict{String, Any}()
 scenario["sc_years"]["2"]["year"] = 2018
 scenario["sc_years"]["2"]["start"] = 1546300800000 #1514764800000   # 01.01.2018:00:00 in epoch time  
-scenario["sc_years"]["2"]["probability"] = 0
-scenario["planning_horizon"] = 1 # in years, to scale generation cost  
+scenario["sc_years"]["2"]["probability"] = 0.5
 #######################cs######################################
 # TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments for the Italian case
 
@@ -64,13 +63,12 @@ plot_filename = "./test/data/output_files/candidates_italy.kml"
 _FP.plot_geo_data(mn_data, plot_filename, plot_settings)
 
 # Add PowerModels(ACDC) settings
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
+s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false,  "add_co2_cost" => false)
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-result = _FP.stoch_flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
-# # Plot final topology
-# plot_settings = Dict("add_nodes" => true, "plot_solution_only" => true)
-# plot_filename = "./test/data/output_files/results_italy.kml"
-# _FP.plot_geo_data(mn_data, plot_filename, plot_settings; solution = result)
-
+result = _FP.stoch_flex_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+# Plot final topology
+plot_settings = Dict("add_nodes" => true, "plot_solution_only" => true)
+plot_filename = "./test/data/output_files/stoch.kml"
+_FP.plot_geo_data(mn_data, plot_filename, plot_settings; solution = result)
