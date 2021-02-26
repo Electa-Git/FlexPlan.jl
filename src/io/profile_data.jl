@@ -75,6 +75,7 @@ function add_flexible_demand_data!(data)
         data["load"]["$idx"]["cost_shift_up"] = load_extra["cost_shift_up"]
         data["load"]["$idx"]["cost_shift_down"] = load_extra["cost_shift_down"]
         data["load"]["$idx"]["cost_curtailment"] = load_extra["cost_curt"]
+        data["load"]["$idx"]["cost_voll"] = load_extra["cost_voll"]
         data["load"]["$idx"]["cost_investment"] = load_extra["cost_inv"]
         data["load"]["$idx"]["flex"] = load_extra["flex"]
         data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
@@ -92,6 +93,7 @@ function add_flexible_demand_data!(data)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down_tot_max", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_curtailment", rescale_cost)
+        _PM._apply_func!(data["load"]["$idx"], "cost_voll", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "e_nce_max", rescale_power)
     end
     delete!(data, "load_extra")
@@ -109,7 +111,8 @@ function add_generation_emission_data!(data)
     return data
 end
 
-function create_profile_data(number_of_hours, data, loadprofile = ones(length(data["load"]), number_of_hours), genprofile = ones(length(data["gen"]), number_of_hours))
+function create_profile_data(number_of_hours, data, loadprofile = ones(length(data["load"]), number_of_hours),
+                             genprofile = ones(length(data["gen"]), number_of_hours))
     extradata = Dict{String,Any}()
     extradata["dim"] = Dict{String,Any}()
     extradata["dim"] = number_of_hours
@@ -130,7 +133,57 @@ function create_profile_data(number_of_hours, data, loadprofile = ones(length(da
             extradata["gen"][g]["pmax"][1, d] = data["gen"][g]["pmax"] * genprofile[parse(Int, g), d]
         end
     end
+    return extradata
+end
 
+function create_contingency_data(number_of_hours, data, contingency_profiles=Dict(), loadprofile = ones(length(data["load"]), number_of_hours),
+    genprofile = ones(length(data["gen"]), number_of_hours))
+    extradata = Dict{String,Any}()
+    extradata["dim"] = Dict{String,Any}()
+    extradata["dim"] = number_of_hours
+    extradata["load"] = Dict{String,Any}()
+    extradata["gen"] = Dict{String,Any}()
+
+    for (l, load) in data["load"]
+        extradata["load"][l] = Dict{String,Any}()
+        extradata["load"][l]["pd"] = Array{Float64,2}(undef, 1, number_of_hours)
+        for d in 1:number_of_hours
+            extradata["load"][l]["pd"][1, d] = data["load"][l]["pd"] * loadprofile[parse(Int, l), d]
+        end
+    end
+
+    for (g, gen) in data["gen"]
+        extradata["gen"][g] = Dict{String,Any}()
+        extradata["gen"][g]["pmax"] = Array{Float64,2}(undef, 1, number_of_hours)
+        for d in 1:number_of_hours
+            extradata["gen"][g]["pmax"][1, d] = data["gen"][g]["pmax"] * genprofile[parse(Int, g), d]
+        end
+    end
+
+    for (utype, profiles) in contingency_profiles
+        extradata[utype] = Dict{String,Any}()
+        for (u, unit) in data[utype]
+            extradata[utype][u] = Dict{String,Any}()
+            if "br_status" in keys(unit)
+                state_str = "br_status"
+            elseif "status" in keys(unit)
+                state_str = "status"
+            end
+            if "rate_a" in keys(unit)
+                rate_str = "rate_a"
+            else "rateA" in keys(unit)
+                rate_str = "rateA"
+            end
+            rate = unit[rate_str]
+            extradata[utype][u][state_str] = Array{Float64,2}(undef, 1, number_of_hours)
+            extradata[utype][u][rate_str] = Array{Float64,2}(undef, 1, number_of_hours)
+            for d in 1:number_of_hours
+                state = profiles[parse(Int, u), d]
+                extradata[utype][u][state_str][1, d] = state
+                extradata[utype][u][rate_str][1, d] = state*rate
+            end
+        end
+    end
     return extradata
 end
 
@@ -186,6 +239,60 @@ function create_profile_data_italy(data, scenario = Dict{String, Any}())
     data["bus"]["6"]["lat"] = 37.4844; data["bus"]["6"]["lon"] =   14.1568; # Sicily
     # Return info
     return data, loadprofile, genprofile
+end
+
+function create_contingency_data_italy(data, scenario = Dict{String, Any}())
+
+
+    genprofile = ones(length(data["gen"]), length(scenario["contingency"]) * scenario["hours"])
+    loadprofile = ones(length(data["load"]), length(scenario["contingency"]) * scenario["hours"])
+
+    contingency_profiles = Dict{String,Any}()
+    for t in scenario["utypes"]
+        contingency_profiles[t] = ones(length(data[t]), length(scenario["contingency"]) * scenario["hours"])
+    end
+    
+    data["contingency"] = Dict{String, Any}()
+    data["contingency_prob"] = Dict{String, Any}()
+
+    for (s, scnr) in scenario["contingency"]
+        year = scnr["year"]
+        pv_sicily, pv_south_central, wind_sicily = read_res_data(year)
+        demand_center_north_pu, demand_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu = read_demand_data(year)
+
+        data["contingency"][s] = Dict()
+        data["contingency_prob"][s] = scnr["probability"]
+        
+        start_idx = parse(Int, s)*scenario["hours"]
+        for (unit_type, units) in scnr["faults"]
+            for u in units
+                for h in 1 : scenario["hours"]
+                    contingency_profiles[unit_type][u, start_idx + h] = 0
+                end
+            end
+        end
+
+        for h in 1 : scenario["hours"]
+            network = start_idx + h
+            data["contingency"][s]["$h"] = network
+
+            h_idx = scnr["start"] + ((h-1) * 3600000)
+            genprofile[3, start_idx + h] = pv_south_central["data"]["$h_idx"]["electricity"]
+            genprofile[5, start_idx + h] = pv_sicily["data"]["$h_idx"]["electricity"]
+            genprofile[6, start_idx + h] = wind_sicily["data"]["$h_idx"]["electricity"]
+        end
+
+        loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = [demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1: scenario["hours"]]
+    end
+    # Add bus loactions to data dictionary
+    data["bus"]["1"]["lat"] = 43.4894; data["bus"]["1"]["lon"] =  11.7946; #Italy central north
+    data["bus"]["2"]["lat"] = 45.3411; data["bus"]["2"]["lon"] =  9.9489;  #Italy north
+    data["bus"]["3"]["lat"] = 41.8218; data["bus"]["3"]["lon"] =   13.8302; #Italy central south
+    data["bus"]["4"]["lat"] = 40.5228; data["bus"]["4"]["lon"] =   16.2155; #Italy south
+    data["bus"]["5"]["lat"] = 40.1717; data["bus"]["5"]["lon"] =   9.0738; # Sardinia
+    data["bus"]["6"]["lat"] = 37.4844; data["bus"]["6"]["lon"] =   14.1568; # Sicily
+    # Return info
+    return data, contingency_profiles, loadprofile, genprofile
 end
 
 function create_profile_data_norway(data, number_of_hours)
@@ -297,3 +404,4 @@ function create_profile_data_cigre_italy(data, number_of_hours; scale_load = 1.0
 
     return extradata
 end
+

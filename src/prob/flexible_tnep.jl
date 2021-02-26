@@ -51,6 +51,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; build_objective::Bool=true)
         variable_absorbed_energy(pm; nw = n)
         variable_absorbed_energy_ne(pm; nw = n)
         variable_flexible_demand(pm; nw = n)
+        variable_demand_interruption(pm; nw = n)
 
         # new variables for TNEP problem
         _PM.variable_ne_branch_indicator(pm; nw = n)

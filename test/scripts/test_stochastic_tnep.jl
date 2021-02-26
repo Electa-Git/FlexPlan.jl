@@ -12,10 +12,10 @@ import InfrastructureModels; const _IM = InfrastructureModels
 import Ipopt
 import SCS
 import Juniper
-import Mosek
-import MosekTools
+#import Mosek
+#import MosekTools
 import JuMP
-import Gurobi
+#import Gurobi
 import Cbc
 import JSON
 import CSV
@@ -24,8 +24,8 @@ import CSV
 scs = JuMP.with_optimizer(SCS.Optimizer, max_iters=100000)
 ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1e-4, print_level=0)
 cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
-gurobi = JuMP.with_optimizer(Gurobi.Optimizer)
-mosek = JuMP.with_optimizer(Mosek.Optimizer)
+#gurobi = JuMP.with_optimizer(Gurobi.Optimizer)
+#mosek = JuMP.with_optimizer(Mosek.Optimizer)
 juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
 
 ################# INPUT PARAMETERS ######################
@@ -39,7 +39,7 @@ scenario["sc_years"]["1"]["year"] = 2019
 scenario["sc_years"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time
 scenario["sc_years"]["1"]["probability"] = 0.5  
 scenario["sc_years"]["2"] = Dict{String, Any}()
-scenario["sc_years"]["2"]["year"] = 2019 #2018
+scenario["sc_years"]["2"]["year"] = 2018
 scenario["sc_years"]["2"]["start"] = 1546300800000 #1514764800000   # 01.01.2018:00:00 in epoch time  
 scenario["sc_years"]["2"]["probability"] = 0.5
 #######################cs######################################

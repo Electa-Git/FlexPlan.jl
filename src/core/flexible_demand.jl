@@ -351,4 +351,3 @@ function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, n::Int, i::I
 
     JuMP.@constraint(pm.model, pshift_down <= pshift_down_max - sum(_PM.var(pm, t, :pshift_down, i) for t in start_grace:n-1))
 end
-
