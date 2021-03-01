@@ -1,5 +1,4 @@
 using Plots
-using DataStructures
 using IndexedTables
 
 function plot_profile_data(extradata, number_of_hours, solution = Dict(), res_gen_ids = nothing, scenario = "1")
@@ -333,29 +332,29 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
 end
 
 
-function plot_res(res::Dict, utype::String, unit::String, var::String; kwargs...)
+function plot_var(res::Dict, utype::String, unit::String, var::String; kwargs...)
 
-    var_table = get_res(res, utype, unit)
-    
+    var_table = get_vars(res, utype, unit)
+
     time = select(var_table, :time)
     val = select(var_table, Symbol(var))
 
     plot(time, val; kwargs...)
 end
 
-function plot_res!(res::Dict, utype::String, unit::String, var::String; kwargs...)
+function plot_var!(res::Dict, utype::String, unit::String, var::String; kwargs...)
 
-    var_table = get_res(res, utype, unit)
-    
+    var_table = get_vars(res, utype, unit)
+
     time = select(var_table, :time)
     val = select(var_table, Symbol(var))
 
     plot!(time, val, label=var; kwargs...)
 end
 
-function plot_res(res::Dict, utype::String, unit::String, vars::Array; kwargs...)
+function plot_var(res::Dict, utype::String, unit::String, vars::Array; kwargs...)
 
-    var_table = get_res(res, utype, unit)
+    var_table = get_vars(res, utype, unit)
     var_names = propertynames(var_table.columns)
     time = select(var_table, :time)
 
@@ -370,9 +369,9 @@ function plot_res(res::Dict, utype::String, unit::String, vars::Array; kwargs...
     display(p)
 end
 
-function plot_res(res::Dict, utype::String, unit::String; kwargs...)
+function plot_var(res::Dict, utype::String, unit::String; kwargs...)
 
-    var_table = get_res(res, utype, unit)
+    var_table = get_vars(res, utype, unit)
     var_names = propertynames(var_table.columns)
     time = select(var_table, :time)
 
@@ -383,17 +382,6 @@ function plot_res(res::Dict, utype::String, unit::String; kwargs...)
         end
         val = select(var_table, var)
         plot!(time, val, label=var; kwargs...)
-    end
-    display(p)
-end
-
-function plot_res_by_scenario(res::Dict, scenario_map::Dict, utype::String, unit::String, var::String; kwargs...)
-
-    time, var_table = get_res(res, scenario_map, utype, unit, var)
-    scenarios = sort([parse(Int,i) for i in keys(scenario_map)])
-    p = plot(title=join([utype, "_", unit]))
-    for s in scenarios
-        plot!(time, var_table[s+1,:], label=join(["Scen ", s, ": ", var]); kwargs...)
     end
     display(p)
 end
@@ -431,145 +419,4 @@ end
         sy = vcat(y[:,c], c==1 ? zeros(n) : reverse(y[:,c-1]))
         @series (sx, sy)
     end
-end
-
-function plot_energy_balance_scenarios(mn_data::Dict, result::Dict, scen_times::Dict, bus::Int; legend_pos="below")
-    contribution_dict = get_energy_contribution_at_bus(mn_data["nw"]["1"], bus)
-    pos_plots = []
-    neg_plots = []
-    plot_data = OrderedDict()
-    color_palette = palette(:tab10)
-    cmap = Dict()
-    for (scenario, t_map) in scen_times
-        pos_label = []
-        neg_label = []
-        pos = []
-        neg = []
-        time = []
-        for (utype, unit_dict) in contribution_dict
-            for (unit, var_dict) in unit_dict
-                for (var, contr) in var_dict
-                    if var == "pd"
-                        res = get_scenario_data(mn_data, scen_times, scenario, utype, unit, [var])
-                    else
-                        res = get_scenario_res(result, scen_times, scenario, utype, unit, [var])
-                    end
-                    if length(colnames(res)) < 3
-                        continue
-                    end
-                    var_id = join([utype, unit, "-", var], " ")
-                    var_res = select(res, 3)*contr
-                    var_neg = [abs(min(0,i)) for i in var_res]
-                    var_pos = [max(0,i) for i in var_res]
-                    if isempty(time)
-                        time = select(res, 1)
-                    end
-                    if sum(var_pos) > 0.1
-                        if isempty(pos)
-                            pos = var_pos
-                            pos_label = [var_id]
-                        else
-                            pos = hcat(pos, var_pos)
-                            pos_label = hcat(pos_label, var_id)
-                        end
-                    end
-                    if sum(var_neg) > 0.1
-                        if isempty(neg)
-                            neg = var_neg
-                            neg_label = [var_id]
-                        else
-                            neg = hcat(neg, var_neg)
-                            neg_label = hcat(neg_label, var_id)
-                        end       
-                    end 
-                    if var_id ∉ keys(cmap) && (sum(var_pos) > 0.1 || sum(var_neg) > 0.1)
-                        cmap[var_id] = color_palette[length(cmap)+1]
-                    end
-                end
-            end
-        end
-        
-        plot_data[join(["scenario", scenario], " ")] = Dict("time" => time,
-                                                       "pos" => pos,
-                                                       "neg" => neg*-1,
-                                                       "neg_label" => neg_label,
-                                                       "pos_label" => pos_label,
-                                                       "xlabel" => "Time (h)",
-                                                       "ylabel" => "Power injection (MWh)")
-    end
-    for (k,v) in plot_data
-        pos_colors = [cmap[i] for i in v["pos_label"]]
-        areaplot = stackedarea(v["time"], v["pos"], color = pos_colors, title = k, legend=false)
-        neg_colors = [cmap[i] for i in v["neg_label"]]
-        stackedarea!(v["time"], v["neg"], color = neg_colors, size=(700, 230))
-        xlabel!("Time (h)")
-        ylabel!("Energy (MWh)")
-        plot_data[k]["plot"] = areaplot
-    end
-    sort!(plot_data)
-    plots = [v["plot"] for (k,v) in plot_data]
-    nplots = length(plot_data)
-    plot_rows = Int(max(ceil(nplots/2),1))
-    plot_layout = (plot_rows, 2)
-    dummy = zeros(1,length(cmap))
-    if Bool(nplots%2)
-        p2 = stackedarea([0], dummy, label = permutedims([i for i in keys(cmap)]),
-        color = permutedims([i for i in values(cmap)]), size=(150, 230),
-        showaxis=false, grid=false, legend=(0.2,.7), legendfontsize=10)
-        plots = vcat(plots, p2)
-    end
-    if nplots == 1
-        p1 = plot(plots[1], plots[2], layout = @layout([A{0.95h} B{0.3w}]), size=(800, 230*plot_rows))
-    else
-        p1 = plot(plots..., color = cmap, layout = plot_layout)
-    end
-    
-    if Bool(nplots%2)
-        plots = plot(p1, size=(800, 230*plot_rows))
-    elseif legend_pos == "below"
-        p2 = stackedarea([0], dummy, label = permutedims([i for i in keys(cmap)]),
-        color = permutedims([i for i in values(cmap)]),
-        showaxis=false, grid=false, legend=(0.4,.95), legendfontsize=10)
-        plots = plot(p1,p2, layout = @layout([A; B{0.2h}]), size=(800, 230*plot_rows))
-    elseif legend_pos == "right"
-        p2 = stackedarea([0], dummy, label = permutedims([i for i in keys(cmap)]),
-        color = permutedims([i for i in values(cmap)]),
-        showaxis=false, grid=false, legend=(0.15,.5), legendfontsize=10)
-        plots = plot(p1,p2, layout = @layout([A{0.95h} B{0.2w}]), size=(800, 230*plot_rows))
-    end
-    #plots = plot(p1, p2, layout = @layout([A; B]), size=(400*nplots, 300))
-    display(plots)
-    return plots
-end
-
-function plot_inv_matrix(result, scen_times, scenario)
-    rectangle(w, h, x, y) = Shape(x .+ [0,w,w,0], y .+ [0,0,h,h])
-    iplt = plot()
-    scen_inv = get_scenario_inv(result, scen_times)
-    inv_res = scen_inv[scenario]
-    index = select(inv_res, :unit)
-    xlabel = []
-    xlabel_pos = []
-    ylabel = index
-    ylabel_pos = 0.5 .+ index
-    for (x, col) in enumerate(colnames(inv_res))
-        if col != :unit
-            append!(xlabel_pos, x - 0.5)
-            append!(xlabel, [string(col)])
-            vals = select(inv_res, col)
-            for (i,v) in zip(index, vals)
-                if v == 1
-                    plot!(rectangle(1,1,x-1,i), opacity=.5, color = "green", label = "")
-                elseif v == 0
-                    plot!(rectangle(1,1,x-1,i), opacity=.5, color = "red", label = "")
-                end
-            end
-        end
-    end
-
-    plot!(title="is built?",yticks=(ylabel_pos, ylabel), xticks=(xlabel_pos, xlabel), legend = true)
-    ylabel!("unit number")
-    plot!(rectangle(0,0,1,1), opacity=.5, label = "True", color = "green")
-    plot!(rectangle(0,0,1,1), opacity=.5, label = "False", color = "red")
-    display(iplt)
 end
