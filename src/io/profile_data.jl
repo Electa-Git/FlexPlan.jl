@@ -95,7 +95,6 @@ function add_flexible_demand_data!(data)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down_tot_max", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_curtailment", rescale_cost)
-        _PM._apply_func!(data["load"]["$idx"], "cost_voll", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "e_nce_max", rescale_power)
     end
     delete!(data, "load_extra")
