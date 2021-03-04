@@ -115,9 +115,9 @@ mpc.storage = [
 ];
 
 %% storage additional data
-%column_names%  max_energy_absorption stationary_energy_inflow stationary_energy_outflow
+%column_names%  max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
 mpc.storage_extra = [
-2400 0 0;
+2400 0 0 1e-4;
 ];
 
 

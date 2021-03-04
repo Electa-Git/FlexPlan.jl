@@ -75,10 +75,12 @@ function add_flexible_demand_data!(data)
         data["load"]["$idx"]["cost_shift_up"] = load_extra["cost_shift_up"]
         data["load"]["$idx"]["cost_shift_down"] = load_extra["cost_shift_down"]
         data["load"]["$idx"]["cost_curtailment"] = load_extra["cost_curt"]
-        data["load"]["$idx"]["cost_voll"] = load_extra["cost_voll"]
         data["load"]["$idx"]["cost_investment"] = load_extra["cost_inv"]
         data["load"]["$idx"]["flex"] = load_extra["flex"]
         data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
+        if haskey(load_extra, "cost_voll")
+            data["load"]["$idx"]["cost_voll"] = load_extra["cost_voll"]
+        end
         if haskey(load_extra, "co2_cost")
             data["load"]["$idx"]["co2_cost"] = load_extra["co2_cost"]
         end
