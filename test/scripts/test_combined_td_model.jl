@@ -3,12 +3,9 @@
 
 ## Import packages and choose a solver
 
-import PowerModels
-const _PM = PowerModels
-import PowerModelsACDC
-const _PMACDC = PowerModelsACDC
-import FlexPlan
-const _FP = FlexPlan
+import PowerModels; const _PM = PowerModels
+import PowerModelsACDC; const _PMACDC = PowerModelsACDC
+import FlexPlan; const _FP = FlexPlan
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 

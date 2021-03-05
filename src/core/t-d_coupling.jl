@@ -209,7 +209,6 @@ function constraint_td_coupling(t_pm::_PM.AbstractPowerModel, d_pm::_PM.Abstract
             d_nw = d_nws[i]
 
             constraint_td_coupling_power_balance(t_pm, d_pm, t_nw, d_nw)
-            constraint_td_coupling_power_reactive_bounds(d_pm, d_nw)
         end
     end
 
@@ -233,12 +232,12 @@ function constraint_td_coupling_power_balance(t_pm::_PM.AbstractPowerModel, d_pm
 end
 
 """
-Apply bounds on reactive power exchanged between a distribution nw and the corresponding transmission nw.
+Apply bounds on reactive power exchange at the point of common coupling (PCC) of a distribution nw.
 """
-function constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel, d_nw::Int)
-    d_gen = _PM.ref(d_pm, d_nw, :td_coupling, "d_gen")
+function constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel; nw::Int=d_pm.cnw)
+    d_gen = _PM.ref(d_pm, nw, :td_coupling, "d_gen")
 
-    constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel, d_nw::Int, d_gen::Int)
+    constraint_td_coupling_power_reactive_bounds(d_pm, nw, d_gen)
 end
 
 

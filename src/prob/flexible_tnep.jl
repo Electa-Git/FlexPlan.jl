@@ -265,6 +265,10 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; build_objective::Bool=true)
         _PM.constraint_model_current(pm; nw = n)
         constraint_ne_model_current(pm; nw = n)
 
+        if haskey(_PM.ref(pm, n), :td_coupling)
+            constraint_td_coupling_power_reactive_bounds(pm; nw = n)
+        end
+
         for i in _PM.ids(pm, n, :ref_buses)
             _PM.constraint_theta_ref(pm, i, nw = n)
         end
