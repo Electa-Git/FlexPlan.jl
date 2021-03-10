@@ -201,8 +201,9 @@ end
 
 function calc_contingency_cost(pm::_PM.AbstractPowerModel, n::Int)
     load = _PM.ref(pm, n, :load)
+    cost = 0.0
     if n ∉ [parse(Int, t) for t in keys(pm.ref[:contingency]["0"])]
-        cost = sum(l["cost_voll"]*_PM.var(pm, n, :pinter, i) for (i,l) in load)
+        cost += sum(l["cost_voll"]*_PM.var(pm, n, :pinter, i) for (i,l) in load)
     end
     return cost
 end
