@@ -43,7 +43,7 @@ mpc.generator_emission_factors = [
 % Wind: 46$ -> 38.6 Euro / MWh 
 % Solar: 51$ -> 42.8 Euro / MWh 
 % Nat. Gas: 59$ -> 49.6 Euro / MWh 
-% Coal: 46$ -> 94.1 Euro / MWh 
+% Coal: 112$ -> 94.1 Euro / MWh 
 
 % model startup shutdown ncost  cost
 mpc.gencost = [
@@ -135,31 +135,33 @@ mpc.convdc_ne = [
 mpc.time_elapsed = 1.0
 
 %% storage data
-% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating   qmin  qmax    r    x p_loss q_loss status
+% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating    qmin   qmax    r    x p_loss q_loss status
 mpc.storage = [
-            5  0.0  0.0    0.0        1000.0         200.0            250.0               0.9                  0.9          250.0  -50.0  70.0  0.1  0.0    0.0    0.0      0;
+            5  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      0;
 ];
 
 %% storage additional data
 %column_names% max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
 mpc.storage_extra = [
-                                2400                        0                         0                1e-4;
+                             2190000                        0                         0               0.001;
 ];
 
 %% storage data
-%column_names% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating   qmin  qmax    r    x p_loss q_loss status    eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
+% Cost of battery storage: 350 k€/MWh
+%column_names% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating    qmin   qmax    r    x p_loss q_loss status max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate    eq_cost inst_cost co2_cost
 mpc.ne_storage = [
-                         2  0.0  0.0    0.0        1000.0         200.0            250.0               0.9                  0.9            250  -50.0  70.0  0.1  0.0    0.0    0.0      1  250000000  50000000        1                  2400                        0                         0               0.001;
-                         5  0.0  0.0    0.0        1000.0         200.0            250.0               0.9                  0.9            250  -50.0  70.0  0.1  0.0    0.0    0.0      1  250000000  50000000        1                  2400                        0                         0               0.001;
+                         2  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1               2190000                        0                         0               0.001  350000000         0      0.0;
+                         5  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1               2190000                        0                         0               0.001  350000000         0      0.0;
 ];
 
 
 %% load additional data
+% Investment cost: 1 k€/MW
 %column_names% load_id e_nce_max p_red_max p_red_min p_shift_up_max p_shift_up_tot_max p_shift_down_max p_shift_down_tot_max t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost
 mpc.load_extra = [
-                     1       100       0.3         0            0.3                100              1.0                  100         10           10          100.0          10.0            10.0   10000.0    80000    1      0.5;
-                     2       100       0.3         0            0.3                100              1.0                  100         10           10          100.0          10.0            10.0   10000.0   240000    1      0.5;
-                     3       100       0.3         0            0.3                100              1.0                  100         10           10          100.0          10.0            10.0   10000.0    40000    1      0.5;
-                     4       100       0.3         0            0.3                100              1.0                  100         10           10          100.0          10.0            10.0   10000.0   160000    1      0.5;
-                     5       100       0.3         0            0.3                100              1.0                  100         10           10          100.0          10.0            10.0   10000.0   240000    1      0.5;
+                     1       100       0.3         0            0.3                100              1.0                  100         10           10          100.0           0.0            10.0   10000.0    80000    1      0.0;
+                     2       100       0.3         0            0.3                100              1.0                  100         10           10          100.0           0.0            10.0   10000.0   240000    1      0.0;
+                     3       100       0.3         0            0.3                100              1.0                  100         10           10          100.0           0.0            10.0   10000.0    40000    1      0.0;
+                     4       100       0.3         0            0.3                100              1.0                  100         10           10          100.0           0.0            10.0   10000.0   160000    1      0.0;
+                     5       100       0.3         0            0.3                100              1.0                  100         10           10          100.0           0.0            10.0   10000.0   240000    1      0.0;
 ];

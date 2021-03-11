@@ -144,6 +144,7 @@ mpc.time_elapsed = 1.0
 mpc.storage = [
             5  0.0  0.0    0.0         1.200         0.600            0.600               0.9                  0.9          1.200  -0.600  0.600  0.0  0.0    0.0    0.0      1;
            10  0.0  0.0    0.0         0.400         0.200            0.200               0.9                  0.9          0.400  -0.200  0.200  0.0  0.0    0.0    0.0      1;
+           14  0.0  0.0    0.0         2.000         1.000            1.000               0.9                  0.9          2.000  -1.000  1.000  0.0  0.0    0.0    0.0      1;
 ];
 
 %% storage additional data
@@ -151,13 +152,17 @@ mpc.storage = [
 mpc.storage_extra = [
                                 5256                        0                         0               0.001;
                                 1752                        0                         0               0.001;
+                                8760                        0                         0               0.001;
 ];
 
 %% ne_storage data
 % Cost of battery storage: 350 k€/MWh
 %column_names% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating    qmin   qmax    r    x p_loss q_loss status max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate eq_cost inst_cost co2_cost
-%mpc.ne_storage = [
-%];
+mpc.ne_storage = [
+                         5  0.0  0.0    0.0         1.200         0.600            0.600               0.9                  0.9          1.200  -0.600  0.600  0.0  0.0    0.0    0.0      1                  5256                        0                         0               0.001  420000         0      0.0;
+                        10  0.0  0.0    0.0         0.400         0.200            0.200               0.9                  0.9          0.400  -0.200  0.200  0.0  0.0    0.0    0.0      1                  1752                        0                         0               0.001  140000         0      0.0;
+                        14  0.0  0.0    0.0         2.000         1.000            1.000               0.9                  0.9          2.000  -1.000  1.000  0.0  0.0    0.0    0.0      1                  8760                        0                         0               0.001  700000         0      0.0;
+];
 
 %% flexible load data
 % Investment cost: 1 k€/MW

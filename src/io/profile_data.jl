@@ -1,28 +1,37 @@
 function add_storage_data!(data)
-    for (s, storage) in data["storage"]
-        rescale_power = x -> x/data["baseMVA"]
-        _PM._apply_func!(storage, "max_energy_absorption", rescale_power)
-        _PM._apply_func!(storage, "stationary_energy_outflow", rescale_power)
-        _PM._apply_func!(storage, "stationary_energy_inflow", rescale_power)
+    if haskey(data, "storage")
+        for (s, storage) in data["storage"]
+            rescale_power = x -> x/data["baseMVA"]
+            _PM._apply_func!(storage, "max_energy_absorption", rescale_power)
+            _PM._apply_func!(storage, "stationary_energy_outflow", rescale_power)
+            _PM._apply_func!(storage, "stationary_energy_inflow", rescale_power)
+        end
+    else
+        data["storage"] = Dict{String,Any}()
     end
 
-    for (s, storage) in data["ne_storage"]
-        rescale_power = x -> x/data["baseMVA"]
-        _PM._apply_func!(storage, "energy_rating", rescale_power)
-        _PM._apply_func!(storage, "thermal_rating", rescale_power)
-        _PM._apply_func!(storage, "discharge_rating", rescale_power)
-        _PM._apply_func!(storage, "charge_rating", rescale_power)
-        _PM._apply_func!(storage, "energy", rescale_power)
-        _PM._apply_func!(storage, "ps", rescale_power)
-        _PM._apply_func!(storage, "qs", rescale_power)
-        _PM._apply_func!(storage, "q_loss", rescale_power)
-        _PM._apply_func!(storage, "p_loss", rescale_power)
-        _PM._apply_func!(storage, "qmax", rescale_power)
-        _PM._apply_func!(storage, "qmin", rescale_power)
-        _PM._apply_func!(storage, "max_energy_absorption", rescale_power)
-        _PM._apply_func!(storage, "stationary_energy_outflow", rescale_power)
-        _PM._apply_func!(storage, "stationary_energy_inflow", rescale_power)
+    if haskey(data, "ne_storage")
+        for (s, storage) in data["ne_storage"]
+            rescale_power = x -> x/data["baseMVA"]
+            _PM._apply_func!(storage, "energy_rating", rescale_power)
+            _PM._apply_func!(storage, "thermal_rating", rescale_power)
+            _PM._apply_func!(storage, "discharge_rating", rescale_power)
+            _PM._apply_func!(storage, "charge_rating", rescale_power)
+            _PM._apply_func!(storage, "energy", rescale_power)
+            _PM._apply_func!(storage, "ps", rescale_power)
+            _PM._apply_func!(storage, "qs", rescale_power)
+            _PM._apply_func!(storage, "q_loss", rescale_power)
+            _PM._apply_func!(storage, "p_loss", rescale_power)
+            _PM._apply_func!(storage, "qmax", rescale_power)
+            _PM._apply_func!(storage, "qmin", rescale_power)
+            _PM._apply_func!(storage, "max_energy_absorption", rescale_power)
+            _PM._apply_func!(storage, "stationary_energy_outflow", rescale_power)
+            _PM._apply_func!(storage, "stationary_energy_inflow", rescale_power)
+        end
+    else
+        data["ne_storage"] = Dict{String,Any}()
     end
+
     return data
 end
 
@@ -115,8 +124,7 @@ function add_generation_emission_data!(data)
     return data
 end
 
-function create_profile_data(number_of_hours, data, loadprofile = ones(length(data["load"]), number_of_hours),
-                             genprofile = ones(length(data["gen"]), number_of_hours))
+function create_profile_data(number_of_hours, data, loadprofile = ones(length(data["load"]), number_of_hours), genprofile = ones(length(data["gen"]), number_of_hours))
     extradata = Dict{String,Any}()
     extradata["dim"] = Dict{String,Any}()
     extradata["dim"] = number_of_hours
@@ -319,25 +327,38 @@ function create_profile_data_norway(data, number_of_hours)
     return data,loadprofile,genprofile
 end
 
-"Creates load and generation profiles for CIGRE distribution network from Italy data"
-function create_profile_data_cigre_italy(data, number_of_hours; scale_load = 1.0, scale_gen = 1.0)
+"Create load and generation profiles for CIGRE distribution network."
+function create_profile_data_cigre(data, number_of_hours; start_period = 1, scale_load = 1.0, scale_gen = 1.0, file_profiles_pu = "./test/data/CIGRE_profiles_per_unit.csv")
 
     ## Fixed parameters
 
     file_load_ind    = "./test/data/CIGRE_industrial_loads.csv"
     file_load_res    = "./test/data/CIGRE_residential_loads.csv"
-    file_profiles_pu = "./test/data/CIGRE_profiles_per_unit.csv"
     scale_unit       = 0.001 # scale factor from CSV power data to FlexPlan power base: here converts from kVA to MVA
 
     ## Import data
 
     load_ind    = CSV.read(file_load_ind, DataFrames.DataFrame)
     load_res    = CSV.read(file_load_res, DataFrames.DataFrame)
-    profiles_pu = CSV.read(file_profiles_pu, DataFrames.DataFrame; normalizenames=true, limit=number_of_hours)
+    profiles_pu = CSV.read(
+        file_profiles_pu,
+        DataFrames.DataFrame;
+        skipto = start_period + 1, # +1 is for header line
+        limit = number_of_hours,
+        threaded = false # To ensure exact row limit is applied
+    )
     if DataFrames.nrow(profiles_pu) < number_of_hours
-        Memento.error(_LOGGER, "insufficient number of rows in file \"$file_profiles_pu\" ($number_of_hours requested, $(length(profiles_pu)) found)")
+        Memento.error(_LOGGER, "insufficient number of rows in file \"$file_profiles_pu\" ($number_of_hours requested, $(DataFrames.nrow(profiles_pu)) found)")
     end
-    DataFrames.select!(profiles_pu, :INDUSTRIAL_LOAD => :load_ind, :RESIDENTIAL_LOAD => :load_res, :PV => :pv, :WIND => :wind, :FUEL_CELL => :fuel_cell, :CHP => :chp)
+    DataFrames.select!(profiles_pu,
+        :industrial_load  => :load_ind,
+        :residential_load => :load_res,
+        :photovoltaic     => :pv,
+        :wind_turbine     => :wind,
+        :fuel_cell        => :fuel_cell,
+        :CHP_diesel       => :chp_diesel,
+        :CHP_fuel_cell    => :chp_fuel_cell
+    )
     profiles_pu = Dict(pairs(eachcol(profiles_pu)))
 
     ## Prepare output structure
@@ -388,8 +409,8 @@ function create_profile_data_cigre_italy(data, number_of_hours; scale_load = 1.0
     gen_tech["6"]  = :wind
     gen_tech["7"]  = :pv
     gen_tech["8"]  = :pv
-    gen_tech["9"]  = :chp
-    gen_tech["10"] = :chp
+    gen_tech["9"]  = :chp_diesel
+    gen_tech["10"] = :chp_fuel_cell
     gen_tech["11"] = :pv
     gen_tech["12"] = :fuel_cell
     gen_tech["13"] = :pv

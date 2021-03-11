@@ -91,3 +91,67 @@ function multinetwork_data(
 
     return mn_data
 end
+
+"""
+    shift_sub_nw!(mn_data; <keyword arguments>)
+
+Shift `sub_nw` and `nw` ids of a multinetwork data structure.
+
+Keyword arguments `sub_nw_offset` and `nw_offset` can be used to specify the shift amounts. Their
+default values are the minimal quantities that ensure that the ids do not overlap.
+"""
+function shift_sub_nw!(
+        mn_data::Dict{String,Any};
+        sub_nw_offset = max(parse.(Int,keys(mn_data["sub_nw"]))...) - min(parse.(Int,keys(mn_data["sub_nw"]))...) + 1,
+        nw_offset = max(parse.(Int,keys(mn_data["nw"]))...) - min(parse.(Int,keys(mn_data["nw"]))...) + 1
+    )
+    sub_nws = mn_data["sub_nw"]
+    nws = mn_data["nw"]
+
+    for n in collect(keys(nws)) # collect is needed to iterate while deleting keys
+        nws["$(parse(Int,n)+nw_offset)"] = pop!(nws, n)
+    end
+
+    for sn in collect(keys(sub_nws)) # collect is needed to iterate while deleting keys
+        for n in collect(sub_nws[sn]) # collect is needed to iterate while deleting keys
+            delete!(sub_nws[sn], n)
+            push!(sub_nws[sn], n+nw_offset)
+        end
+        sub_nws["$(parse(Int,sn)+sub_nw_offset)"] = pop!(sub_nws, sn)
+    end
+    return (sub_nw_offset, nw_offset)
+end
+
+"""
+    merge_multinetworks(mn_data_1, mn_data_2; copy = false)
+
+Merge two multinetworks.
+
+`nw` and `sub_nw` ids of the two multinetworks must not overlap (an error is raised otherwise).
+Other fields must be equal, except possibly for `name`.
+
+If `copy` is false (default), the merging operation is done in an efficient way by reusing most of
+original multinetwork objects; otherwise, a deep copy is performed to assure independence
+from the original multinetworks.
+"""
+function merge_multinetworks(mn_data_1::Dict{String,Any}, mn_data_2::Dict{String,Any}; copy::Bool = false)
+    res = Dict{String,Any}()
+    keys_1 = keys(mn_data_1)
+    keys_2 = keys(mn_data_2)
+    for k in keys_1 ∩ keys_2
+        if k ∈ ("nw", "sub_nw")
+            if isempty(keys(mn_data_1[k]) ∩ keys(mn_data_2[k]))
+                res[k] = merge(mn_data_1[k], mn_data_2[k])
+            else
+                Memento.error(_LOGGER, "Attempting to merge multinetworks having overlapping $k ids.")
+            end
+        elseif mn_data_1[k] == mn_data_2[k]
+            res[k] = mn_data_1[k]
+        elseif k == "name"
+            res[k] = "Merged multinetwork"
+        else
+            Memento.error(_LOGGER, "Attempting to merge multinetworks that differ on key \"$k\".")
+        end
+    end
+    return copy ? deepcopy(res) : res
+end

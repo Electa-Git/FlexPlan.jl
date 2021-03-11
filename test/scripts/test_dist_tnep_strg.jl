@@ -17,9 +17,9 @@ optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 ## Input parameters
 
 data_file       = "test/data/CIGRE_MV_benchmark_network_strg.m" # Input case: here CIGRE distribution network with non-dispatchable generators, storage and candidate storage
-number_of_hours = 24    # Number of hourly optimization periods. Used profiles allow up to 8760 periods.
-scale_load      =  1.0  # Scaling factor of loads
-scale_gen       =  2.45 # Scaling factor of generators (increase to get an infeasible problem, decrease to avoid ne_storage)
+number_of_hours = 24   # Number of hourly optimization periods. Used profiles allow up to 8760 periods.
+scale_load      =  1.0 # Scaling factor of loads
+scale_gen       =  4.9 # Scaling factor of generators (increase to get an infeasible problem, decrease to avoid ne_storage)
 
 
 ## Load and preprocess data
@@ -30,8 +30,8 @@ data = _PM.parse_file(data_file)
 # Handle missing fields of the MATPOWER case file
 data["ne_branch"] = Dict{String,Any}()
 
-# Generate hourly time profiles for loads and generators (base values from CIGRE distribution network, profiles from Italy data).
-extradata = _FP.create_profile_data_cigre_italy(data, number_of_hours; scale_load = scale_load, scale_gen = scale_gen)
+# Generate hourly time profiles for loads and generators, based on CIGRE benchmark distribution network.
+extradata = _FP.create_profile_data_cigre(data, number_of_hours; scale_load = scale_load, scale_gen = scale_gen)
 
 # Add storage data to the data dictionary
 _FP.add_storage_data!(data)
