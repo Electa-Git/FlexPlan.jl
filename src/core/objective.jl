@@ -14,9 +14,11 @@ function objective_min_cost_storage(pm::_PM.AbstractPowerModel)
     )
 end
 
+
 #################################################################
 ##################### Objective with candidate storage and flexible demand
 ##################################################################
+
 function objective_min_cost_flex(pm::_PM.AbstractPowerModel)
     add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
     return JuMP.@objective(pm.model, Min,
@@ -101,6 +103,27 @@ function calc_gen_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
     return cost
 end
 
+##########################################################################
+##################### Reliability objective with storage & flex candidates
+##########################################################################
+
+function objective_reliability(pm::_PM.AbstractPowerModel)
+    add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
+    return JuMP.@objective(pm.model, Min,
+        sum(pm.ref[:contingency_prob][s] * 
+            sum(
+                calc_gen_cost(pm, n, add_co2_cost)
+                + calc_convdc_ne_cost(pm, n, add_co2_cost)
+                + calc_ne_branch_cost(pm, n, add_co2_cost)
+                + calc_branchdc_ne_cost(pm, n, add_co2_cost)
+                + calc_ne_storage_cost(pm, n, add_co2_cost)
+                + calc_load_cost(pm, n, add_co2_cost)
+                + calc_contingency_cost(pm, n)
+            for (sc, n) in contingency)
+        for (s, contingency) in pm.ref[:contingency])
+    )
+end
+
 function calc_convdc_ne_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
     cost = 0.0
     if haskey(_PM.ref(pm, n), :convdc_ne)
@@ -172,6 +195,15 @@ function calc_load_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
             for (i,l) in load)
     if add_co2_cost
         cost += sum(l["co2_cost"]*_PM.var(pm, n, :z_flex, i) for (i,l) in load)
+    end
+    return cost
+end
+
+function calc_contingency_cost(pm::_PM.AbstractPowerModel, n::Int)
+    load = _PM.ref(pm, n, :load)
+    cost = 0.0
+    if n ∉ [parse(Int, t) for t in keys(pm.ref[:contingency]["0"])]
+        cost += sum(l["cost_voll"]*_PM.var(pm, n, :pinter, i) for (i,l) in load)
     end
     return cost
 end
