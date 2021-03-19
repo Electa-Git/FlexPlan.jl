@@ -9,10 +9,8 @@
 
 ## Import packages and choose a solver
 
-import PowerModels
-const _PM = PowerModels
-import FlexPlan
-const _FP = FlexPlan
+import PowerModels; const _PM = PowerModels
+import FlexPlan; const _FP = FlexPlan
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
@@ -93,6 +91,7 @@ result = _FP.strg_tnep(data, _FP.BFARadPowerModel, optimizer)
 ## Write result
 
 _PM.print_summary(result["solution"])
+mkpath(dirname(result_file))
 open(result_file, "w") do io
     _PM.summary(io, result["solution"])
 end
