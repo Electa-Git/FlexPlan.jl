@@ -1,6 +1,7 @@
 ##################################################################
 ##################### Objective with candidate storage
 ##################################################################
+
 function objective_min_cost_storage(pm::_PM.AbstractPowerModel)
     add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
     return JuMP.@objective(pm.model, Min,
@@ -57,9 +58,11 @@ function objective_min_cost_flex(t_pm::_PM.AbstractPowerModel, d_pm::_PM.Abstrac
     )
 end
 
+
 ##########################################################################
 ##################### Stochastic objective with storage & flex candidates
 ##########################################################################
+
 function objective_stoch_flex(pm::_PM.AbstractPowerModel)
     add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
     return JuMP.@objective(pm.model, Min,
@@ -73,6 +76,28 @@ function objective_stoch_flex(pm::_PM.AbstractPowerModel)
                 + calc_load_cost(pm, n, add_co2_cost)
             for (sc, n) in scenario)
         for (s, scenario) in pm.ref[:scenario])
+    )
+end
+
+
+##########################################################################
+##################### Reliability objective with storage & flex candidates
+##########################################################################
+
+function objective_reliability(pm::_PM.AbstractPowerModel)
+    add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
+    return JuMP.@objective(pm.model, Min,
+        sum(pm.ref[:contingency_prob][s] * 
+            sum(
+                calc_gen_cost(pm, n, add_co2_cost)
+                + calc_convdc_ne_cost(pm, n, add_co2_cost)
+                + calc_ne_branch_cost(pm, n, add_co2_cost)
+                + calc_branchdc_ne_cost(pm, n, add_co2_cost)
+                + calc_ne_storage_cost(pm, n, add_co2_cost)
+                + calc_load_cost(pm, n, add_co2_cost)
+                + calc_contingency_cost(pm, n)
+            for (sc, n) in contingency)
+        for (s, contingency) in pm.ref[:contingency])
     )
 end
 
@@ -101,27 +126,6 @@ function calc_gen_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
         cost += sum(g["emission_factor"] * _PM.var(pm,n,:pg,i) * pm.ref[:co2_emission_cost] for (i,g) in gen)
     end
     return cost
-end
-
-##########################################################################
-##################### Reliability objective with storage & flex candidates
-##########################################################################
-
-function objective_reliability(pm::_PM.AbstractPowerModel)
-    add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
-    return JuMP.@objective(pm.model, Min,
-        sum(pm.ref[:contingency_prob][s] * 
-            sum(
-                calc_gen_cost(pm, n, add_co2_cost)
-                + calc_convdc_ne_cost(pm, n, add_co2_cost)
-                + calc_ne_branch_cost(pm, n, add_co2_cost)
-                + calc_branchdc_ne_cost(pm, n, add_co2_cost)
-                + calc_ne_storage_cost(pm, n, add_co2_cost)
-                + calc_load_cost(pm, n, add_co2_cost)
-                + calc_contingency_cost(pm, n)
-            for (sc, n) in contingency)
-        for (s, contingency) in pm.ref[:contingency])
-    )
 end
 
 function calc_convdc_ne_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
