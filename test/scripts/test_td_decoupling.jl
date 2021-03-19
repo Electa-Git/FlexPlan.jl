@@ -83,6 +83,8 @@ dist_candidates = _FP.solve_td_coupling_distribution(d_data, d_mn_data; optimize
 # Candidates to be processed and plotted. Passing a subset of candidates can be useful in making plots less crowded. Order of candidates is respected in plots.
 candidate_ids = sort(collect(keys(dist_candidates)))
 
+mkpath(out_dir)
+
 # Default Plots backend can be changed here
 #import Plots
 #Plots.plotlyjs()
