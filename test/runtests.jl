@@ -4,7 +4,7 @@ import PowerModels; const _PM = PowerModels
 import InfrastructureModels; const _IM = InfrastructureModels
 using JuMP
 using JSON
-using Memnto
+using Memento
 
 # Suppress warnings during testing.
 Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
