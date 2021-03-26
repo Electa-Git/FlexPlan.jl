@@ -209,7 +209,12 @@ end
 
 ## Solution processors
 
-"Add T&D coupling data to solution"
+"""
+Add T&D coupling data to solution.
+
+Report in `solution` the active and reactive power that distribution network `pm` exchanges with the
+transmission network (positive if from transmission to distribution) in units of `baseMVA` of `pm`.
+"""
 function sol_td_coupling!(pm::_PM.AbstractBFModel, solution::Dict{String,Any})
     if haskey(solution, "nw")
         nws_sol = solution["nw"]
@@ -218,6 +223,9 @@ function sol_td_coupling!(pm::_PM.AbstractBFModel, solution::Dict{String,Any})
     end
 
     for (nw, nw_sol) in nws_sol
+        if !haskey(_PM.ref(pm, parse(Int,nw)), :td_coupling)
+            Memento.error(_LOGGER, "T&D coupling data is missing from the model of nw $nw.")
+        end
         d_gen = _PM.ref(pm, parse(Int,nw), :td_coupling, "d_gen")
         nw_sol["td_coupling"] = Dict{String,Any}()
         nw_sol["td_coupling"]["p"] = nw_sol["gen"]["$d_gen"]["pg"]
