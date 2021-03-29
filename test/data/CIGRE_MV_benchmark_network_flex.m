@@ -6,9 +6,8 @@ function mpc = CIGRE_MV_benchmark_network
 % Energy Resources", CIGRE, Technical Brochure 575, 2014.
 %
 % EDITS:
-% - branch: angmin and angmax set to -60 and 60 degrees respectively to comply with PowerModels'
-%   requirements;
-% - generator: batteries are not considered.
+% - branch data: angmin and angmax set to -60 and 60 degrees respectively to comply with
+%   PowerModels' requirements.
 
 %% MATPOWER Case Format : Version 2
 mpc.version = '2';
@@ -41,21 +40,26 @@ mpc.bus = [
 % The last generator (bus 15) is a fictitious unit that represents the coupling with the HV network.
 % gen_bus     pg     qg     qmax      qmin vg mBase gen_status    pmax     pmin pc1 pc2 qc1min qc1max qc2min qc2max ramp_agc ramp_10 ramp_30 ramp_q apf
 mpc.gen = [
-        3  0.012  0.000    0.005    -0.005  1     1          1    0.02      0.0   0   0      0      0      0      0        0       0       0      0   0;
-        4  0.012  0.000    0.005    -0.005  1     1          1    0.02      0.0   0   0      0      0      0      0        0       0       0      0   0;
-        5  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
-        5  0.013  0.000    0.006    -0.006  1     1          1    0.033     0.0   0   0      0      0      0      0        0       0       0      0   0;
-        6  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
-        7  1.500  0.000    0.654    -0.654  1     1          1    1.50      0.0   0   0      0      0      0      0        0       0       0      0   0;
-        8  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
-        9  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
-        9  0.310  0.000    0.135    -0.135  1     1          1    0.31      0.0   0   0      0      0      0      0        0       0       0      0   0;
-        9  0.214  0.000    0.093    -0.093  1     1          1    0.212     0.0   0   0      0      0      0      0        0       0       0      0   0;
-       10  0.025  0.000    0.011    -0.011  1     1          1    0.04      0.0   0   0      0      0      0      0        0       0       0      0   0;
-       10  0.006  0.000    0.003    -0.003  1     1          1    0.014     0.0   0   0      0      0      0      0        0       0       0      0   0;
-       11  0.006  0.000    0.003    -0.003  1     1          1    0.01      0.0   0   0      0      0      0      0        0       0       0      0   0;
+%        3  0.012  0.000    0.005    -0.005  1     1          1    0.02      0.0   0   0      0      0      0      0        0       0       0      0   0;
+%        4  0.012  0.000    0.005    -0.005  1     1          1    0.02      0.0   0   0      0      0      0      0        0       0       0      0   0;
+%        5  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
+%        5  0.013  0.000    0.006    -0.006  1     1          1    0.033     0.0   0   0      0      0      0      0        0       0       0      0   0;
+%        6  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
+%        7  1.500  0.000    0.654    -0.654  1     1          1    1.50      0.0   0   0      0      0      0      0        0       0       0      0   0;
+%        8  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
+%        9  0.019  0.000    0.008    -0.008  1     1          1    0.03      0.0   0   0      0      0      0      0        0       0       0      0   0;
+%        9  0.310  0.000    0.135    -0.135  1     1          1    0.31      0.0   0   0      0      0      0      0        0       0       0      0   0;
+%        9  0.214  0.000    0.093    -0.093  1     1          1    0.212     0.0   0   0      0      0      0      0        0       0       0      0   0;
+%       10  0.025  0.000    0.011    -0.011  1     1          1    0.04      0.0   0   0      0      0      0      0        0       0       0      0   0;
+%       10  0.006  0.000    0.003    -0.003  1     1          1    0.014     0.0   0   0      0      0      0      0        0       0       0      0   0;
+%       11  0.006  0.000    0.003    -0.003  1     1          1    0.01      0.0   0   0      0      0      0      0        0       0       0      0   0;
        15  0.000  0.000  100.0    -100.0    1     1          1  100.0    -100.0   0   0      0      0      0      0        0       0       0      0   0;
 ];
+
+mpc.gencost = [
+	2	 0.0	 0.0	 3	   0	   0.01    0;
+];
+
 
 %% branch data
 % f_bus t_bus     br_r        br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax
@@ -79,24 +83,13 @@ mpc.branch = [
      15    12  0.000475     0.004775    0.000000     25     25     25     1     0         1    -60     60;
 ];
 
-%% add new columns to "branch" table
-%column_names% tm_min tm_max
-mpc.branch_oltc = [
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.0    0.0;
-                  0.9    1.1;
-                  0.9    1.1;
+
+%% network expansion branch data
+%column_names% f_bus t_bus     br_r        br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost replace tm_min tm_max
+mpc.ne_branch = [
+                   1     2  0.001766025  0.0025239   0.026786052  18     18     18     0     0         1    -60     60                 1       0    0.0    0.0;
+                   2     3  0.002768025  0.0079118   0.041983812  18     18     18     0     0         1    -60     60                 1       0    0.0    0.0;
 ];
+
+% hours
+mpc.time_elapsed = 1.0

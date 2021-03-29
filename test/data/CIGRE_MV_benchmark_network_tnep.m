@@ -1,5 +1,5 @@
-function mpc = CIGRE_MV_benchmark_network
-% CIGRE_MV_BENCHMARK_NETWORK Returns MATPOWER case for the CIGRE medium-voltage benchmark network
+function mpc = CIGRE_MV_benchmark_network_tnep
+% CIGRE_MV_BENCHMARK_NETWORK_TNEP Returns MATPOWER case for the CIGRE medium-voltage benchmark network with edits
 % 
 % References:
 % [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed 
@@ -8,7 +8,18 @@ function mpc = CIGRE_MV_benchmark_network
 % EDITS:
 % - branch: angmin and angmax set to -60 and 60 degrees respectively to comply with PowerModels'
 %   requirements;
-% - generator: batteries are not considered.
+% - generator: batteries are not considered;
+% - added generator cost data: linear in active power, zero-cost reactive power, equal prices for
+%   distributed generators, grid exchanges cost twice;
+% - a fixed 1.0 tap ratio is assigned to the transformer of branch 17;
+% - added candidate branches:
+%   | id |  buses  | branch type |    investment type   |
+%   |----|---------|-------------|----------------------|
+%   |  1 | (15, 1) | transformer |      replacement     |
+%   |  2 | (15,12) | transformer | addition in parallel |
+%   |  3 | (12,13) |     line    |      replacement     |
+%   |  4 | (12,13) |     line    |      replacement     |
+%   |  5 | (13,14) |     line    | addition in parallel |
 
 %% MATPOWER Case Format : Version 2
 mpc.version = '2';
@@ -34,7 +45,7 @@ mpc.bus = [
     12    1   20.010    4.693    0    0        1    1    0      20    1    1.05    0.95;
     13    1    0.034    0.021    0    0        1    1    0      20    1    1.05    0.95;
     14    1    0.540    0.258    0    0        1    1    0      20    1    1.05    0.95;
-    15    3    0.000    0.000    0    0        1    1    0     220    1    1.5     0.5 ;
+    15    3    0.000    0.000    0    0        1    1    0     220    1    1.00    1.00;
 ];
 
 %% generator data
@@ -98,5 +109,34 @@ mpc.branch_oltc = [
                   0.0    0.0;
                   0.0    0.0;
                   0.9    1.1;
-                  0.9    1.1;
+                  1.0    1.0;
+];
+
+%% network expansion branch data
+%column_names% f_bus t_bus     br_r       br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost replace tm_min tm_max
+mpc.ne_branch = [
+                  15     1  0.0002375   0.0023875   0.000000     50     50     50     1     0         1    -60     60              0.8        1    0.9    1.1;
+                  15    12  0.000475    0.004775    0.000000     25     25     25     1     0         1    -60     60              0.75       0    1.0    1.0;
+                  12    13  0.003062363 0.002237175 0.003102216  15     15     15     0     0         1    -60     60              0.73       1    0.0    0.0;
+                  12    13  0.003062363 0.002237175 0.003102216  15     15     15     0     0         1    -60     60              0.78       1    0.0    0.0;
+                  13    14  0.003744975 0.00273585  0.003793712   7.5    7.5    7.5   0     0         1    -60     60              0.45       0    0.0    0.0;
+];
+
+%% generator cost data
+% model startup shutdown ncost  cost
+mpc.gencost = [
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2  100.0  0.0;
 ];

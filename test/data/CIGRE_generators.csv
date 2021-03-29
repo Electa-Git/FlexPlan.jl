@@ -1,0 +1,16 @@
+node,rated_power_kw,technology
+3,20,photovoltaic
+4,20,photovoltaic
+5,30,photovoltaic
+5,600,battery
+5,33,fuel_cell
+6,30,photovoltaic
+7,1500,wind_turbine
+8,30,photovoltaic
+9,30,photovoltaic
+9,310,CHP_diesel
+9,212,CHP_fuel_cell
+10,40,photovoltaic
+10,200,battery
+10,14,fuel_cell
+11,10,photovoltaic

@@ -1,5 +1,5 @@
-function mpc = CIGRE_MV_benchmark_network
-% CIGRE_MV_BENCHMARK_NETWORK Returns MATPOWER case for the CIGRE medium-voltage benchmark network
+function mpc = CIGRE_MV_benchmark_network_with_costs
+% CIGRE_MV_BENCHMARK_NETWORK_WITH_COSTS Returns MATPOWER case for the CIGRE medium-voltage benchmark network with generator cost
 % 
 % References:
 % [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed 
@@ -8,7 +8,9 @@ function mpc = CIGRE_MV_benchmark_network
 % EDITS:
 % - branch: angmin and angmax set to -60 and 60 degrees respectively to comply with PowerModels'
 %   requirements;
-% - generator: batteries are not considered.
+% - generator: batteries are not considered;
+% - added generator cost data: linear in active power, zero-cost reactive power, equal prices
+%   for distributed generators, grid exchanges cost twice.
 
 %% MATPOWER Case Format : Version 2
 mpc.version = '2';
@@ -99,4 +101,23 @@ mpc.branch_oltc = [
                   0.0    0.0;
                   0.9    1.1;
                   0.9    1.1;
+];
+
+%% generator cost data
+% model startup shutdown ncost  cost
+mpc.gencost = [
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2  100.0  0.0;
 ];
