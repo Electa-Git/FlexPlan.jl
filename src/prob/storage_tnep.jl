@@ -101,7 +101,7 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
         for i in _PM.ids(pm, n, :branchdc)
             _PMACDC.constraint_ohms_dc_branch(pm, i; nw = n)
         end
-        for i in _PM.ids(pm, :branchdc_ne)
+        for i in _PM.ids(pm, n, :branchdc_ne)
             _PMACDC.constraint_ohms_dc_branch_ne(pm, i; nw = n)
             _PMACDC.constraint_branch_limit_on_off(pm, i; nw = n)
             if n > 1
@@ -109,7 +109,7 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
             end
         end
 
-        for i in _PM.ids(pm, :convdc)
+        for i in _PM.ids(pm, n, :convdc)
             _PMACDC.constraint_converter_losses(pm, i; nw = n)
             _PMACDC.constraint_converter_current(pm, i; nw = n)
             _PMACDC.constraint_conv_transformer(pm, i; nw = n)
