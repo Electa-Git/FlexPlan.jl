@@ -185,18 +185,23 @@ function calc_ne_storage_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::
 end
 
 function calc_load_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
+    return calc_load_operational_cost(pm, n) + calc_load_investment_cost(pm, n, add_co2_cost)
+end
+
+function calc_load_operational_cost(pm::_PM.AbstractPowerModel, n::Int)
     load = _PM.ref(pm, n, :load)
     cost = sum(
-                l["cost_shift_up"]*_PM.var(pm, n, :pshift_up, i)
-                +
-                l["cost_shift_down"]*_PM.var(pm, n, :pshift_down, i)
-                +
-                l["cost_reduction"]*_PM.var(pm, n, :pnce, i)
-                +
-                l["cost_curtailment"]*_PM.var(pm, n, :pcurt, i)
-                +
-                l["cost_investment"]*_PM.var(pm, n, :z_flex, i)
-            for (i,l) in load)
+            l["cost_shift_up"]*_PM.var(pm, n, :pshift_up, i)
+            + l["cost_shift_down"]*_PM.var(pm, n, :pshift_down, i)
+            + l["cost_reduction"]*_PM.var(pm, n, :pnce, i)
+            + l["cost_curtailment"]*_PM.var(pm, n, :pcurt, i)
+        for (i,l) in load)
+    return cost
+end
+
+function calc_load_investment_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
+    load = _PM.ref(pm, n, :load)
+    cost = sum(l["cost_investment"]*_PM.var(pm, n, :z_flex, i) for (i,l) in load)
     if add_co2_cost
         cost += sum(l["co2_cost"]*_PM.var(pm, n, :z_flex, i) for (i,l) in load)
     end
