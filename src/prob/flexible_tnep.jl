@@ -37,7 +37,7 @@ end
 "Builds transmission model."
 function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
 # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl    
-    for (n, networks) in pm.ref[:nw]
+    for n in _PM.nw_ids(pm)
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -68,7 +68,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         objective_min_cost_flex(pm)
     end
 #CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: flexible_demand.jl   
-    for (n, networks) in pm.ref[:nw]
+    for n in _PM.nw_ids(pm)
         _PM.constraint_model_voltage(pm; nw = n)
         _PM.constraint_ne_model_voltage(pm; nw = n)
         _PMACDC.constraint_voltage_dc(pm; nw = n)
@@ -237,7 +237,7 @@ end
 "Builds distribution model."
 function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemporal_constraints::Bool=true)
 
-    for (n, networks) in pm.ref[:nw]
+    for n in _PM.nw_ids(pm)
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -261,7 +261,7 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
         objective_min_cost_flex(pm)
     end
 
-    for (n, networks) in pm.ref[:nw]
+    for n in _PM.nw_ids(pm)
         _PM.constraint_model_current(pm; nw = n)
         constraint_ne_model_current(pm; nw = n)
 

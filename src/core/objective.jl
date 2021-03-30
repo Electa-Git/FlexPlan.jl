@@ -11,7 +11,7 @@ function objective_min_cost_storage(pm::_PM.AbstractPowerModel)
             + calc_ne_branch_cost(pm, n, add_co2_cost)
             + calc_branchdc_ne_cost(pm, n, add_co2_cost)
             + calc_ne_storage_cost(pm, n, add_co2_cost)
-        for (n, nw_ref) in _PM.nws(pm))
+        for n in _PM.nw_ids(pm))
     )
 end
 
@@ -30,7 +30,7 @@ function objective_min_cost_flex(pm::_PM.AbstractPowerModel)
             + calc_branchdc_ne_cost(pm, n, add_co2_cost)
             + calc_ne_storage_cost(pm, n, add_co2_cost)
             + calc_load_cost(pm, n, add_co2_cost)
-        for (n, nw_ref) in _PM.nws(pm))
+        for n in _PM.nw_ids(pm))
     )
 end
 
@@ -45,7 +45,7 @@ function objective_min_cost_flex(t_pm::_PM.AbstractPowerModel, d_pm::_PM.Abstrac
             + calc_branchdc_ne_cost(t_pm, n, add_co2_cost)
             + calc_ne_storage_cost(t_pm, n, add_co2_cost)
             + calc_load_cost(t_pm, n, add_co2_cost)
-        for (n, nw_ref) in _PM.nws(t_pm))
+        for n in _PM.nw_ids(t_pm))
         +
         # Cost related to distribution (multi)network
         # Note: distribution networks do not have DC components (modeling decision)
@@ -54,7 +54,7 @@ function objective_min_cost_flex(t_pm::_PM.AbstractPowerModel, d_pm::_PM.Abstrac
             + calc_ne_branch_cost(d_pm, n, add_co2_cost)
             + calc_ne_storage_cost(d_pm, n, add_co2_cost)
             + calc_load_cost(d_pm, n, add_co2_cost)
-        for (n, nw_ref) in _PM.nws(d_pm))
+        for n in _PM.nw_ids(d_pm))
     )
 end
 
