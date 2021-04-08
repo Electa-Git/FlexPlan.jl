@@ -58,6 +58,28 @@ function objective_min_cost_flex(t_pm::_PM.AbstractPowerModel, d_pm::_PM.Abstrac
     )
 end
 
+function objective_min_cost_flex_benders_main(pm::_PM.AbstractPowerModel)
+    add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
+    decision_cost = sum(
+            calc_convdc_ne_cost(pm, n, add_co2_cost)
+            + calc_ne_branch_cost(pm, n, add_co2_cost)
+            + calc_branchdc_ne_cost(pm, n, add_co2_cost)
+            + calc_ne_storage_cost(pm, n, add_co2_cost)
+            + calc_load_investment_cost(pm, n, add_co2_cost)
+        for (n, nw_ref) in _PM.nws(pm))
+    return JuMP.@objective(pm.model, Min, decision_cost)
+end
+
+function objective_min_cost_flex_benders_secondary(pm::_PM.AbstractPowerModel)
+    add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
+    return JuMP.@objective(pm.model, Min,
+        sum(
+            calc_gen_cost(pm, n, add_co2_cost)
+            + calc_load_operational_cost(pm, n)
+        for n in _PM.nw_ids(pm))
+    )
+end
+
 
 ##########################################################################
 ##################### Stochastic objective with storage & flex candidates

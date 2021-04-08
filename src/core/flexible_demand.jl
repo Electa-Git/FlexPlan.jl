@@ -139,22 +139,27 @@ end
 
 function variable_flexible_demand_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
     # Integer (boolean) decision variable for investment in enabling flexible demand at a load point.
-    if !relax
-        z = _PM.var(pm, nw)[:z_flex] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_z_flex",
-        binary = true,
-        start = 0
-        )
+    if haskey(_PM.ref(pm, nw), :benders) && _PM.ref(pm, nw, :benders, "first_nw") != nw
+        first_nw = _PM.ref(pm, nw, :benders, "first_nw")
+        z = _PM.var(pm, nw)[:z_flex] = _PM.var(pm, first_nw)[:z_flex]
     else
-        z = _PM.var(pm, nw)[:z_flex] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_z_flex",
-        lower_bound = 0,
-        upper_bound = 1,
-        start = 0
-        )
+        if !relax
+            z = _PM.var(pm, nw)[:z_flex] = JuMP.@variable(pm.model,
+            [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_z_flex",
+            binary = true,
+            start = 0
+            )
+        else
+            z = _PM.var(pm, nw)[:z_flex] = JuMP.@variable(pm.model,
+            [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_z_flex",
+            lower_bound = 0,
+            upper_bound = 1,
+            start = 0
+            )
+        end
     end
     report && _IM.sol_component_value(pm, nw, :load, :isflex, _PM.ids(pm, nw, :load), z)
- end
+end
 # ####################################################
 # Constraint Templates: They are used to do all data manipuations and return a function with the same name, 
 # this way the constraint itself only containts the mathematical formulation

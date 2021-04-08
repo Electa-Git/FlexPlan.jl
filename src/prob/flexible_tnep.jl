@@ -35,9 +35,9 @@ end
 # It is basically a declaration of variables and constraints of the problem
 
 "Builds transmission model."
-function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
+function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true, benders::Bool=false)
 # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl    
-    for n in _PM.nw_ids(pm)
+    for n in sort!(collect(_PM.nw_ids(pm)))
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -53,13 +53,13 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         variable_flexible_demand(pm; nw = n)
 
         # new variables for TNEP problem
-        _PM.variable_ne_branch_indicator(pm; nw = n)
+        variable_ne_branch_indicator(pm; nw = n) # FlexPlan version: replaces that of PowerModels.
         _PM.variable_ne_branch_power(pm; nw = n)
         _PM.variable_ne_branch_voltage(pm; nw = n)
         variable_storage_power_ne(pm; nw = n)
         _PMACDC.variable_active_dcbranch_flow_ne(pm; nw = n)
-        _PMACDC.variable_branch_ne(pm; nw = n)
-        _PMACDC.variable_dc_converter_ne(pm; nw = n)
+        variable_branch_ne(pm; nw = n) # FlexPlan version: replaces that of PowerModelsACDC.
+        variable_dc_converter_ne(pm; nw = n) # FlexPlan version: replaces that of PowerModelsACDC.
         _PMACDC.variable_dcbranch_current_ne(pm; nw = n)
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
     end
@@ -103,7 +103,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             _PM.constraint_ne_voltage_angle_difference(pm, i; nw = n)
             _PM.constraint_ne_thermal_limit_from(pm, i; nw = n)
             _PM.constraint_ne_thermal_limit_to(pm, i; nw = n)
-            if n > 1
+            if n > 1 && !benders
                 _PMACDC.constraint_candidate_acbranches_mp(pm, n, i)
             end
         end
@@ -121,7 +121,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         for i in _PM.ids(pm, n, :branchdc_ne)
             _PMACDC.constraint_ohms_dc_branch_ne(pm, i; nw = n)
             _PMACDC.constraint_branch_limit_on_off(pm, i; nw = n)
-            if n > 1
+            if n > 1 && !benders
                 _PMACDC.constraint_candidate_dcbranches_mp(pm, n, i)
             end
         end
@@ -140,7 +140,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             _PMACDC.constraint_converter_losses_ne(pm, i; nw = n)
             _PMACDC.constraint_converter_current_ne(pm, i; nw = n)
             _PMACDC.constraint_converter_limit_on_off(pm, i; nw = n)
-            if n > 1
+            if n > 1 && !benders
                 _PMACDC.constraint_candidate_converters_mp(pm, n, i)
             end
             _PMACDC.constraint_conv_transformer_ne(pm, i; nw = n)
@@ -173,7 +173,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         end
     end
 
-    network_ids = sort(collect(_PM.nw_ids(pm)))
+    network_ids = sort!(collect(_PM.nw_ids(pm)))
     n_1 = network_ids[1]
     n_last = network_ids[end]
 
@@ -219,7 +219,9 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         for i in _PM.ids(pm, :ne_storage, nw = n_2)
             constraint_storage_state_ne(pm, i, n_1, n_2)
             constraint_maximum_absorption_ne(pm, i, n_1, n_2)
-            constraint_storage_investment(pm, n_1, n_2, i)
+            if !benders
+                constraint_storage_investment(pm, n_1, n_2, i)
+            end
         end
         for i in _PM.ids(pm, :load, nw = n_2)
             if _PM.ref(pm, n_2, :load, i, "flex") == 1
@@ -227,7 +229,9 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
                 constraint_shift_up_state(pm, n_1, n_2, i)
                 constraint_shift_down_state(pm, n_1, n_2, i) 
                 constraint_shift_duration(pm, n_2, network_ids, i)
-                constraint_flex_investment(pm, n_1, n_2, i)
+                if !benders
+                    constraint_flex_investment(pm, n_1, n_2, i)
+                end
             end
         end
         n_1 = n_2
@@ -235,9 +239,9 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
 end
 
 "Builds distribution model."
-function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemporal_constraints::Bool=true)
+function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, benders::Bool=false, intertemporal_constraints::Bool=true)
 
-    for n in _PM.nw_ids(pm)
+    for n in sort!(collect(_PM.nw_ids(pm)))
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -250,7 +254,7 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
         variable_flexible_demand(pm; nw = n)
 
         # new variables for TNEP problem
-        _PM.variable_ne_branch_indicator(pm; nw = n)
+        variable_ne_branch_indicator(pm; nw = n) # FlexPlan version: replaces that of PowerModels.
         _PM.variable_ne_branch_power(pm; nw = n, bounded = false) # Bounds computed here would be too limiting in the case of ne_branches added in parallel
         variable_ne_branch_current(pm; nw = n)
         variable_oltc_ne_branch_transform(pm; nw = n)
@@ -317,7 +321,7 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
         
         for (sub_nw, nw_ids) in sub_nws
 
-            network_ids = sort(collect(nw_ids))
+            network_ids = sort!(collect(nw_ids))
             n_1 = network_ids[1]
             n_last = network_ids[end]
             
@@ -357,8 +361,10 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
             # NW = 2......last
             for n_2 in network_ids[2:end]
                 for i in _PM.ids(pm, :ne_branch, nw = n_2)
-                    # Constrains binary activation variable of ne_branch i to the same value in n_2-1 and n_2 nws
-                    _PMACDC.constraint_candidate_acbranches_mp(pm, n_2, i)
+                    if !benders
+                        # Constrains binary activation variable of ne_branch i to the same value in n_2-1 and n_2 nws
+                        _PMACDC.constraint_candidate_acbranches_mp(pm, n_2, i)
+                    end
                 end
                 for i in _PM.ids(pm, :storage, nw = n_2)
                     constraint_storage_state(pm, i, n_1, n_2)
@@ -367,7 +373,9 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
                 for i in _PM.ids(pm, :ne_storage, nw = n_2)
                     constraint_storage_state_ne(pm, i, n_1, n_2)
                     constraint_maximum_absorption_ne(pm, i, n_1, n_2)
-                    constraint_storage_investment(pm, n_1, n_2, i)
+                    if !benders
+                        constraint_storage_investment(pm, n_1, n_2, i)
+                    end
                 end
                 for i in _PM.ids(pm, :load, nw = n_2)
                     if _PM.ref(pm, n_2, :load, i, "flex") == 1
@@ -375,7 +383,9 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
                         constraint_shift_up_state(pm, n_1, n_2, i)
                         constraint_shift_down_state(pm, n_1, n_2, i) 
                         constraint_shift_duration(pm, n_2, network_ids, i)
-                        constraint_flex_investment(pm, n_1, n_2, i)
+                        if !benders
+                            constraint_flex_investment(pm, n_1, n_2, i)
+                        end
                     end
                 end
                 n_1 = n_2
@@ -402,4 +412,63 @@ function post_flex_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
     # Objective function of the combined model
     objective_min_cost_flex(t_pm, d_pm)
 
+end
+
+"Main problem model in Benders decomposition, for transmission networks."
+function post_flex_tnep_benders_main(pm::_PM.AbstractPowerModel)
+    for n in sort!(collect(_PM.nw_ids(pm)))
+        if haskey(_PM.ref(pm, n), :ne_branch)
+            variable_ne_branch_indicator(pm; nw = n) # FlexPlan version: replaces that of PowerModels.
+        end
+        if haskey(_PM.ref(pm, n), :branchdc_ne)
+            variable_branch_ne(pm; nw = n) # FlexPlan version: replaces that of PowerModelsACDC.
+        end
+        if haskey(_PM.ref(pm, n), :convdc_ne)
+            variable_converter_ne(pm; nw = n) # FlexPlan version: replaces that of PowerModelsACDC.
+        end
+        if haskey(_PM.ref(pm, n), :ne_storage)
+            variable_storage_investment(pm; nw = n)
+        end
+        variable_flexible_demand_investment(pm; nw = n)
+    end
+
+    objective_min_cost_flex_benders_main(pm)
+end
+
+"Main problem model in Benders decomposition, for distribution networks."
+function post_flex_tnep_benders_main(pm::_PM.AbstractBFModel)
+    for n in sort!(collect(_PM.nw_ids(pm)))
+        if haskey(_PM.ref(pm, n), :ne_branch)
+            variable_ne_branch_indicator(pm; nw = n) # FlexPlan version: replaces that of PowerModels.
+        end
+        if haskey(_PM.ref(pm, n), :branchdc_ne)
+            variable_branch_ne(pm; nw = n) # FlexPlan version: replaces that of PowerModelsACDC.
+        end
+        if haskey(_PM.ref(pm, n), :convdc_ne)
+            variable_converter_ne(pm; nw = n) # FlexPlan version: replaces that of PowerModelsACDC.
+        end
+        if haskey(_PM.ref(pm, n), :ne_storage)
+            variable_storage_investment(pm; nw = n)
+        end
+        variable_flexible_demand_investment(pm; nw = n)
+    end
+
+    objective_min_cost_flex_benders_main(pm)
+
+    for n in _PM.nw_ids(pm)
+        if _PM.ref(pm, n, :benders, "first_nw") == n # Avoids redundant constraints
+            for i in _PM.ids(pm, n, :branch)
+                if !isempty(ne_branch_ids(pm, i; nw = n))
+                    constraint_branch_complementarity(pm, i; nw = n) # Needed irrespective of the value of `replace` input parameter
+                end
+            end
+        end
+    end
+end
+
+"Secondary problem model in Benders decomposition - suitable for both transmission and distribution."
+function post_flex_tnep_benders_secondary(pm::_PM.AbstractPowerModel)
+    post_flex_tnep(pm; objective = false, benders = true)
+    
+    objective_min_cost_flex_benders_secondary(pm)
 end

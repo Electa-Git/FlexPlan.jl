@@ -169,19 +169,24 @@ function variable_storage_discharge_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cn
 end
 
 function variable_storage_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
-    if !relax
-        z = _PM.var(pm, nw)[:z_strg_ne] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_z_strg_ne",
-        binary = true,
-        start = 0
-        )
+    if haskey(_PM.ref(pm, nw), :benders) && _PM.ref(pm, nw, :benders, "first_nw") != nw
+        first_nw = _PM.ref(pm, nw, :benders, "first_nw")
+        z = _PM.var(pm, nw)[:z_strg_ne] = _PM.var(pm, first_nw)[:z_strg_ne]
     else
-        z = _PM.var(pm, nw)[:z_strg_ne] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_z_strg_ne",
-        lower_bound = 0,
-        upper_bound = 1,
-        start = 0
-        )
+        if !relax
+            z = _PM.var(pm, nw)[:z_strg_ne] = JuMP.@variable(pm.model,
+            [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_z_strg_ne",
+            binary = true,
+            start = 0
+            )
+        else
+            z = _PM.var(pm, nw)[:z_strg_ne] = JuMP.@variable(pm.model,
+            [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_z_strg_ne",
+            lower_bound = 0,
+            upper_bound = 1,
+            start = 0
+            )
+        end
     end
     report && _IM.sol_component_value(pm, nw, :ne_storage, :isbuilt, _PM.ids(pm, nw, :ne_storage), z)
  end
