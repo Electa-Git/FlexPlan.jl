@@ -132,10 +132,10 @@ if !isnan(i_branch_mon)
 end
 
 # Extract results for branch to monitor
-branch_mon = _FP.get_vars(result_test1, "branch", string(i_branch_mon))
+branch_mon = _FP.get_res(result_test1, "branch", string(i_branch_mon))
 
 # Extract results for new branch (assuming there only being one, and that it has a relevant placement)
-branch_new = _FP.get_vars(result_test1, "ne_branch","2")
+branch_new = _FP.get_res(result_test1, "ne_branch","2")
 
 # Extract results for load points to monitor 
 # (this code got quite ugly but I do not want to re-write/extend the get_vars functions right now...)
@@ -147,7 +147,7 @@ ence_load_mon = zeros(number_of_hours,1)
 pshift_up_load_mon = zeros(number_of_hours,1)
 pshift_down_load_mon = zeros(number_of_hours,1)
 for i_load_mon in I_load_mon
-      load_mon = _FP.get_vars(result_test1, "load", string(i_load_mon))
+      load_mon = _FP.get_res(result_test1, "load", string(i_load_mon))
       global pflex_load_mon += _IT.select(load_mon, :pflex)
       global pnce_load_mon += _IT.select(load_mon, :pnce)
       global pcurt_load_mon += _IT.select(load_mon, :pcurt)
@@ -161,16 +161,16 @@ end
 pflex_load_other = zeros(number_of_hours,1)
 pd_load_other = zeros(number_of_hours,1)
 for i_load_other in I_load_other
-      load_other = _FP.get_vars(result_test1, "load", string(i_load_other))
+      load_other = _FP.get_res(result_test1, "load", string(i_load_other))
       global pflex_load_other += _IT.select(load_other, :pflex)
       global pd_load_other += transpose(extradata["load"][string(i_load_other)]["pd"])
 end
 
 # Plot bus voltage magnitudes
 i_bus = I_bus_mon[1]
-voltage_plot = _FP.plot_var(result_test1,"bus",string(i_bus),"vm",label = string("bus ", i_bus), xlabel = "time (h)", ylabel = "voltage magnitude (p.u.)")
+voltage_plot = _FP.plot_res(result_test1,"bus",string(i_bus),"vm",label = string("bus ", i_bus), xlabel = "time (h)", ylabel = "voltage magnitude (p.u.)")
 for i_bus in I_bus_mon[2:end]
-      _FP.plot_var!(result_test1,"bus",string(i_bus),"vm")
+      _FP.plot_res!(result_test1,"bus",string(i_bus),"vm")
       voltage_plot.series_list[end].plotattributes[:label] = string("bus ", i_bus)
 end
 savefig(voltage_plot, "voltage.png")
