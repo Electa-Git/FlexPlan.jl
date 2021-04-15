@@ -3,6 +3,7 @@
 
 ## Import packages and choose a solver
 
+using Printf
 import PowerModels; const _PM = PowerModels
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import FlexPlan; const _FP = FlexPlan
@@ -83,7 +84,6 @@ for sub_nw in 1:sub_nws
 end
 
 printstyled("\n\n==========================   Power exchange at PCCs   ==========================\n\n", bold=true, color=:cyan)
-using Printf
 println("Power in MW and MVar, positive if from transmission to distribution\n")
 print("period ")
 for sub_nw in 1:sub_nws
