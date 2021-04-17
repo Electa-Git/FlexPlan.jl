@@ -73,7 +73,6 @@ function add_flexible_demand_data!(data)
     for (le, load_extra) in data["load_extra"]
         idx = load_extra["load_id"]
         data["load"]["$idx"]["p_red_max"] = load_extra["p_red_max"]
-        data["load"]["$idx"]["p_red_min"] = load_extra["p_red_min"]
         data["load"]["$idx"]["p_shift_up_max"] = load_extra["p_shift_up_max"]
         data["load"]["$idx"]["p_shift_up_tot_max"] = load_extra["p_shift_up_tot_max"]
         data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]
