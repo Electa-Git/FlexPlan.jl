@@ -9,7 +9,6 @@ import PowerModels; const _PM = PowerModels
 import InfrastructureModels; const _IM = InfrastructureModels
 import IndexedTables; const _IT = IndexedTables
 using Plots
-using Test
 
 # Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
@@ -120,15 +119,6 @@ if use_DC
 else
       result_test1 = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc, multinetwork=true; setting = s)
 end
-
-# Running unit tests for some key result parameters from the solution
-@test isapprox(result_test1["objective"], 84.390, atol = 1e-3)
-@test isapprox(result_test1["solution"]["nw"]["1"]["ne_branch"]["1"]["built"],0.0, atol = 1e-1)
-@test isapprox(result_test1["solution"]["nw"]["1"]["ne_branch"]["2"]["built"],0.0, atol = 1e-1)
-
-# Running unit tests for some additional (more arbitrarily chosen) results parameters from the solution
-@test isapprox(result_test1["solution"]["nw"]["68"]["load"]["2"]["pnce"], 0.0180421, atol = 1e-5)
-@test isapprox(result_test1["solution"]["nw"]["68"]["load"]["2"]["pshift_down"], 0.0218003, atol = 1e-5)
 
 # Printing to screen the branch investment decisions in the solution 
 for i_ne_branch = 1:length(result_test1["solution"]["nw"]["1"]["ne_branch"])
