@@ -156,11 +156,11 @@ mpc.ne_storage = [
 
 
 %% load additional data
-%column_names% load_id e_nce_max p_red_max p_red_min p_shift_up_max p_shift_up_tot_max p_shift_down_max p_shift_down_tot_max t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost
+%column_names% load_id e_nce_max p_red_max p_shift_up_max p_shift_down_max p_shift_down_tot_max t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost
 mpc.load_extra = [
-1 100 0.3 0 0.3 100 1.0 100 10 10 0.1 0.00 0.00 10000 80000 1 0.5;
-2 100 0.3 0 0.3 100 1.0 100 10 10 0.1 0.00 0.00 10000 240000 1 0.5;
-3 100 0.3 0 0.3 100 1.0 100 10 10 0.1 0.00 0.00 10000 40000 1 0.5;
-4 100 0.3 0 0.3 100 1.0 100 10 10 0.1 0.00 0.00 10000 160000 1 0.5;
-5 100 0.3 0 0.3 100 1.0 100 10 10 0.1 0.00 0.00 10000 240000 1 0.5;
+1 100 0.3 0.3 1.0 100 10 10 0.1 0.00 0.00 10000 80000 1 0.5;
+2 100 0.3 0.3 1.0 100 10 10 0.1 0.00 0.00 10000 240000 1 0.5;
+3 100 0.3 0.3 1.0 100 10 10 0.1 0.00 0.00 10000 40000 1 0.5;
+4 100 0.3 0.3 1.0 100 10 10 0.1 0.00 0.00 10000 160000 1 0.5;
+5 100 0.3 0.3 1.0 100 10 10 0.1 0.00 0.00 10000 240000 1 0.5;
 ];
