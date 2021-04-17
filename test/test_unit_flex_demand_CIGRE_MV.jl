@@ -3,6 +3,7 @@
 
 # Input parameters:
 number_of_hours = 72          # Number of time steps
+n_loads = 13                  # Number of load points
 start_hour = 1                # First time step
 load_scaling_factor = 0.8       # Factor with which original base case load demand data should be scaled
 
