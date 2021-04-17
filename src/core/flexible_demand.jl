@@ -67,7 +67,8 @@ function variable_total_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::
     pshift_up_tot = _PM.var(pm, nw)[:pshift_up_tot] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pshift_up_tot",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :load, i, "p_shift_up_tot_max"),
+        # The accumulated load shifted up should equal the accumulated load shifted down, so this constraint is probably redundant
+        upper_bound = _PM.ref(pm, nw, :load, i, "p_shift_down_tot_max"),    
         start = 0
     )
     report && _IM.sol_component_value(pm, nw, :load, :pshift_up_tot, _PM.ids(pm, nw, :load), pshift_up_tot)
