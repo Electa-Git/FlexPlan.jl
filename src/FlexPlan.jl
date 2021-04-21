@@ -21,6 +21,7 @@ import JuMP: with_optimizer, optimizer_with_attributes
 export with_optimizer, optimizer_with_attributes
 
 import Plots
+using Printf
 
 # Create our module level logger (this will get precompiled)
 const _LOGGER = Memento.getlogger(@__MODULE__)

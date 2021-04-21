@@ -22,7 +22,7 @@ end
 ""
 function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
 # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl    
-    for (n, networks) in pm.ref[:nw]
+    for n in _PM.nw_ids(pm)
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -52,7 +52,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
 #OBJECTIVE see objective.jl
     objective_stoch_flex(pm)
 #CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: flexible_demand.jl   
-    for (n, networks) in pm.ref[:nw]
+    for n in _PM.nw_ids(pm)
         _PM.constraint_model_voltage(pm; nw = n)
         _PM.constraint_ne_model_voltage(pm; nw = n)
         _PMACDC.constraint_voltage_dc(pm; nw = n)
@@ -102,7 +102,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
         for i in _PM.ids(pm, n, :branchdc)
             _PMACDC.constraint_ohms_dc_branch(pm, i; nw = n)
         end
-        for i in _PM.ids(pm, :branchdc_ne)
+        for i in _PM.ids(pm, n, :branchdc_ne)
             _PMACDC.constraint_ohms_dc_branch_ne(pm, i; nw = n)
             _PMACDC.constraint_branch_limit_on_off(pm, i; nw = n)
             if n > 1
@@ -110,7 +110,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             end
         end
 
-        for i in _PM.ids(pm, :convdc)
+        for i in _PM.ids(pm, n, :convdc)
             _PMACDC.constraint_converter_losses(pm, i; nw = n)
             _PMACDC.constraint_converter_current(pm, i; nw = n)
             _PMACDC.constraint_conv_transformer(pm, i; nw = n)
@@ -237,7 +237,7 @@ end
 ""
 function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
 
-    for (n, networks) in pm.ref[:nw]
+    for n in _PM.nw_ids(pm)
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -259,7 +259,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
 
     objective_stoch_flex(pm)
 
-    for (n, networks) in pm.ref[:nw]
+    for n in _PM.nw_ids(pm)
         _PM.constraint_model_current(pm; nw = n)
         constraint_ne_model_current(pm; nw = n)
 

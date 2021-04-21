@@ -3,6 +3,7 @@
 
 ## Import packages and choose a solver
 
+using Printf
 import PowerModels; const _PM = PowerModels
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import FlexPlan; const _FP = FlexPlan
@@ -24,8 +25,8 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 scenario = Dict{String, Any}("hours" => number_of_hours, "sc_years" => Dict{String, Any}())
 scenario["sc_years"]["1"] = Dict{String, Any}()
 scenario["sc_years"]["1"]["year"] = 2019
-scenario["sc_years"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time  
-scenario["sc_years"]["1"]["probability"] = 1   # 01.01.2019:00:00 in epoch time
+scenario["sc_years"]["1"]["start"] = 1546300800000 # 2019-01-01T00:00:00.000 in epoch time  
+scenario["sc_years"]["1"]["probability"] = 1
 scenario["planning_horizon"] = 1 # in years, to scale generation cost  
 
 
@@ -83,7 +84,6 @@ for sub_nw in 1:sub_nws
 end
 
 printstyled("\n\n==========================   Power exchange at PCCs   ==========================\n\n", bold=true, color=:cyan)
-using Printf
 println("Power in MW and MVar, positive if from transmission to distribution\n")
 print("period ")
 for sub_nw in 1:sub_nws
