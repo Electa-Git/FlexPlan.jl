@@ -26,6 +26,7 @@ juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver" => ipopt
 
 @testset "FlexPlan" begin
 
-include("test_flex_demand.jl")
+    include("bfarad.jl")
+    include("test_flex_demand.jl")
 
-end
+end;
