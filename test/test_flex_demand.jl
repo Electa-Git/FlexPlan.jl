@@ -6,7 +6,7 @@ start_hour = 1              # First time step
 n_loads = 5                 # Number of load points
 i_load_mod = 5              # The load point on which we modify the demand profile
 
-file = "../test/data/case6_flex.m" # Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines, flexible demand and candidate storage
+file = "./test/data/case6_flex.m" # Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines, flexible demand and candidate storage
 
 loadprofile = 0.1 .* ones(n_loads, number_of_hours) # Create a load profile: In this case there are 5 loads in the test case
 t_vec = start_hour:start_hour+(number_of_hours-1)
