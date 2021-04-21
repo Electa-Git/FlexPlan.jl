@@ -59,40 +59,40 @@ function scale_cost_data!(data, scenario)
         _PM._apply_func!(strg, "co2_cost", rescale_total)
     end
     for (l, load) in data["load"]
-        _PM._apply_func!(load, "cost_shift_up", rescale_hourly)
-        _PM._apply_func!(load, "cost_shift_down", rescale_hourly)
-        _PM._apply_func!(load, "cost_curtailment", rescale_hourly)
-        _PM._apply_func!(load, "cost_reduction", rescale_hourly)
-        _PM._apply_func!(load, "cost_investment", rescale_total)
-        _PM._apply_func!(load, "co2_cost", rescale_total)
+        _PM._apply_func!(load, "cost_shift_up", rescale_hourly)     # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_shift_down", rescale_hourly)   # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_curtailment", rescale_hourly)  # Compensation for load curtailment (i.e. involuntary demand reduction)
+        _PM._apply_func!(load, "cost_reduction", rescale_hourly)    # Compensation for consuming less (i.e. voluntary demand reduction)
+        _PM._apply_func!(load, "cost_investment", rescale_total)    # Investment costs for enabling flexible demand
+        _PM._apply_func!(load, "co2_cost", rescale_total)           # CO2 costs for enabling flexible demand
     end
     _PM._apply_func!(data, "co2_emission_cost", rescale_hourly)
 end
 
 function add_flexible_demand_data!(data)
     for (le, load_extra) in data["load_extra"]
-        idx = load_extra["load_id"]
-        data["load"]["$idx"]["p_red_max"] = load_extra["p_red_max"]
-        data["load"]["$idx"]["p_shift_up_max"] = load_extra["p_shift_up_max"]
-        data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]
-        data["load"]["$idx"]["p_shift_down_tot_max"] = load_extra["p_shift_down_tot_max"]
-        data["load"]["$idx"]["cost_reduction"] = load_extra["cost_reduction"]
-        data["load"]["$idx"]["t_grace_up"] = load_extra["t_grace_up"]
-        data["load"]["$idx"]["t_grace_down"] = load_extra["t_grace_down"]
-        data["load"]["$idx"]["cost_shift_up"] = load_extra["cost_shift_up"]
-        data["load"]["$idx"]["cost_shift_down"] = load_extra["cost_shift_down"]
-        data["load"]["$idx"]["cost_curtailment"] = load_extra["cost_curt"]
-        data["load"]["$idx"]["cost_investment"] = load_extra["cost_inv"]
-        data["load"]["$idx"]["flex"] = load_extra["flex"]
-        data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
+        idx = load_extra["load_id"]                                                         # ID of load point
+        data["load"]["$idx"]["p_red_max"] = load_extra["p_red_max"]                         # Superior bound on not consumed power (voluntary load reduction) (p.u.)
+        data["load"]["$idx"]["p_shift_up_max"] = load_extra["p_shift_up_max"]               # Superior bound on upward demand shifted (p.u.)
+        data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]           # Superior bound on downward demand shifted (p.u.)
+        data["load"]["$idx"]["p_shift_down_tot_max"] = load_extra["p_shift_down_tot_max"]   # Maximum energy (accumulated load) shifted downward during time horizon (MWh)
+        data["load"]["$idx"]["cost_reduction"] = load_extra["cost_reduction"]               # Compensation for consuming less (i.e. voluntary demand reduction) (€/MWh)
+        data["load"]["$idx"]["t_grace_up"] = load_extra["t_grace_up"]                       # Recovery period for upward demand shifting (h)
+        data["load"]["$idx"]["t_grace_down"] = load_extra["t_grace_down"]                   # Recovery period for downward demand shifting (h)
+        data["load"]["$idx"]["cost_shift_up"] = load_extra["cost_shift_up"]                 # Compensation for upward demand shifting (€/MWh)
+        data["load"]["$idx"]["cost_shift_down"] = load_extra["cost_shift_down"]             # Compensation for downward demand shifting (€/MWh)
+        data["load"]["$idx"]["cost_curtailment"] = load_extra["cost_curt"]                  # Compensation for load curtailment (i.e. involuntary demand reduction) (€/MWh)
+        data["load"]["$idx"]["cost_investment"] = load_extra["cost_inv"]                    # Investment costs for enabling flexible demand (€)
+        data["load"]["$idx"]["flex"] = load_extra["flex"]                                   # Whether load is flexible (boolean)
+        data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]                         # Maximum energy not consumed (accumulated voluntary load reduction) (MWh)
         if haskey(load_extra, "cost_voll")
-            data["load"]["$idx"]["cost_voll"] = load_extra["cost_voll"]
+            data["load"]["$idx"]["cost_voll"] = load_extra["cost_voll"]                     # Value of Lost Load (VOLL), i.e. costs for load curtailment due to contingencies (€/MWh)
         end
         if haskey(load_extra, "co2_cost")
-            data["load"]["$idx"]["co2_cost"] = load_extra["co2_cost"]
+            data["load"]["$idx"]["co2_cost"] = load_extra["co2_cost"]                       # CO2 costs for enabling flexible demand (€)
         end
         if haskey(load_extra, "pf_angle")
-            data["load"]["$idx"]["pf_angle"] = load_extra["pf_angle"]
+            data["load"]["$idx"]["pf_angle"] = load_extra["pf_angle"]                       # Power factor angle θ, giving the reactive power as Q = P ⨉ tan(θ)
         end
         rescale_cost = x -> x*data["baseMVA"]
         rescale_power = x -> x/data["baseMVA"]
