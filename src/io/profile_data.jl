@@ -346,7 +346,8 @@ function create_profile_data_norway(data, number_of_hours)
 # - for now generation profile is constant at 1.0
 # - for now works only for single scenario
 
-    demand_data = CSV.read("./test/data/demand_Norway_2015.csv", DataFrames.DataFrame)
+    path_demand_data = normpath(dirname(pathof(@__MODULE__)),"..","test","data","demand_Norway_2015.csv")
+    demand_data = CSV.read(path_demand_data, DataFrames.DataFrame)
     demand = demand_data[:,2:end]
     n_hours_data = size(demand,1)
     n_loads_data = size(demand,2)
