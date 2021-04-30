@@ -59,7 +59,7 @@ result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc, multinetwork=true; se
         @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["1"]["built"],0.0, atol = 1e-1)
         @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["2"]["built"],0.0, atol = 1e-1)
         @test isapprox(result["solution"]["nw"]["68"]["load"]["2"]["pnce"], 0.0180421, atol = 1e-5)
-        @test isapprox(result["solution"]["nw"]["68"]["load"]["2"]["pshift_down"], 0.0218003, atol = 1e-5)
+        @test isapprox(result["solution"]["nw"]["72"]["load"]["2"]["pshift_down_tot"], 0.2166877, atol = 1e-5)
     end
 end
 
