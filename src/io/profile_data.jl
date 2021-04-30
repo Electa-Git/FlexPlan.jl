@@ -75,13 +75,13 @@ function add_flexible_demand_data!(data)
         # ID of load point
         idx = load_extra["load_id"]                                                         
 
-        # Superior bound on not consumed power (voluntary load reduction) (p.u., 0 \leq p_shift_up_max \geq 0)
+        # Superior bound on not consumed power (voluntary load reduction) (p.u., 0 \leq p_shift_up_max \leq 1)
         data["load"]["$idx"]["p_red_max"] = load_extra["p_red_max"]                         
         
-        # Superior bound on upward demand shifted (p.u., 0 \leq p_shift_up_max \geq 0)
+        # Superior bound on upward demand shifted (p.u., 0 \leq p_shift_up_max \leq 1)
         data["load"]["$idx"]["p_shift_up_max"] = load_extra["p_shift_up_max"]               
         
-        # Superior bound on downward demand shifted (p.u., 0 \leq p_shift_up_max \geq 0)
+        # Superior bound on downward demand shifted (p.u., 0 \leq p_shift_up_max \leq 1)
         data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]           
         
         # Maximum energy (accumulated load) shifted downward during time horizon (MWh)
