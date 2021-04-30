@@ -11,10 +11,10 @@ load_scaling_factor = 0.8       # Factor with which original base case load dema
 t_vec = start_hour:start_hour+(number_of_hours-1)
 
 # Input case, in matpower m-file format: Here CIGRE MV benchmark network
-file = "../test/data/CIGRE_MV_benchmark_network_flex.m" 
+file = "test/data/CIGRE_MV_benchmark_network_flex.m" 
 
 # Filename with extra_load array with demand flexibility model parameters
-filename_load_extra = "../test/data/CIGRE_MV_benchmark_network_flex_load_extra.csv"
+filename_load_extra = "test/data/CIGRE_MV_benchmark_network_flex_load_extra.csv"
 
 # Create PowerModels data dictionary (AC networks and storage)
 data = _PM.parse_file(file)  
