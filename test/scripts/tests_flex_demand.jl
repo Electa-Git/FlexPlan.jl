@@ -126,16 +126,16 @@ load_t8 = snapshot_utype(result_test1, "load", 8)
 branch_t1 = snapshot_utype(result_test1, "branch", 1)
 branchdc_t1 = snapshot_utype(result_test1, "branchdc", 1)
 
-conv_1 = plot_var(result_test1, "convdc", "1")
+conv_1 = plot_res(result_test1, "convdc", "1")
 
-plot_var(result_test1, "branchdc", "1","pt")
-plot_var!(result_test1, "branchdc", "2","pt")
+plot_res(result_test1, "branchdc", "1","pt")
+plot_res!(result_test1, "branchdc", "2","pt")
 
 # Get variables per unit by times
-load5 = get_vars(result_test1, "load", "5")
-branchdc_1 = get_vars(result_test1, "branchdc", "1")
-branchdc_2 = get_vars(result_test1, "branchdc", "2")
-branchdc_ne_3 = get_vars(result_test1, "branchdc_ne", "3")
+load5 = get_res(result_test1, "load", "5")
+branchdc_1 = get_res(result_test1, "branchdc", "1")
+branchdc_2 = get_res(result_test1, "branchdc", "2")
+branchdc_ne_3 = get_res(result_test1, "branchdc_ne", "3")
 
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
@@ -146,13 +146,13 @@ stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7,
 bus_nr = 5
 load5_input = transpose(extradata["load"][string(bus_nr)]["pd"])
 plot!(t_vec, load5_input, color=:red, width=3.0, label="base demand", line=:dash)
-plot_var!(result_test1, "load", string(bus_nr),"pflex", label="flexible demand",
+plot_res!(result_test1, "load", string(bus_nr),"pflex", label="flexible demand",
           ylabel="power (p.u.)", color=:blue, width=3.0, line=:dash, gridalpha=0.5)
 #... save figure
 savefig(stacked_plot, "bus5_balance.png")
 
 # Plot energy not served
-plot_not_served = plot_var(result_test1, "load", "5", "ence", color=:black, width=3.0,
+plot_not_served = plot_res(result_test1, "load", "5", "ence", color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
                            ylabel="energy (p.u.)", legend=false, gridalpha=0.5)
 
@@ -194,12 +194,12 @@ vshift_plot = plot(stacked_plot, plot_energy_shift, v2legend, layout = @layout([
 savefig(vshift_plot, "bus5_balance_vshift.png")
 
 # Plot all variables of unit
-plot_var(result_test1, "load", "5")
+plot_res(result_test1, "load", "5")
 
 # Plot specified list of variables of unit
 shift_vars = ["pshift_down","pshift_down_tot","pshift_up","pshift_up_tot",
               "pnce", "pcurt", "pflex"]
-plot_var(result_test1, "load", "5", shift_vars)
+plot_res(result_test1, "load", "5", shift_vars)
 
 
 ## Run marginal analysis with model
@@ -231,11 +231,11 @@ ma_linecost = plot(m_cost)
 scatter!(m_cost, ylabel="Objective value", xaxis=ax_type, legend=false)
 savefig(ma_linecost, "ma_linecost.png")
 
-#res_var_1 = get_vars(m_res[100], m_utype, m_unit)
-#res_var_1_10 = get_vars(m_res[300], m_utype, m_unit)
-#res_var_1_100 = get_vars(m_res[500], m_utype, m_unit)
-#res_var_1_1000 = get_vars(m_res[700], m_utype, m_unit)
-#res_var_1_10000 = get_vars(m_res[900], m_utype, m_unit)
+#res_var_1 = get_res(m_res[100], m_utype, m_unit)
+#res_var_1_10 = get_res(m_res[300], m_utype, m_unit)
+#res_var_1_100 = get_res(m_res[500], m_utype, m_unit)
+#res_var_1_1000 = get_res(m_res[700], m_utype, m_unit)
+#res_var_1_10000 = get_res(m_res[900], m_utype, m_unit)
 
 
 snap_res = snapshot_utype(m_res[100], m_utype, 1)
@@ -257,14 +257,14 @@ savefig(dcbranch_inv_plot, "branch_inv_plot.png")
 
 
 ## Plot results
-pval = 500
-plot_res = m_res[pval]
+pval = 1000
+res_plot = m_res[pval]
 
 # Get variables per unit by times
-load5 = get_vars(plot_res, "load", "5")
-branchdc_1 = get_vars(plot_res, "branchdc", "1")
-branchdc_2 = get_vars(plot_res, "branchdc", "2")
-branchdc_ne_3 = get_vars(plot_res, "branchdc_ne", "3")
+load5 = get_res(res_plot, "load", "5")
+branchdc_1 = get_res(res_plot, "branchdc", "1")
+branchdc_2 = get_res(res_plot, "branchdc", "2")
+branchdc_ne_3 = get_res(res_plot, "branchdc_ne", "3")
 
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
@@ -275,13 +275,13 @@ stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7,
 bus_nr = 5
 load5_input = transpose(extradata["load"][string(bus_nr)]["pd"])
 plot!(t_vec, load5_input, color=:red, width=3.0, label="base demand", line=:dash)
-plot_var!(plot_res, "load", string(bus_nr),"pflex", label="flexible demand",
+plot_res!(res_plot, "load", string(bus_nr),"pflex", label="flexible demand",
           ylabel="power (p.u.)", color=:blue, width=3.0, line=:dash, gridalpha=0.5)
 #... save figure
 savefig(stacked_plot, "bus5_balance.png")
 
 # Plot energy not served
-plot_not_served = plot_var(plot_res, "load", "5", "ence", color=:black, width=3.0,
+plot_not_served = plot_res(res_plot, "load", "5", "ence", color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
                            ylabel="energy (p.u.)", legend=false, gridalpha=0.5)
 

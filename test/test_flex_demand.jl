@@ -6,7 +6,8 @@ start_hour = 1              # First time step
 n_loads = 5                 # Number of load points
 i_load_mod = 5              # The load point on which we modify the demand profile
 
-file = "../test/data/case6_flex.m" # Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines, flexible demand and candidate storage
+
+file = normpath(@__DIR__,"..","test","data","case6_flex.m") # Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines, flexible demand and candidate storage
 
 loadprofile = 0.1 .* ones(n_loads, number_of_hours) # Create a load profile: In this case there are 5 loads in the test case
 t_vec = start_hour:start_hour+(number_of_hours-1)
@@ -47,7 +48,7 @@ result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
         @test isapprox(result_test1["solution"]["nw"]["1"]["ne_storage"]["1"]["isbuilt"], 0, atol = 1e-1)
         @test isapprox(result_test1["solution"]["nw"]["1"]["ne_branch"]["1"]["built"], 0, atol = 1e-1)
         @test isapprox(result_test1["solution"]["nw"]["1"]["convdc_ne"]["6"]["isbuilt"], 1.0, atol = 1e-1)
-        @test isapprox(result_test1["solution"]["nw"]["1"]["load"]["5"]["pshift_up"], 0.453175, atol = 1e-1)
+        @test isapprox(result_test1["solution"]["nw"]["96"]["load"]["5"]["pshift_up_tot"], 4.4, atol = 1e-1)
         @test isapprox(result_test1["solution"]["nw"]["17"]["load"]["5"]["pflex"], 0.040889, atol = 1e-2)
         @test isapprox(result_test1["solution"]["nw"]["56"]["load"]["5"]["ence"], 9.29585, atol = 1e-2)
     end
