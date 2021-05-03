@@ -3,10 +3,8 @@
 
 ## Import packages and choose a solver
 
-import PowerModels
-const _PM = PowerModels
-import FlexPlan
-const _FP = FlexPlan
+import PowerModels; const _PM = PowerModels
+import FlexPlan; const _FP = FlexPlan
 import Ipopt
 optimizer = _FP.optimizer_with_attributes(Ipopt.Optimizer, "print_level"=>0, "sb"=>"yes")
 
