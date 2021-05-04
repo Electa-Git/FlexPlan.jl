@@ -28,12 +28,17 @@ function parse_file(file::String; kwargs...)
 end
 
 """
-    parse_file(file, scenario; <keyword arguments>)
+    parse_file(file, scenario; scale_cost=1.0, <keyword arguments>)
 
-Also scale cost data according to `scenario`.
+Also scale cost data according to `scenario` by using `scale_cost_data!()`.
+Additionally, pass `scale_cost` to `scale_cost_data!()` as `factor`.
+
+# See also
+
+[`scale_cost_data!`](@ref)
 """
-function parse_file(file::String, scenario::Dict{String,Any}; kwargs...)
+function parse_file(file::String, scenario::Dict{String,Any}; scale_cost = 1.0, kwargs...)
     data = parse_file(file; kwargs...)
-    scale_cost_data!(data, scenario)
+    scale_cost_data!(data, scenario; factor = scale_cost)
     return data
 end

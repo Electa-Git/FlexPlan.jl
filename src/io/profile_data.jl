@@ -35,9 +35,29 @@ function add_storage_data!(data)
     return data
 end
 
-function scale_cost_data!(data, scenario)
-    rescale_hourly = x -> (8760*scenario["planning_horizon"] / scenario["hours"]) * x # scale hourly costs to the planning horizon
-    rescale_total  = x -> (                                1 / scenario["hours"]) * x # scale total costs to the planning horizon
+"""
+    scale_cost_data!(data, scenario; factor = 1.0)
+
+Scale costs in input `data` in order to cover the specified `scenario` planning horizon.
+
+`data` must contain:
+- the amount of each _investment_ cost related to the `scenario` planning horizon; this value is
+  divided by the number of optimization periods, so that the sum over all optimization periods
+  returns the investment cost over the `scenario` planning horizon;
+- the amount of each _operational_ cost related to one optimization period (typically, its hourly
+  cost); this value is multiplied by the ratio of the number of optimization periods that would
+  cover the `scenario` planning horizon to the number of optimization periods, so that the sum over
+  all optimization periods returns the operational cost over the `scenario` planning horizon.
+
+Additionally, all costs can be scaled by a fixed `factor` (this could improve the numerical
+tractability of the problem).
+"""
+function scale_cost_data!(data, scenario; factor = 1.0)
+    if factor != 1.0
+        Memento.info(_LOGGER, @sprintf("Cost scale factor set to %g", factor))
+    end
+    rescale_hourly = x -> (8760*scenario["planning_horizon"] / scenario["hours"]) * factor * x # scale hourly costs to the planning horizon
+    rescale_total  = x -> (                                1 / scenario["hours"]) * factor * x # scale total costs to the planning horizon
     for (g, gen) in data["gen"]
         _PM._apply_func!(gen, "cost", rescale_hourly)
     end
