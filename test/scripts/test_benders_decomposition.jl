@@ -16,7 +16,7 @@ using Printf
 ## Input parameters
 
 # Test case to run
-test_case = "cigre" # Available test cases (see below): "case2", "case6", "cigre"
+test_case = "cigre" # Available test cases (see below): "case2", "case6", "cigre", "cigre_ext"
 
 # Number of hourly optimization periods
 number_of_hours = 24
@@ -83,14 +83,14 @@ end
 
 ## Test case preparation
 
-if test_case == "case2" # Single-period toy model
+if test_case == "case2" # Toy model 2-bus distribution network, single period
 
     file = "./test/data/case2.m" # Input case
 
     model_type = _FP.BFARadPowerModel
     data = _FP.parse_file(file)
 
-elseif test_case == "case6" # Multiperiod 6-bus transmission network
+elseif test_case == "case6" # 6-bus transmission network, max 8760 periods
 
     file = "./test/data/combined_td_model/t_case6.m"
 
@@ -106,7 +106,7 @@ elseif test_case == "case6" # Multiperiod 6-bus transmission network
     extradata = _FP.create_profile_data(scenario["hours"]*length(data["scenario"]), data, loadprofile, genprofile)
     data = _FP.multinetwork_data(data, extradata)
 
-elseif test_case == "cigre" # Multiperiod 15-bus distribution network
+elseif test_case == "cigre" # 15-bus distribution network, max 24 periods. CIGRE MV test network.
 
     file = "test/data/combined_td_model/d_cigre.m"
     scale_load = 3.0 # Scaling factor of loads
@@ -115,12 +115,25 @@ elseif test_case == "cigre" # Multiperiod 15-bus distribution network
     model_type = _FP.BFARadPowerModel
     scenario = Dict{String, Any}("hours" => number_of_hours, "sc_years" => Dict{String, Any}())
     scenario["sc_years"]["1"] = Dict{String, Any}()
-    scenario["sc_years"]["1"]["year"] = 2019
-    scenario["sc_years"]["1"]["start"] = 1546300800000 # 2019-01-01T00:00:00.000 in epoch time
     scenario["sc_years"]["1"]["probability"] = 1
     scenario["planning_horizon"] = 1
     data = _FP.parse_file(file, scenario; scale_cost)
     extradata = _FP.create_profile_data_cigre(data, number_of_hours; scale_load, scale_gen)
+    data = _FP.multinetwork_data(data, extradata)
+
+elseif test_case == "cigre_ext" # 15-bus distribution network, max 8760 periods. CIGRE MV test network with extended gen/load profiles.
+
+    file = "test/data/combined_td_model/d_cigre.m"
+    scale_load = 3.0 # Scaling factor of loads
+    scale_gen  = 1.0 # Scaling factor of generators
+
+    model_type = _FP.BFARadPowerModel
+    scenario = Dict{String, Any}("hours" => number_of_hours, "sc_years" => Dict{String, Any}())
+    scenario["sc_years"]["1"] = Dict{String, Any}()
+    scenario["sc_years"]["1"]["probability"] = 1
+    scenario["planning_horizon"] = 1
+    data = _FP.parse_file(file, scenario; scale_cost)
+    extradata = _FP.create_profile_data_cigre(data, number_of_hours; scale_load, scale_gen, file_profiles_pu = "./test/data/CIGRE_profiles_per_unit_Italy.csv")
     data = _FP.multinetwork_data(data, extradata)
 
 end
