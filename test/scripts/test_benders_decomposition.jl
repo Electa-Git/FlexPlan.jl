@@ -8,7 +8,7 @@ import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import FlexPlan; const _FP = FlexPlan
 using DataFrames
 using Memento
-using Plots
+using StatsPlots
 using Printf
 # Solvers are imported later
 
@@ -155,9 +155,11 @@ result_benders = _FP.run_benders_decomposition(
 )
 
 println("Solving the problem as MILP...")
+time_benchmark_start = time()
 result_benchmark = _FP.flex_tnep(data, model_type, optimizer_benchmark; multinetwork=_PM._IM.ismultinetwork(data), setting=Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false))
 @assert result_benchmark["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
-@printf("MILP time: %.1f s.\n", result_benchmark["solve_time"])
+time_benchmark = time() - time_benchmark_start
+@printf("MILP time: %.1f s.\n", time_benchmark) # result_benchmark["solve_time"] does not include model build time
 
 @printf("Benders/MILP solve time ratio: %.2f.\n", result_benders["solve_time"]/result_benchmark["solve_time"])
 
@@ -165,12 +167,12 @@ result_benchmark = _FP.flex_tnep(data, model_type, optimizer_benchmark; multinet
 ## Analyze result
 
 stat = result_benders["stat"]
-n_iter = length(stat) # iterations
-ub = [stat[i]["ub"] for i in 1:n_iter]
-lb = [stat[i]["lb"] for i in 1:n_iter]
-sol = [stat[i]["sol_value"] for i in 1:n_iter]
-sol_nonimproving = [stat[i]["current_best"] ? NaN : sol[i] for i in 1:n_iter]
-sol_improving = [stat[i]["current_best"] ? sol[i] : NaN for i in 1:n_iter]
+n_iter = length(stat)
+ub = [stat[i]["value"]["ub"] for i in 1:n_iter]
+lb = [stat[i]["value"]["lb"] for i in 1:n_iter]
+sol = [stat[i]["value"]["sol_value"] for i in 1:n_iter]
+sol_nonimproving = [stat[i]["value"]["current_best"] ? NaN : sol[i] for i in 1:n_iter]
+sol_improving = [stat[i]["value"]["current_best"] ? sol[i] : NaN for i in 1:n_iter]
 opt = result_benchmark["objective"]
 
 # Plots: solution value versus iterations
@@ -209,7 +211,7 @@ comp_built = Dict{String,String}(
     "load"        => "isflex"
 )
 int_vars = DataFrame(comp = String[], name = String[], idx=Int[], legend = String[], values = Vector{Bool}[])
-main_sol = haskey(result_benders["solution"],"multinetwork") && result_benders["solution"]["multinetwork"] ? [stat[i]["main_sol"]["nw"]["1"] for i in 1:n_iter] : [stat[i]["main_sol"] for i in 1:n_iter]
+main_sol = haskey(result_benders["solution"],"multinetwork") && result_benders["solution"]["multinetwork"] ? [stat[i]["main"]["sol"]["nw"]["1"] for i in 1:n_iter] : [stat[i]["main"]["sol"] for i in 1:n_iter]
 for (comp, name) in comp_names
     if haskey(main_sol[1], comp)
         for idx in keys(main_sol[1][comp])
@@ -240,6 +242,24 @@ plt = heatmap(1:n_iter, int_vars.legend, values_matrix_plot;
     colorbar = :none,
 )
 savefig(plt, normpath(out_dir,"intvars.svg"))
+display(plt)
+
+# Plot: solve time versus iterations
+
+main_time = [stat[i]["main"]["time"] for i in 1:n_iter]
+sec_time = [stat[i]["secondary"]["time"] for i in 1:n_iter]
+plt = groupedbar(1:n_iter, [sec_time main_time];
+    label        = ["secondary problems" "main problem"],
+    bar_position = :stack,
+    bar_width    = n_iter < 50 ? 0.8 : 1.0,
+    color        = [2 1],
+    linewidth    = n_iter < 50 ? 1 : 0,
+    title        = "Solve time",
+    ylabel       = "Time [s]",
+    xlabel       = "Iterations",
+    legend       = :top,
+)
+savefig(plt, normpath(out_dir,"time.svg"))
 display(plt)
 
 println("Output files saved in \"$out_dir\".")

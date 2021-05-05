@@ -46,7 +46,7 @@ function run_benders_decomposition(
         kwargs...
     )
 
-    start_time = time()
+    time_procedure_start = time()
     Memento.debug(_LOGGER, "Benders' decomposition started")
 
     add_benders_data!(data)
@@ -65,17 +65,23 @@ function run_benders_decomposition(
         JuMP.set_silent(pm_sec.model)
     end
 
+    time_build = time() - time_procedure_start
+
     stat = Dict{Int,Any}()
 
     ## First iteration
 
     i = 1
 
+    time_main_start = time()
     optimize_and_check!(pm_main.model, "main", i)
+    time_main = time() - time_main_start
     Memento.debug(_LOGGER, "Main model has $(JuMP.num_variables(pm_main.model)) variables and $(sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])) constraints initially.")
 
+    time_sec_start = time()
     fix_sec_var_values(pm_main, pm_sec, int_vars)
     optimize_and_check!(pm_sec.model, "secondary", i)
+    time_sec = time() - time_sec_start
     if !JuMP.has_duals(pm_sec.model) # If this check passes here, no need to check again in subsequent iterations.
         Memento.error(_LOGGER, "Solver $(JuMP.solver_name(pm_sec.model)) is unable to provide dual values.")
     end
@@ -88,10 +94,10 @@ function run_benders_decomposition(
     inv_cost, op_cost, sol_value, lb = calc_first_iter_result(pm_main, pm_sec, investment_cost_expr)
     ub = sol_value
     solution = _IM.build_solution(pm_sec; post_processors=solution_processors)
-    log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, Inf, true, pm_main, pm_sec)
+    log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, Inf, true, pm_main, pm_sec, time_main, time_sec)
 
+    time_main_start = time()
     optimality_cut = calc_optimality_cut(pm_main, pm_sec, int_vars)
-
     epi = JuMP.@variable(pm_main.model, base_name="benders_epi")
     JuMP.@objective(pm_main.model, Min, investment_cost_expr + epi)
 
@@ -103,9 +109,12 @@ function run_benders_decomposition(
 
         JuMP.@constraint(pm_main.model, epi ≥ optimality_cut)
         optimize_and_check!(pm_main.model, "main", i)
+        time_main = time() - time_main_start
 
+        time_sec_start = time()
         fix_sec_var_values(pm_main, pm_sec, int_vars)
         optimize_and_check!(pm_sec.model, "secondary", i)
+        time_sec = time() - time_sec_start
 
         inv_cost, op_cost, sol_value, lb = calc_iter_result(pm_main, pm_sec, epi)
 
@@ -115,7 +124,7 @@ function run_benders_decomposition(
             solution = _IM.build_solution(pm_sec; post_processors=solution_processors)
         end
         rel_gap = (ub-lb)/abs(ub)
-        log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, pm_main, pm_sec)
+        log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, pm_main, pm_sec, time_main, time_sec)
 
         if rel_gap ≤ rtol
             Memento.info(_LOGGER, "┠───────┴────────────────────────────────────┴────────────────────────────────────┨")
@@ -130,6 +139,7 @@ function run_benders_decomposition(
             break
         end
 
+        time_main_start = time()
         optimality_cut = calc_optimality_cut(pm_main, pm_sec, int_vars)
     end
 
@@ -140,9 +150,15 @@ function run_benders_decomposition(
     result["objective_lb"] = lb
     result["solution"]     = solution
     result["stat"]         = stat
-    result["solve_time"]   = time() - start_time
+    result["solve_time"]   = time() - time_procedure_start
 
-    Memento.debug(_LOGGER, @sprintf("Benders' decomposition time: %.1f s", result["solve_time"]))
+    Memento.debug(_LOGGER, @sprintf("Benders' decomposition time: %.1f s (%.0f%% building models, %.0f%% main prob, %.0f%% secondary probs, %.0f%% other)",
+        result["solve_time"],
+        100 * time_build / result["solve_time"],
+        100 * sum(s["main"]["time"] for s in values(stat)) / result["solve_time"],
+        100 * sum(s["secondary"]["time"] for s in values(stat)) / result["solve_time"],
+        100 * (1 - ((time_build+sum(s["main"]["time"]+s["secondary"]["time"] for s in values(stat)))/result["solve_time"]))
+    ))
     return result
 end
 
@@ -208,26 +224,34 @@ function calc_iter_result(pm_main, pm_sec, epi)
     return inv_cost, op_cost, sol_value, lb
 end
 
-function log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, pm_main, pm_sec)
+function log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, pm_main, pm_sec, time_main, time_sec)
     if current_best
         Memento.info(_LOGGER, @sprintf("┃ •%4i │%11.3e%12.3e%12.3e │%11.3e%12.3e%12.3e ┃", i, inv_cost, op_cost, sol_value, ub, lb, rel_gap))
     else
         Memento.info(_LOGGER, @sprintf("┃  %4i │%11.3e%12.3e%12.3e │%11.3e%12.3e%12.3e ┃", i, inv_cost, op_cost, sol_value, ub, lb, rel_gap))
     end
-    iter_stat = Dict{String,Any}()
-    iter_stat["inv_cost"] = inv_cost
-    iter_stat["op_cost"] = op_cost
-    iter_stat["sol_value"] = sol_value
-    iter_stat["ub"] = ub
-    iter_stat["lb"] = lb
-    iter_stat["rel_gap"] = rel_gap
-    iter_stat["current_best"] = current_best
-    iter_stat["main_sol"] = _IM.build_solution(pm_main)
-    iter_stat["main_nvar"] = JuMP.num_variables(pm_main.model)
-    iter_stat["main_ncon"] = sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])
-    iter_stat["secondary_nvar"] = JuMP.num_variables(pm_sec.model)
-    iter_stat["secondary_ncon"] = sum([JuMP.num_constraints(pm_sec.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_sec.model)])
-    stat[i] = iter_stat
+
+    value = Dict{String,Any}()
+    value["inv_cost"] = inv_cost
+    value["op_cost"] = op_cost
+    value["sol_value"] = sol_value
+    value["ub"] = ub
+    value["lb"] = lb
+    value["rel_gap"] = rel_gap
+    value["current_best"] = current_best
+
+    main = Dict{String,Any}()
+    main["sol"] = _IM.build_solution(pm_main)
+    main["nvar"] = JuMP.num_variables(pm_main.model)
+    main["ncon"] = sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])
+    main["time"] = time_main
+
+    secondary = Dict{String,Any}()
+    secondary["nvar"] = JuMP.num_variables(pm_sec.model)
+    secondary["ncon"] = sum([JuMP.num_constraints(pm_sec.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_sec.model)])
+    secondary["time"] = time_sec
+
+    stat[i] = Dict{String,Any}("value" => value, "main" => main, "secondary" => secondary)
 end
 
 function add_benders_data!(data::Dict{String,Any})
