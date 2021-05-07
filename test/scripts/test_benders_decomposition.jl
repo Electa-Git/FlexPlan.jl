@@ -288,13 +288,14 @@ display(plt)
 
 # Plot: solve time versus iterations
 
-main_time = [stat[i]["main"]["time"] for i in 1:n_iter]
-sec_time = [stat[i]["secondary"]["time"] for i in 1:n_iter]
-plt = groupedbar(1:n_iter, [sec_time main_time];
-    label        = ["secondary problems" "main problem"],
+main_time = [stat[i]["time"]["main"] for i in 1:n_iter]
+sec_time = [stat[i]["time"]["secondary"] for i in 1:n_iter]
+other_time = [stat[i]["time"]["other"] for i in 1:n_iter]
+plt = groupedbar(1:n_iter, [other_time sec_time main_time];
+    label        = ["other" "secondary problems" "main problem"],
     bar_position = :stack,
     bar_width    = n_iter < 50 ? 0.8 : 1.0,
-    color        = [2 1],
+    color        = [HSL(0,0,0.5) 2 1],
     linewidth    = n_iter < 50 ? 1 : 0,
     title        = "Solve time",
     ylabel       = "Time [s]",
