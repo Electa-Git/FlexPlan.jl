@@ -75,11 +75,12 @@ function run_benders_decomposition(
 
     time_main_start = time()
     optimize_and_check!(pm_main.model, "main", i)
+    main_var_values = get_var_values(pm_main)
     time_main = time() - time_main_start
     Memento.debug(_LOGGER, "Main model has $(JuMP.num_variables(pm_main.model)) variables and $(sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])) constraints initially.")
 
     time_sec_start = time()
-    fix_sec_var_values(pm_main, pm_sec, int_vars)
+    fix_var_values!(pm_sec, main_var_values)
     optimize_and_check!(pm_sec.model, "secondary", i)
     time_sec = time() - time_sec_start
     if !JuMP.has_duals(pm_sec.model) # If this check passes here, no need to check again in subsequent iterations.
@@ -94,7 +95,7 @@ function run_benders_decomposition(
     inv_cost, op_cost, sol_value, lb = calc_first_iter_result(pm_main, pm_sec, investment_cost_expr)
     ub = sol_value
     solution = _IM.build_solution(pm_sec; post_processors=solution_processors)
-    log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, Inf, true, pm_main, pm_sec, time_main, time_sec)
+    log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, Inf, true, main_var_values, pm_main, pm_sec, time_main, time_sec)
 
     time_main_start = time()
     optimality_cut = calc_optimality_cut(pm_main, pm_sec, int_vars)
@@ -109,10 +110,11 @@ function run_benders_decomposition(
 
         JuMP.@constraint(pm_main.model, epi ≥ optimality_cut)
         optimize_and_check!(pm_main.model, "main", i)
+        main_var_values = get_var_values(pm_main)
         time_main = time() - time_main_start
 
         time_sec_start = time()
-        fix_sec_var_values(pm_main, pm_sec, int_vars)
+        fix_var_values!(pm_sec, main_var_values)
         optimize_and_check!(pm_sec.model, "secondary", i)
         time_sec = time() - time_sec_start
 
@@ -124,7 +126,7 @@ function run_benders_decomposition(
             solution = _IM.build_solution(pm_sec; post_processors=solution_processors)
         end
         rel_gap = (ub-lb)/abs(ub)
-        log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, pm_main, pm_sec, time_main, time_sec)
+        log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, main_var_values, pm_main, pm_sec, time_main, time_sec)
 
         if rel_gap ≤ rtol
             Memento.info(_LOGGER, "┠───────┴────────────────────────────────────┴────────────────────────────────────┨")
@@ -169,16 +171,26 @@ function optimize_and_check!(model, model_name, iter)
     end
 end
 
-function fix_sec_var_values(pm_main, pm_sec, int_vars)
-    for n ∈ [min(_PM.nw_ids(pm_sec)...)] # TODO: change when implementing multiple scenarios
-        for var in int_vars
-            if haskey(_PM.var(pm_sec, n), var)
-                for i in keys(_PM.var(pm_sec, n, var))
-                    z_main = _PM.var(pm_main, n, var, i)
-                    z_sec = _PM.var(pm_sec, n, var, i)
-                    value = round(JuMP.value(z_main))
-                    JuMP.fix(z_sec, value; force=true)
-                end
+function get_var_values(pm)
+    values = Dict{Int,Any}()
+    for (n,nw) in _PM.nws(pm)
+        if n == nw[:benders]["first_nw"]
+            values_n = values[n] = Dict{Symbol,Any}()
+            for (key, var_array) in _PM.var(pm, n)
+                # idx is a JuMP.Containers.DenseAxisArrayKey{Tuple{Int64}}. idx[1] is an Int
+                values_n[key] = Dict{Int,Int}((idx[1],round(Int,JuMP.value(var_array[idx]))) for idx in keys(var_array))
+            end
+        end
+    end
+    return values
+end
+
+function fix_var_values!(pm, values)
+    for (n, key_vars) in values
+        for (key, var) in key_vars
+            for (idx, value) in var
+                z_sec = _PM.var(pm, n, key, idx)
+                JuMP.fix(z_sec, value; force=true)
             end
         end
     end
@@ -224,7 +236,7 @@ function calc_iter_result(pm_main, pm_sec, epi)
     return inv_cost, op_cost, sol_value, lb
 end
 
-function log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, pm_main, pm_sec, time_main, time_sec)
+function log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, main_var_values, pm_main, pm_sec, time_main, time_sec)
     if current_best
         Memento.info(_LOGGER, @sprintf("┃ •%4i │%11.3e%12.3e%12.3e │%11.3e%12.3e%12.3e ┃", i, inv_cost, op_cost, sol_value, ub, lb, rel_gap))
     else
@@ -241,7 +253,7 @@ function log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap,
     value["current_best"] = current_best
 
     main = Dict{String,Any}()
-    main["sol"] = _IM.build_solution(pm_main)
+    main["sol"] = main_var_values
     main["nvar"] = JuMP.num_variables(pm_main.model)
     main["ncon"] = sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])
     main["time"] = time_main

@@ -177,22 +177,66 @@ time_benchmark = time() - time_benchmark_start
 
 ## Analyze result
 
+# Proxy variables for convenience
+
 stat = result_benders["stat"]
 n_iter = length(stat)
 ub = [stat[i]["value"]["ub"] for i in 1:n_iter]
 lb = [stat[i]["value"]["lb"] for i in 1:n_iter]
-sol = [stat[i]["value"]["sol_value"] for i in 1:n_iter]
-sol_nonimproving = [stat[i]["value"]["current_best"] ? NaN : sol[i] for i in 1:n_iter]
-sol_improving = [stat[i]["value"]["current_best"] ? sol[i] : NaN for i in 1:n_iter]
-opt = result_benchmark["objective"]
+objective = [stat[i]["value"]["sol_value"] for i in 1:n_iter]
+objective_nonimproving = [stat[i]["value"]["current_best"] ? NaN : objective[i] for i in 1:n_iter]
+objective_improving = [stat[i]["value"]["current_best"] ? objective[i] : NaN for i in 1:n_iter]
+opt = result_benders["objective"]
+benchmark_sol = get(result_benchmark["solution"],"multinetwork",false) ? result_benchmark["solution"]["nw"]["1"] : result_benchmark["solution"]
+benders_sol = get(result_benders["solution"],"multinetwork",false) ? result_benders["solution"]["nw"]["1"] : result_benders["solution"]
+
+comp_name = Dict{String,String}(
+    "ne_branch"   => "AC branch",
+    "branchdc_ne" => "DC branch",
+    "convdc_ne"   => "converter",
+    "ne_storage"  => "storage",
+    "load"        => "flex load"
+)
+comp_var = Dict{String,Symbol}(
+    "ne_branch"   => :branch_ne,
+    "branchdc_ne" => :branchdc_ne,
+    "convdc_ne"   => :conv_ne,
+    "ne_storage"  => :z_strg_ne,
+    "load"        => :z_flex
+)
+comp_built = Dict{String,String}(
+    "ne_branch"   => "built",
+    "branchdc_ne" => "isbuilt",
+    "convdc_ne"   => "isbuilt",
+    "ne_storage"  => "isbuilt",
+    "load"        => "isflex"
+)
+
+# Test solution correctness
+
+if !isapprox(opt, result_benchmark["objective"]; rtol)
+    @warn "Benders' procedure failed to find an optimal solution within tolerance" benders_objective = opt benchmark_objective = result_benchmark["objective"]
+end
+for (comp, name) in comp_name
+    built = comp_built[comp]
+    if haskey(benchmark_sol, comp)
+        for idx in keys(benchmark_sol[comp])
+            benchmark_value = benchmark_sol[comp][idx][built]
+            benders_value = benders_sol[comp][idx][built]
+            if !isapprox(benders_value, benchmark_value, atol=1e-1)
+                @warn "Activation variable of $name $idx in Benders' decomposition solution does not match benchmark solution." in_benders = benders_value in_benchmark = benchmark_value
+            end
+        end
+    end
+end
 
 # Plots: solution value versus iterations
 
-plt = plot(1:n_iter, [ub, lb, sol_improving, sol_nonimproving];
+plt = plot(1:n_iter, [ub, lb, objective_improving, objective_nonimproving];
     label      = ["UB" "LB" "improving solution" "non-improving solution"],
     seriestype = [:step :step :scatter :scatter],
     color      = [3 2 1 HSL(0,0,0.5)],
-    ylims      = [lb[ceil(Int,n_iter/5)], max(sol[ceil(Int,n_iter/5):n_iter]...)],
+    ylims      = [lb[ceil(Int,n_iter/5)], max(objective[ceil(Int,n_iter/5):n_iter]...)],
     title      = "Benders' decomposition solutions",
     ylabel     = "Cost",
     xlabel     = "Iterations",
@@ -207,26 +251,13 @@ display(plt)
 
 # Plot: binary variable values versus iterations
 
-comp_names = Dict{String,String}(
-    "ne_branch"   => "AC branch",
-    "branchdc_ne" => "DC branch",
-    "convdc_ne"   => "converter",
-    "ne_storage"  => "storage",
-    "load"        => "flex load"
-)
-comp_built = Dict{String,String}(
-    "ne_branch"   => "built",
-    "branchdc_ne" => "isbuilt",
-    "convdc_ne"   => "isbuilt",
-    "ne_storage"  => "isbuilt",
-    "load"        => "isflex"
-)
-int_vars = DataFrame(comp = String[], name = String[], idx=Int[], legend = String[], values = Vector{Bool}[])
-main_sol = haskey(result_benders["solution"],"multinetwork") && result_benders["solution"]["multinetwork"] ? [stat[i]["main"]["sol"]["nw"]["1"] for i in 1:n_iter] : [stat[i]["main"]["sol"] for i in 1:n_iter]
-for (comp, name) in comp_names
-    if haskey(main_sol[1], comp)
-        for idx in keys(main_sol[1][comp])
-            push!(int_vars, (comp, name, parse(Int,idx), "$name $idx", [round(Int,main_sol[i][comp][idx][comp_built[comp]]) for i in 1:n_iter]))
+main_sol = get(result_benders["solution"],"multinetwork",false) ? [stat[i]["main"]["sol"][1] for i in 1:n_iter] : [stat[i]["main"]["sol"][0] for i in 1:n_iter]
+int_vars = DataFrame(name = String[], idx=Int[], legend = String[], values = Vector{Bool}[])
+for (comp, name) in comp_name
+    var = comp_var[comp]
+    if haskey(first(main_sol), var)
+        for idx in keys(first(main_sol)[var])
+            push!(int_vars, (name, idx, "$name $idx", [main_sol[i][var][idx] for i in 1:n_iter]))
         end
     end
 end
@@ -236,7 +267,7 @@ values_matrix = Array{Int}(undef, nrow(int_vars), n_iter)
 for n in 1:nrow(int_vars)
     values_matrix[n,:] = int_vars.values[n]
 end
-values_matrix_plot = values_matrix + repeat(2isfinite.(sol_improving)', nrow(int_vars))
+values_matrix_plot = values_matrix + repeat(2isfinite.(objective_improving)', nrow(int_vars))
 # | value | color      | component built? | improving iteration? |
 # | ----- | ---------- | ---------------- | -------------------- |
 # |     0 | light grey |        no        |          no          |
