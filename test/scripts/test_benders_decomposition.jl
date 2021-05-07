@@ -15,26 +15,22 @@ using Printf
 
 ## Input parameters
 
-# Test case to run
+# Test case
 test_case = "cigre" # Available test cases (see below): "case2", "case6", "cigre", "cigre_ext"
+number_of_hours = 24 # Number of hourly optimization periods
+scale_cost = 1e-6 # Cost scale factor (to test the numerical tractability of the problem)
 
-# Number of hourly optimization periods
-number_of_hours = 24
-
-# Cost scale factor (to test the numerical tractability of the problem)
-scale_cost = 1e0
-
-# Logger verbosity level
-setlevel!.(Memento.getpath(getlogger("FlexPlan")), "debug") # Useful values: "info", "debug", "trace"
-
-# Suppress solvers output, taking precedence over any other solver attribute (effective only in Benders' decomposition)
-silent = true
-
-# Output directory
-out_dir = "test/data/output_files"
+# Procedure
+rtol = 1e-6 # Relative tolerance for stopping
+max_iter = 1000 # Iteration limit
 
 # Solvers
 use_opensource_solvers = true # More options below
+
+# Output
+out_dir = "test/data/output_files"
+silent = true # Suppress solvers output, taking precedence over any other solver attribute (effective only in Benders' decomposition)
+setlevel!.(Memento.getpath(getlogger("FlexPlan")), "debug") # Logger verbosity level. Useful values: "info", "debug", "trace"
 
 
 ## Import and set solvers
@@ -164,6 +160,8 @@ result_benders = _FP.run_benders_decomposition(
         : [_PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!, _FP.add_candidate_storage!],
     solution_processors = [_PM.sol_data_model!],
     setting = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false),
+    rtol,
+    max_iter,
     silent
 )
 
