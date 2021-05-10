@@ -7,6 +7,7 @@ import PowerModels; const _PM = PowerModels
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import FlexPlan; const _FP = FlexPlan
 using DataFrames
+using Dates
 using Memento
 using StatsPlots
 using Printf
@@ -30,7 +31,6 @@ use_opensource_solvers = true # More options below
 # Output
 out_dir = "test/data/output_files"
 silent = true # Suppress solvers output, taking precedence over any other solver attribute (effective only in Benders' decomposition)
-setlevel!.(Memento.getpath(getlogger("FlexPlan")), "debug") # Logger verbosity level. Useful values: "info", "debug", "trace"
 
 
 ## Import and set solvers
@@ -75,6 +75,22 @@ else
         "CPXPARAM_MIP_Display" => 2, # ∈ {0,...,5}, default: 2
     ) # Solver options: <https://www.ibm.com/docs/en/icos/20.1.0?topic=cplex-list-parameters>
 end
+
+
+## Process script parameters, set up logging
+
+optimizer_MILP_name = string(optimizer_MILP.optimizer_constructor)[1:end-10]
+optimizer_LP_name = string(optimizer_LP.optimizer_constructor)[1:end-10]
+param_string = @sprintf("%s_%04i_%s_%s_%.0e", test_case, number_of_hours, optimizer_MILP_name, optimizer_LP_name, scale_cost)
+out_dir = normpath(out_dir, "benders_" * param_string)
+mkpath(out_dir)
+main_log_file = joinpath(out_dir,"decomposition.log")
+rm(main_log_file, force = true)
+setlevel!.(Memento.getpath(getlogger(FlexPlan)), "debug") # FlexPlan logger verbosity level. Useful values: "info", "debug", "trace"
+script_logger = getlogger(basename(@__FILE__)[1:end-3]) # A logger for this script. Name is filename without `.jl` extension, level is "info" by default.
+push!(getlogger(), DefaultHandler(main_log_file)) # Tell all loggers to write to our log file as well
+info(script_logger, "Script parameter string: \"$param_string\"")
+info(script_logger, "Now is $(now(UTC)) (UTC)")
 
 
 ## Test case preparation
@@ -135,22 +151,9 @@ elseif test_case == "cigre_ext" # 15-bus distribution network, max 8760 periods.
 end
 
 
-## Process script parameters
-
-optimizer_MILP_name = string(optimizer_MILP.optimizer_constructor)[1:end-10]
-optimizer_LP_name = string(optimizer_LP.optimizer_constructor)[1:end-10]
-param_string = @sprintf("%s_%04i_%s_%s_%.0e", test_case, number_of_hours, optimizer_MILP_name, optimizer_LP_name, scale_cost)
-out_dir = normpath(out_dir, "benders_" * param_string)
-mkpath(out_dir)
-main_log_file = joinpath(out_dir,"decomposition.log")
-rm(main_log_file, force = true)
-empty!(getlogger("FlexPlan").handlers) # Prevents writing to previously pushed files
-push!(getlogger("FlexPlan"), DefaultHandler(main_log_file))
-
-
 ## Solve problem
 
-println("Solving the problem with Benders' decomposition...")
+info(script_logger, "Solving the problem with Benders' decomposition...")
 result_benders = _FP.run_benders_decomposition(
     data, model_type,
     optimizer_MILP, optimizer_LP,
@@ -165,14 +168,14 @@ result_benders = _FP.run_benders_decomposition(
     silent
 )
 
-println("Solving the problem as MILP...")
+info(script_logger, "Solving the problem as MILP...")
 time_benchmark_start = time()
 result_benchmark = _FP.flex_tnep(data, model_type, optimizer_benchmark; multinetwork=_PM._IM.ismultinetwork(data), setting=Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false))
 @assert result_benchmark["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
 time_benchmark = time() - time_benchmark_start
-@printf("MILP time: %.1f s.\n", time_benchmark) # result_benchmark["solve_time"] does not include model build time
+info(script_logger, @sprintf("MILP time: %.1f s", time_benchmark)) # result_benchmark["solve_time"] does not include model build time
 
-@printf("Benders/MILP solve time ratio: %.2f.\n", result_benders["solve_time"]/result_benchmark["solve_time"])
+info(script_logger, @sprintf("Benders/MILP solve time ratio: %.2f", result_benders["solve_time"]/result_benchmark["solve_time"]))
 
 
 ## Analyze result
@@ -215,7 +218,7 @@ comp_built = Dict{String,String}(
 # Test solution correctness
 
 if !isapprox(opt, result_benchmark["objective"]; rtol)
-    @warn "Benders' procedure failed to find an optimal solution within tolerance" benders_objective = opt benchmark_objective = result_benchmark["objective"]
+    warn(script_logger, "Benders' procedure failed to find an optimal solution within tolerance (benders $opt, benchmark $(result_benchmark["objective"]))")
 end
 for (comp, name) in comp_name
     built = comp_built[comp]
@@ -224,7 +227,7 @@ for (comp, name) in comp_name
             benchmark_value = benchmark_sol[comp][idx][built]
             benders_value = benders_sol[comp][idx][built]
             if !isapprox(benders_value, benchmark_value, atol=1e-1)
-                @warn "Activation variable of $name $idx in Benders' decomposition solution does not match benchmark solution." in_benders = benders_value in_benchmark = benchmark_value
+                warn(script_logger, "Activation variable of $name $idx in Benders' decomposition solution does not match benchmark solution (benders $benders_value, benchmark $benchmark_value)")
             end
         end
     end
@@ -305,5 +308,5 @@ plt = groupedbar(1:n_iter, [other_time sec_time main_time];
 savefig(plt, normpath(out_dir,"time.svg"))
 display(plt)
 
-println("Output files saved in \"$out_dir\".")
-println("Test completed.")
+println("Output files saved in \"$out_dir\"")
+info(script_logger, "Test completed")
