@@ -113,7 +113,7 @@ elseif test_case == "case6" # 6-bus transmission network, max 8760 periods
     scenario["sc_years"]["1"]["year"] = 2019
     scenario["sc_years"]["1"]["start"] = 1546300800000 # 2019-01-01T00:00:00.000 in epoch time
     scenario["sc_years"]["1"]["probability"] = 1
-    scenario["planning_horizon"] = 1
+    scenario["planning_horizon"] = 10
     data = _FP.parse_file(file, scenario; scale_cost)
     data, loadprofile, genprofile = _FP.create_profile_data_italy(data, scenario)
     extradata = _FP.create_profile_data(scenario["hours"]*length(data["scenario"]), data, loadprofile, genprofile)
@@ -129,7 +129,7 @@ elseif test_case == "cigre" # 15-bus distribution network, max 24 periods. CIGRE
     scenario = Dict{String, Any}("hours" => number_of_hours, "sc_years" => Dict{String, Any}())
     scenario["sc_years"]["1"] = Dict{String, Any}()
     scenario["sc_years"]["1"]["probability"] = 1
-    scenario["planning_horizon"] = 1
+    scenario["planning_horizon"] = 10
     data = _FP.parse_file(file, scenario; scale_cost)
     extradata = _FP.create_profile_data_cigre(data, number_of_hours; scale_load, scale_gen)
     data = _FP.multinetwork_data(data, extradata)
@@ -144,7 +144,7 @@ elseif test_case == "cigre_ext" # 15-bus distribution network, max 8760 periods.
     scenario = Dict{String, Any}("hours" => number_of_hours, "sc_years" => Dict{String, Any}())
     scenario["sc_years"]["1"] = Dict{String, Any}()
     scenario["sc_years"]["1"]["probability"] = 1
-    scenario["planning_horizon"] = 1
+    scenario["planning_horizon"] = 10
     data = _FP.parse_file(file, scenario; scale_cost)
     extradata = _FP.create_profile_data_cigre(data, number_of_hours; scale_load, scale_gen, file_profiles_pu = "./test/data/CIGRE_profiles_per_unit_Italy.csv")
     data = _FP.multinetwork_data(data, extradata)
