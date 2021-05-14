@@ -2,20 +2,20 @@
 Generate a multinetwork data structure
 
 - `sn_data`: single-network data structure to be replicated
-- `extradata`: data structure containing the timeseries 
+- `extradata`: data structure containing the timeseries
 - `global_keys`: keys that are stored once per multinetwork (they are not repeated in each `nw`)
 - `merge_into`: an optional multinetwork data structure to merge into
 - `nw_id_offset`: optional value to be added to extradata ids to shift `nw` ids in multinetwork data
-  structure; if `merge_into` is used, then the maximum nw idx is adopted as default value 
+  structure; if `merge_into` is used, then the maximum nw idx is adopted as default value
 """
 function multinetwork_data(
         sn_data::Dict{String,Any},
         extradata::Dict{String,Any},
-        global_keys::Set{String} = Set{String}(["source_type","scenario","source_version","per_unit"]); # Not a kwarg for backward compatibility with previous syntax
+        global_keys::Set{String} = Set{String}(["source_type","scenario","scenario_prob","source_version","per_unit"]); # Not a kwarg for backward compatibility with previous syntax
         merge_into::Dict{String,Any} = Dict{String,Any}("nw"=>Dict{String,Any}()),
         nw_id_offset::Int = !haskey(merge_into, "sub_nw") ? 0 : max((max(nw_set...) for nw_set in values(merge_into["sub_nw"]))...)
     )
-    
+
     if InfrastructureModels.ismultinetwork(sn_data)
         Memento.error(_LOGGER, "replicate can only be used on single networks")
     end
