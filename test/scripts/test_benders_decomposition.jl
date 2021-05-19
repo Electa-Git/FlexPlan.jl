@@ -176,7 +176,7 @@ result_benchmark = _FP.flex_tnep(data, model_type, optimizer_benchmark; multinet
 time_benchmark = time() - time_benchmark_start
 info(script_logger, @sprintf("MILP time: %.1f s", time_benchmark)) # result_benchmark["solve_time"] does not include model build time
 
-info(script_logger, @sprintf("Benders/MILP solve time ratio: %.2f", result_benders["solve_time"]/result_benchmark["solve_time"]))
+info(script_logger, @sprintf("Benders/MILP solve time ratio: %.2f", result_benders["solve_time"]/time_benchmark))
 
 
 ## Analyze result
