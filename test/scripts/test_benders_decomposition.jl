@@ -86,9 +86,10 @@ out_dir = normpath(out_dir, "benders_" * param_string)
 mkpath(out_dir)
 main_log_file = joinpath(out_dir,"decomposition.log")
 rm(main_log_file, force = true)
+filter!(handler -> first(handler)=="console", gethandlers(getlogger())) # Remove from root logger possible previously added handlers
+push!(getlogger(), DefaultHandler(main_log_file)) # Tell root logger to write to our log file as well
 setlevel!.(Memento.getpath(getlogger(FlexPlan)), "debug") # FlexPlan logger verbosity level. Useful values: "info", "debug", "trace"
-script_logger = getlogger(basename(@__FILE__)[1:end-3]) # A logger for this script. Name is filename without `.jl` extension, level is "info" by default.
-push!(getlogger(), DefaultHandler(main_log_file)) # Tell all loggers to write to our log file as well
+script_logger = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script. Name is filename without `.jl` extension, level is "info" by default.
 info(script_logger, "Script parameter string: \"$param_string\"")
 info(script_logger, "Now is $(now(UTC)) (UTC)")
 
