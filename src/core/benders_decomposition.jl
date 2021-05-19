@@ -103,6 +103,12 @@ function run_benders_decomposition(
 
     while true
         time_iteration_start = time()
+        if i == max_iter # Do not move to the end of the iteration, otherwise it does not stop the procedure when max_iter == 1
+            Memento.info(_LOGGER, "┠───────┴────────────────────────────────────┴────────────────────────────────────┨")
+            Memento.info(_LOGGER, "┃   ▴                    Stopping: iteration limit reached                        ┃")
+            Memento.info(_LOGGER, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
+            break
+        end
         i += 1
         current_best = false
 
@@ -131,12 +137,6 @@ function run_benders_decomposition(
         if rel_gap ≤ rtol
             Memento.info(_LOGGER, "┠───────┴────────────────────────────────────┴────────────────────────────────────┨")
             Memento.info(_LOGGER, "┃                       Stopping: optimal within tolerance                  ▴     ┃")
-            Memento.info(_LOGGER, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
-            break
-        end
-        if i == max_iter
-            Memento.info(_LOGGER, "┠───────┴────────────────────────────────────┴────────────────────────────────────┨")
-            Memento.info(_LOGGER, "┃   ▴                    Stopping: iteration limit reached                        ┃")
             Memento.info(_LOGGER, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
             break
         end
