@@ -244,7 +244,7 @@ plt = plot(1:n_iter, [ub, lb, objective_improving, objective_nonimproving];
     title      = "Benders' decomposition solutions",
     ylabel     = "Cost",
     xlabel     = "Iterations",
-    legend     = :bottomleft,
+    legend     = :topright,
 )
 savefig(plt, normpath(out_dir,"sol_lin.svg"))
 display(plt)
