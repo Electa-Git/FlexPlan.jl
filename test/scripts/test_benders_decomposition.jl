@@ -28,9 +28,11 @@ max_iter = 1000 # Iteration limit
 # Solvers
 use_opensource_solvers = true # More options below
 
-# Output
+# Analysis and output
 out_dir = "test/data/output_files"
 silent = true # Suppress solvers output, taking precedence over any other solver attribute (effective only in Benders' decomposition)
+make_plots = true # Plot solution value vs. iterations, decision variables vs. iterations, iteration times
+compare_to_benchmark = true # Solve the problem as MILP, check whether solutions are identical and compare solve times
 
 
 ## Import and set solvers
@@ -169,145 +171,154 @@ result_benders = _FP.run_benders_decomposition(
     silent
 )
 
-info(script_logger, "Solving the problem as MILP...")
-time_benchmark_start = time()
-result_benchmark = _FP.flex_tnep(data, model_type, optimizer_benchmark; multinetwork=_PM._IM.ismultinetwork(data), setting=Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false))
-@assert result_benchmark["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
-time_benchmark = time() - time_benchmark_start
-info(script_logger, @sprintf("MILP time: %.1f s", time_benchmark)) # result_benchmark["solve_time"] does not include model build time
-
-info(script_logger, @sprintf("Benders/MILP solve time ratio: %.2f", result_benders["solve_time"]/time_benchmark))
-
 
 ## Analyze result
 
 # Proxy variables for convenience
+if make_plots || compare_to_benchmark
+    stat = result_benders["stat"]
+    n_iter = length(stat)
+    ub = [stat[i]["value"]["ub"] for i in 1:n_iter]
+    lb = [stat[i]["value"]["lb"] for i in 1:n_iter]
+    objective = [stat[i]["value"]["sol_value"] for i in 1:n_iter]
+    objective_nonimproving = [stat[i]["value"]["current_best"] ? NaN : objective[i] for i in 1:n_iter]
+    objective_improving = [stat[i]["value"]["current_best"] ? objective[i] : NaN for i in 1:n_iter]
+    opt = result_benders["objective"]
+    benders_sol = get(result_benders["solution"],"multinetwork",false) ? result_benders["solution"]["nw"]["1"] : result_benders["solution"]
 
-stat = result_benders["stat"]
-n_iter = length(stat)
-ub = [stat[i]["value"]["ub"] for i in 1:n_iter]
-lb = [stat[i]["value"]["lb"] for i in 1:n_iter]
-objective = [stat[i]["value"]["sol_value"] for i in 1:n_iter]
-objective_nonimproving = [stat[i]["value"]["current_best"] ? NaN : objective[i] for i in 1:n_iter]
-objective_improving = [stat[i]["value"]["current_best"] ? objective[i] : NaN for i in 1:n_iter]
-opt = result_benders["objective"]
-benchmark_sol = get(result_benchmark["solution"],"multinetwork",false) ? result_benchmark["solution"]["nw"]["1"] : result_benchmark["solution"]
-benders_sol = get(result_benders["solution"],"multinetwork",false) ? result_benders["solution"]["nw"]["1"] : result_benders["solution"]
-
-comp_name = Dict{String,String}(
-    "ne_branch"   => "AC branch",
-    "branchdc_ne" => "DC branch",
-    "convdc_ne"   => "converter",
-    "ne_storage"  => "storage",
-    "load"        => "flex load"
-)
-comp_var = Dict{String,Symbol}(
-    "ne_branch"   => :branch_ne,
-    "branchdc_ne" => :branchdc_ne,
-    "convdc_ne"   => :conv_ne,
-    "ne_storage"  => :z_strg_ne,
-    "load"        => :z_flex
-)
-comp_built = Dict{String,String}(
-    "ne_branch"   => "built",
-    "branchdc_ne" => "isbuilt",
-    "convdc_ne"   => "isbuilt",
-    "ne_storage"  => "isbuilt",
-    "load"        => "isflex"
-)
-
-# Test solution correctness
-
-if !isapprox(opt, result_benchmark["objective"]; rtol)
-    warn(script_logger, "Benders' procedure failed to find an optimal solution within tolerance (benders $opt, benchmark $(result_benchmark["objective"]))")
+    comp_name = Dict{String,String}(
+        "ne_branch"   => "AC branch",
+        "branchdc_ne" => "DC branch",
+        "convdc_ne"   => "converter",
+        "ne_storage"  => "storage",
+        "load"        => "flex load"
+    )
+    comp_var = Dict{String,Symbol}(
+        "ne_branch"   => :branch_ne,
+        "branchdc_ne" => :branchdc_ne,
+        "convdc_ne"   => :conv_ne,
+        "ne_storage"  => :z_strg_ne,
+        "load"        => :z_flex
+    )
+    comp_built = Dict{String,String}(
+        "ne_branch"   => "built",
+        "branchdc_ne" => "isbuilt",
+        "convdc_ne"   => "isbuilt",
+        "ne_storage"  => "isbuilt",
+        "load"        => "isflex"
+    )
 end
-for (comp, name) in comp_name
-    built = comp_built[comp]
-    if haskey(benchmark_sol, comp)
-        for idx in keys(benchmark_sol[comp])
-            benchmark_value = benchmark_sol[comp][idx][built]
-            benders_value = benders_sol[comp][idx][built]
-            if !isapprox(benders_value, benchmark_value, atol=1e-1)
-                warn(script_logger, "Activation variable of $name $idx in Benders' decomposition solution does not match benchmark solution (benders $benders_value, benchmark $benchmark_value)")
+
+
+## Make plots
+
+if make_plots
+
+    # Solution value versus iterations
+    plt = plot(1:n_iter, [ub, lb, objective_improving, objective_nonimproving];
+        label      = ["UB" "LB" "improving solution" "non-improving solution"],
+        seriestype = [:step :step :scatter :scatter],
+        color      = [3 2 1 HSL(0,0,0.5)],
+        ylims      = [lb[ceil(Int,n_iter/5)], maximum(objective[ceil(Int,n_iter/5):n_iter])],
+        title      = "Benders' decomposition solutions",
+        ylabel     = "Cost",
+        xlabel     = "Iterations",
+        legend     = :topright,
+    )
+    savefig(plt, joinpath(out_dir,"sol_lin.svg"))
+    display(plt)
+
+    plt = plot!(plt; yscale = :log10, ylims = [0.1opt, Inf])
+    savefig(plt, joinpath(out_dir,"sol_log10.svg"))
+    display(plt)
+
+    # Binary variable values versus iterations
+    main_sol = get(result_benders["solution"],"multinetwork",false) ? [stat[i]["main"]["sol"][1] for i in 1:n_iter] : [stat[i]["main"]["sol"][0] for i in 1:n_iter]
+    int_vars = DataFrame(name = String[], idx=Int[], legend = String[], values = Vector{Bool}[])
+    for (comp, name) in comp_name
+        var = comp_var[comp]
+        if haskey(first(main_sol), var)
+            for idx in keys(first(main_sol)[var])
+                push!(int_vars, (name, idx, "$name $idx", [main_sol[i][var][idx] for i in 1:n_iter]))
+            end
+        end
+    end
+    sort!(int_vars, (:name, :idx))
+    select!(int_vars, :legend, :values)
+    values_matrix = Array{Int}(undef, nrow(int_vars), n_iter)
+    for n in 1:nrow(int_vars)
+        values_matrix[n,:] = int_vars.values[n]
+    end
+    values_matrix_plot = values_matrix + repeat(2isfinite.(objective_improving)', nrow(int_vars))
+    # | value | color      | component built? | improving iteration? |
+    # | ----- | ---------- | ---------------- | -------------------- |
+    # |     0 | light grey |        no        |          no          |
+    # |     1 | dark grey  |       yes        |          no          |
+    # |     2 | light blue |        no        |         yes          |
+    # |     3 | dark blue  |       yes        |         yes          |
+    plt = heatmap(1:n_iter, int_vars.legend, values_matrix_plot;
+        yflip    = true,
+        yticks   = :all,
+        title    = "Investment decisions",
+        ylabel   = "Components",
+        xlabel   = "Iterations",
+        color    = ColorGradient([HSL(0,0,0.75), HSL(0,0,0.5), HSL(203,0.5,0.76), HSL(203,0.5,0.51)], [0.0, 1//3, 2//3, 1.0]),
+        colorbar = :none,
+    )
+    savefig(plt, joinpath(out_dir,"intvars.svg"))
+    display(plt)
+
+    # Solve time versus iterations
+    main_time = [stat[i]["time"]["main"] for i in 1:n_iter]
+    sec_time = [stat[i]["time"]["secondary"] for i in 1:n_iter]
+    other_time = [stat[i]["time"]["other"] for i in 1:n_iter]
+    plt = groupedbar(1:n_iter, [other_time sec_time main_time];
+        label        = ["other" "secondary problems" "main problem"],
+        bar_position = :stack,
+        bar_width    = n_iter < 50 ? 0.8 : 1.0,
+        color        = [HSL(0,0,0.5) 2 1],
+        linewidth    = n_iter < 50 ? 1 : 0,
+        title        = "Solve time",
+        ylabel       = "Time [s]",
+        xlabel       = "Iterations",
+        legend       = :top,
+    )
+    savefig(plt, joinpath(out_dir,"time.svg"))
+    display(plt)
+end
+
+
+## Solve benchmark and compare
+
+if compare_to_benchmark
+    info(script_logger, "Solving the problem as MILP...")
+    time_benchmark_start = time()
+    result_benchmark = _FP.flex_tnep(data, model_type, optimizer_benchmark; multinetwork=_PM._IM.ismultinetwork(data), setting=Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false))
+    @assert result_benchmark["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
+    time_benchmark = time() - time_benchmark_start
+    info(script_logger, @sprintf("MILP time: %.1f s", time_benchmark)) # result_benchmark["solve_time"] does not include model build time
+    info(script_logger, @sprintf("Benders/MILP solve time ratio: %.2f", result_benders["solve_time"]/time_benchmark))
+
+    # Test solution correctness
+
+    if !isapprox(opt, result_benchmark["objective"]; rtol)
+        warn(script_logger, "Benders' procedure failed to find an optimal solution within tolerance (benders $opt, benchmark $(result_benchmark["objective"]))")
+    end
+    benchmark_sol = get(result_benchmark["solution"],"multinetwork",false) ? result_benchmark["solution"]["nw"]["1"] : result_benchmark["solution"]
+    for (comp, name) in comp_name
+        built = comp_built[comp]
+        if haskey(benchmark_sol, comp)
+            for idx in keys(benchmark_sol[comp])
+                benchmark_value = benchmark_sol[comp][idx][built]
+                benders_value = benders_sol[comp][idx][built]
+                if !isapprox(benders_value, benchmark_value, atol=1e-1)
+                    warn(script_logger, "Activation variable of $name $idx in Benders' decomposition solution does not match benchmark solution (benders $benders_value, benchmark $benchmark_value)")
+                end
             end
         end
     end
 end
 
-# Plots: solution value versus iterations
-
-plt = plot(1:n_iter, [ub, lb, objective_improving, objective_nonimproving];
-    label      = ["UB" "LB" "improving solution" "non-improving solution"],
-    seriestype = [:step :step :scatter :scatter],
-    color      = [3 2 1 HSL(0,0,0.5)],
-    ylims      = [lb[ceil(Int,n_iter/5)], max(objective[ceil(Int,n_iter/5):n_iter]...)],
-    title      = "Benders' decomposition solutions",
-    ylabel     = "Cost",
-    xlabel     = "Iterations",
-    legend     = :topright,
-)
-savefig(plt, normpath(out_dir,"sol_lin.svg"))
-display(plt)
-
-plt = plot!(plt; yscale = :log10, ylims = [0.1opt, Inf])
-savefig(plt, normpath(out_dir,"sol_log10.svg"))
-display(plt)
-
-# Plot: binary variable values versus iterations
-
-main_sol = get(result_benders["solution"],"multinetwork",false) ? [stat[i]["main"]["sol"][1] for i in 1:n_iter] : [stat[i]["main"]["sol"][0] for i in 1:n_iter]
-int_vars = DataFrame(name = String[], idx=Int[], legend = String[], values = Vector{Bool}[])
-for (comp, name) in comp_name
-    var = comp_var[comp]
-    if haskey(first(main_sol), var)
-        for idx in keys(first(main_sol)[var])
-            push!(int_vars, (name, idx, "$name $idx", [main_sol[i][var][idx] for i in 1:n_iter]))
-        end
-    end
-end
-sort!(int_vars, (:name, :idx))
-select!(int_vars, :legend, :values)
-values_matrix = Array{Int}(undef, nrow(int_vars), n_iter)
-for n in 1:nrow(int_vars)
-    values_matrix[n,:] = int_vars.values[n]
-end
-values_matrix_plot = values_matrix + repeat(2isfinite.(objective_improving)', nrow(int_vars))
-# | value | color      | component built? | improving iteration? |
-# | ----- | ---------- | ---------------- | -------------------- |
-# |     0 | light grey |        no        |          no          |
-# |     1 | dark grey  |       yes        |          no          |
-# |     2 | light blue |        no        |         yes          |
-# |     3 | dark blue  |       yes        |         yes          |
-plt = heatmap(1:n_iter, int_vars.legend, values_matrix_plot;
-    yflip    = true,
-    yticks   = :all,
-    title    = "Investment decisions",
-    ylabel   = "Components",
-    xlabel   = "Iterations",
-    color    = ColorGradient([HSL(0,0,0.75), HSL(0,0,0.5), HSL(203,0.5,0.76), HSL(203,0.5,0.51)], [0.0, 1//3, 2//3, 1.0]),
-    colorbar = :none,
-)
-savefig(plt, normpath(out_dir,"intvars.svg"))
-display(plt)
-
-# Plot: solve time versus iterations
-
-main_time = [stat[i]["time"]["main"] for i in 1:n_iter]
-sec_time = [stat[i]["time"]["secondary"] for i in 1:n_iter]
-other_time = [stat[i]["time"]["other"] for i in 1:n_iter]
-plt = groupedbar(1:n_iter, [other_time sec_time main_time];
-    label        = ["other" "secondary problems" "main problem"],
-    bar_position = :stack,
-    bar_width    = n_iter < 50 ? 0.8 : 1.0,
-    color        = [HSL(0,0,0.5) 2 1],
-    linewidth    = n_iter < 50 ? 1 : 0,
-    title        = "Solve time",
-    ylabel       = "Time [s]",
-    xlabel       = "Iterations",
-    legend       = :top,
-)
-savefig(plt, normpath(out_dir,"time.svg"))
-display(plt)
 
 println("Output files saved in \"$out_dir\"")
 info(script_logger, "Test completed")
