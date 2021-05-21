@@ -60,13 +60,14 @@ end
 
 function objective_min_cost_flex_benders_main(pm::_PM.AbstractPowerModel)
     add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
-    decision_cost = sum(
+    decision_cost =
+        sum(
             calc_convdc_ne_cost(pm, n, add_co2_cost)
             + calc_ne_branch_cost(pm, n, add_co2_cost)
             + calc_branchdc_ne_cost(pm, n, add_co2_cost)
             + calc_ne_storage_cost(pm, n, add_co2_cost)
             + calc_load_investment_cost(pm, n, add_co2_cost)
-        for (n, nw_ref) in _PM.nws(pm))
+        for n in _PM.nw_ids(pm))
     return JuMP.@objective(pm.model, Min, decision_cost)
 end
 
@@ -88,7 +89,7 @@ end
 function objective_stoch_flex(pm::_PM.AbstractPowerModel)
     add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
     return JuMP.@objective(pm.model, Min,
-        sum(pm.ref[:scenario_prob][s] * 
+        sum(pm.ref[:scenario_prob][s] *
             sum(
                 calc_gen_cost(pm, n, add_co2_cost)
                 + calc_convdc_ne_cost(pm, n, add_co2_cost)
@@ -101,6 +102,21 @@ function objective_stoch_flex(pm::_PM.AbstractPowerModel)
     )
 end
 
+function objective_stoch_flex_benders_main(pm::_PM.AbstractPowerModel)
+    add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
+    decision_cost =
+        sum(pm.ref[:scenario_prob][s] *
+            sum(
+                calc_convdc_ne_cost(pm, n, add_co2_cost)
+                + calc_ne_branch_cost(pm, n, add_co2_cost)
+                + calc_branchdc_ne_cost(pm, n, add_co2_cost)
+                + calc_ne_storage_cost(pm, n, add_co2_cost)
+                + calc_load_investment_cost(pm, n, add_co2_cost)
+            for (sc, n) in scenario)
+        for (s, scenario) in pm.ref[:scenario])
+    return JuMP.@objective(pm.model, Min, decision_cost)
+end
+
 
 ##########################################################################
 ##################### Reliability objective with storage & flex candidates
@@ -109,7 +125,7 @@ end
 function objective_reliability(pm::_PM.AbstractPowerModel)
     add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
     return JuMP.@objective(pm.model, Min,
-        sum(pm.ref[:contingency_prob][s] * 
+        sum(pm.ref[:contingency_prob][s] *
             sum(
                 calc_gen_cost(pm, n, add_co2_cost)
                 + calc_convdc_ne_cost(pm, n, add_co2_cost)
@@ -131,7 +147,7 @@ end
 function calc_gen_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
 
     function calc_single_gen_cost(i, g_cost)
-        len = length(g_cost)      
+        len = length(g_cost)
         cost = 0.0
         if len >= 1
             cost = g_cost[len] # Constant term
@@ -154,7 +170,7 @@ function calc_convdc_ne_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::B
     cost = 0.0
     if haskey(_PM.ref(pm, n), :convdc_ne)
         convdc_ne = _PM.ref(pm, n, :convdc_ne)
-        if !isempty(convdc_ne)    
+        if !isempty(convdc_ne)
             cost = sum(conv["cost"]*_PM.var(pm, n, :conv_ne, i) for (i,conv) in convdc_ne)
             if add_co2_cost
                 cost += sum(conv["co2_cost"]*_PM.var(pm, n, :conv_ne, i) for (i,conv) in convdc_ne)
