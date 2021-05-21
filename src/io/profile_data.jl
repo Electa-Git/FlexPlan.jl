@@ -91,66 +91,66 @@ end
 
 function add_flexible_demand_data!(data)
     for (le, load_extra) in data["load_extra"]
-        
+
         # ID of load point
-        idx = load_extra["load_id"]                                                         
+        idx = load_extra["load_id"]
 
         # Superior bound on not consumed power (voluntary load reduction) (p.u., 0 \leq p_shift_up_max \leq 1)
-        data["load"]["$idx"]["p_red_max"] = load_extra["p_red_max"]                         
-        
+        data["load"]["$idx"]["p_red_max"] = load_extra["p_red_max"]
+
         # Superior bound on upward demand shifted (p.u., 0 \leq p_shift_up_max \leq 1)
-        data["load"]["$idx"]["p_shift_up_max"] = load_extra["p_shift_up_max"]               
-        
+        data["load"]["$idx"]["p_shift_up_max"] = load_extra["p_shift_up_max"]
+
         # Superior bound on downward demand shifted (p.u., 0 \leq p_shift_up_max \leq 1)
-        data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]           
-        
+        data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]
+
         # Maximum energy (accumulated load) shifted downward during time horizon (MWh)
-        data["load"]["$idx"]["p_shift_down_tot_max"] = load_extra["p_shift_down_tot_max"]   
-        
+        data["load"]["$idx"]["p_shift_down_tot_max"] = load_extra["p_shift_down_tot_max"]
+
         # Compensation for consuming less (i.e. voluntary demand reduction) (€/MWh)
-        data["load"]["$idx"]["cost_reduction"] = load_extra["cost_reduction"]               
-        
+        data["load"]["$idx"]["cost_reduction"] = load_extra["cost_reduction"]
+
         # Recovery period for upward demand shifting (h)
-        data["load"]["$idx"]["t_grace_up"] = load_extra["t_grace_up"]                       
-        
+        data["load"]["$idx"]["t_grace_up"] = load_extra["t_grace_up"]
+
         # Recovery period for downward demand shifting (h)
-        data["load"]["$idx"]["t_grace_down"] = load_extra["t_grace_down"]                   
+        data["load"]["$idx"]["t_grace_down"] = load_extra["t_grace_down"]
 
         # Compensation for downward demand shifting (€/MWh)
-        data["load"]["$idx"]["cost_shift_down"] = load_extra["cost_shift_down"]             
+        data["load"]["$idx"]["cost_shift_down"] = load_extra["cost_shift_down"]
 
         # Compensation for upward demand shifting (€/MWh); usually, the c_shift_up parameter should be set to zero
         # to avoid double-counting of the flexibility activation cost, since demand shifted downwards at some point
         # needs to be shifted upwards again
-        data["load"]["$idx"]["cost_shift_up"] = load_extra["cost_shift_up"]                 
-        
+        data["load"]["$idx"]["cost_shift_up"] = load_extra["cost_shift_up"]
+
         # Compensation for load curtailment (i.e. involuntary demand reduction) (€/MWh)
-        data["load"]["$idx"]["cost_curtailment"] = load_extra["cost_curt"]                  
-        
+        data["load"]["$idx"]["cost_curtailment"] = load_extra["cost_curt"]
+
         # Investment costs for enabling flexible demand (€)
-        data["load"]["$idx"]["cost_investment"] = load_extra["cost_inv"]                    
-        
+        data["load"]["$idx"]["cost_investment"] = load_extra["cost_inv"]
+
         # Whether load is flexible (boolean)
-        data["load"]["$idx"]["flex"] = load_extra["flex"]                                   
+        data["load"]["$idx"]["flex"] = load_extra["flex"]
 
         # Maximum energy not consumed (accumulated voluntary load reduction) (MWh)
-        data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]                         
-        
+        data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
+
         # Value of Lost Load (VOLL), i.e. costs for load curtailment due to contingencies (€/MWh)
         if haskey(load_extra, "cost_voll")
-            data["load"]["$idx"]["cost_voll"] = load_extra["cost_voll"]                     
+            data["load"]["$idx"]["cost_voll"] = load_extra["cost_voll"]
         end
-        
+
         # CO2 costs for enabling flexible demand (€)
         if haskey(load_extra, "co2_cost")
-            data["load"]["$idx"]["co2_cost"] = load_extra["co2_cost"]                       
+            data["load"]["$idx"]["co2_cost"] = load_extra["co2_cost"]
         end
 
         # Power factor angle θ, giving the reactive power as Q = P ⨉ tan(θ)
         if haskey(load_extra, "pf_angle")
-            data["load"]["$idx"]["pf_angle"] = load_extra["pf_angle"]                       
+            data["load"]["$idx"]["pf_angle"] = load_extra["pf_angle"]
         end
-        
+
         # Rescale cost and power input values to the p.u. values used internally in the model
         rescale_cost = x -> x*data["baseMVA"]
         rescale_power = x -> x/data["baseMVA"]
@@ -288,7 +288,7 @@ function create_profile_data_italy(data, scenario = Dict{String, Any}())
         loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = [demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1: scenario["hours"]]
         # loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = repeat([demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1],1,scenario["hours"])
 
-        data["scenario"][s] = Dict()
+        data["scenario"][s] = Dict{String,Any}()
         data["scenario_prob"][s] = scnr["probability"]
         for h in 1 : scenario["hours"]
             network = start_idx + h
@@ -297,12 +297,12 @@ function create_profile_data_italy(data, scenario = Dict{String, Any}())
 
     end
     # Add bus loactions to data dictionary
-    data["bus"]["1"]["lat"] = 43.4894; data["bus"]["1"]["lon"] =  11.7946; #Italy central north
-    data["bus"]["2"]["lat"] = 45.3411; data["bus"]["2"]["lon"] =  9.9489;  #Italy north
-    data["bus"]["3"]["lat"] = 41.8218; data["bus"]["3"]["lon"] =   13.8302; #Italy central south
-    data["bus"]["4"]["lat"] = 40.5228; data["bus"]["4"]["lon"] =   16.2155; #Italy south
-    data["bus"]["5"]["lat"] = 40.1717; data["bus"]["5"]["lon"] =   9.0738; # Sardinia
-    data["bus"]["6"]["lat"] = 37.4844; data["bus"]["6"]["lon"] =   14.1568; # Sicily
+    data["bus"]["1"]["lat"] = 43.4894; data["bus"]["1"]["lon"] = 11.7946; # Italy central north
+    data["bus"]["2"]["lat"] = 45.3411; data["bus"]["2"]["lon"] =  9.9489; # Italy north
+    data["bus"]["3"]["lat"] = 41.8218; data["bus"]["3"]["lon"] = 13.8302; # Italy central south
+    data["bus"]["4"]["lat"] = 40.5228; data["bus"]["4"]["lon"] = 16.2155; # Italy south
+    data["bus"]["5"]["lat"] = 40.1717; data["bus"]["5"]["lon"] =  9.0738; # Sardinia
+    data["bus"]["6"]["lat"] = 37.4844; data["bus"]["6"]["lon"] = 14.1568; # Sicily
     # Return info
     return data, loadprofile, genprofile
 end
@@ -317,7 +317,7 @@ function create_contingency_data_italy(data, scenario = Dict{String, Any}())
     for t in scenario["utypes"]
         contingency_profiles[t] = ones(length(data[t]), length(scenario["contingency"]) * scenario["hours"])
     end
-    
+
     data["contingency"] = Dict{String, Any}()
     data["contingency_prob"] = Dict{String, Any}()
 
@@ -328,7 +328,7 @@ function create_contingency_data_italy(data, scenario = Dict{String, Any}())
 
         data["contingency"][s] = Dict()
         data["contingency_prob"][s] = scnr["probability"]
-        
+
         start_idx = parse(Int, s)*scenario["hours"]
         for (unit_type, units) in scnr["faults"]
             for u in units
