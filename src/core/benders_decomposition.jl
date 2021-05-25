@@ -1,9 +1,9 @@
 export run_benders_decomposition
 
 """
-    run_benders_decomposition(data, model_t, main_opt, sec_opt, main_bm, sec_bm, <keyword arguments>)
+    run_benders_decomposition(data, model_type, main_opt, sec_opt, main_bm, sec_bm, <keyword arguments>)
 
-Run Benders' procedure on `data` using the network model type `model_t`.
+Run Benders' procedure on `data` using the network model type `model_type`.
 
 Main and secondary problems are generated through `main_bm` and `sec_bm` build methods and
 iteratively solved by `main_opt` and `sec_opt` optimizers.
@@ -30,7 +30,7 @@ The objective function in `main_bm` must contain only the investment-related ter
 """
 function run_benders_decomposition(
         data::Dict{String,<:Any},
-        model_t::Type,
+        model_type::Type,
         main_opt::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
         sec_opt::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
         main_bm::Function,
@@ -46,20 +46,33 @@ function run_benders_decomposition(
     time_procedure_start = time()
     Memento.debug(_LOGGER, "Benders' decomposition started")
 
-    add_benders_data!(data)
+    if !haskey(data, "scenario")
+        Memento.error(_LOGGER, "Missing \"scenario\" key in data.")
+    end
+    num_scenarios = length(data["scenario"])
+    add_benders_nw_data!(data)
 
-    pm_main = _PM.instantiate_model(data, model_t, main_bm; ref_extensions, kwargs...)
+    pm_main = _PM.instantiate_model(data, model_type, main_bm; ref_extensions, kwargs...)
     investment_cost_expr = JuMP.objective_function(pm_main.model)
     JuMP.set_optimizer(pm_main.model, main_opt)
     if silent
         JuMP.set_silent(pm_main.model)
     end
 
-    pm_sec = _PM.instantiate_model(data, model_t, sec_bm; ref_extensions, kwargs...)
-    JuMP.relax_integrality(pm_sec.model)
-    JuMP.set_optimizer(pm_sec.model, sec_opt)
-    if silent
-        JuMP.set_silent(pm_sec.model)
+    pm_sec = Vector{model_type}(undef, num_scenarios)
+    for (s, scen) in data["scenario"]
+        scen_data = copy(data)
+        scen_data["scenario"] = Dict{String,Any}(s => scen)
+        scen_data["scenario_prob"] = Dict{String,Any}(s => data["scenario_prob"][s])
+        scen_data["nw"] = Dict{String,Any}("$n" => data["nw"]["$n"] for n in values(scen))
+        add_benders_nw_data!(scen_data)
+        add_benders_data!(scen_data)
+        pm = pm_sec[parse(Int,s)] = _PM.instantiate_model(scen_data, model_type, sec_bm; ref_extensions, kwargs...)
+        JuMP.relax_integrality(pm.model)
+        JuMP.set_optimizer(pm.model, sec_opt)
+        if silent
+            JuMP.set_silent(pm.model)
+        end
     end
 
     time_build = time() - time_procedure_start
@@ -72,19 +85,23 @@ function run_benders_decomposition(
     i = 1
 
     time_main_start = time()
-    optimize_and_check!(pm_main.model, "main", i)
+    JuMP.optimize!(pm_main.model)
+    check_solution_main(pm_main, i)
     main_var_values = get_var_values(pm_main)
     time_main = time() - time_main_start
     Memento.debug(_LOGGER, "Main model has $(JuMP.num_variables(pm_main.model)) variables and $(sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])) constraints initially.")
 
     time_sec_start = time()
-    fix_var_values!(pm_sec, main_var_values)
-    optimize_and_check!(pm_sec.model, "secondary", i)
-    time_sec = time() - time_sec_start
-    if !JuMP.has_duals(pm_sec.model) # If this check passes here, no need to check again in subsequent iterations.
-        Memento.error(_LOGGER, "Solver $(JuMP.solver_name(pm_sec.model)) is unable to provide dual values.")
+    for pm in pm_sec
+        fix_var_values!(pm, main_var_values)
+        JuMP.optimize!(pm.model)
+        check_solution_secondary(pm, i)
     end
-    Memento.debug(_LOGGER, "Secondary model has $(JuMP.num_variables(pm_sec.model)) variables and $(sum([JuMP.num_constraints(pm_sec.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_sec.model)])) constraints initially.")
+    time_sec = time() - time_sec_start
+    if !JuMP.has_duals(first(pm_sec).model) # If this check passes here, no need to check again in subsequent iterations.
+        Memento.error(_LOGGER, "Solver $(JuMP.solver_name(first(pm_sec).model)) is unable to provide dual values.")
+    end
+    Memento.debug(_LOGGER, "Secondary model has $(JuMP.num_variables(first(pm_sec).model)) variables and $(sum([JuMP.num_constraints(first(pm_sec).model, f, s) for (f,s) in JuMP.list_of_constraint_types(first(pm_sec).model)])) constraints initially.")
 
     Memento.info(_LOGGER, "┏━━━━━━━┯━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓")
     Memento.info(_LOGGER, "┃ iter. │  inv. cost  oper. cost    solution │         UB          LB    rel. gap ┃")
@@ -92,12 +109,12 @@ function run_benders_decomposition(
 
     inv_cost, op_cost, sol_value, lb = calc_first_iter_result(pm_main, pm_sec, investment_cost_expr)
     ub = sol_value
-    solution = _IM.build_solution(pm_sec; post_processors=solution_processors)
+    solution = _IM.build_solution.(pm_sec; post_processors=solution_processors) # TODO: parallelize
     time_iteration = time() - time_iteration_start # Time spent after this line is not measured
     log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, Inf, true, main_var_values, pm_main, pm_sec, time_main, time_sec, time_iteration)
 
-    epi = JuMP.@variable(pm_main.model, base_name="benders_epigraph")
-    JuMP.@objective(pm_main.model, Min, investment_cost_expr + epi)
+    epi = JuMP.@variable(pm_main.model, [s=1:num_scenarios], base_name="benders_epigraph")
+    JuMP.@objective(pm_main.model, Min, investment_cost_expr + sum(pm.ref[:scenario_prob]["$s"] * epi[s] for (s, pm) in enumerate(pm_sec)))
 
     ## Subsequent iterations
 
@@ -113,14 +130,18 @@ function run_benders_decomposition(
         current_best = false
 
         time_main_start = time()
-        add_optimality_cut!(pm_main, pm_sec, main_var_values, epi)
-        optimize_and_check!(pm_main.model, "main", i)
+        add_optimality_cuts!(pm_main, pm_sec, main_var_values, epi)
+        JuMP.optimize!(pm_main.model)
+        check_solution_main(pm_main, i)
         main_var_values = get_var_values(pm_main)
         time_main = time() - time_main_start
 
         time_sec_start = time()
-        fix_var_values!(pm_sec, main_var_values)
-        optimize_and_check!(pm_sec.model, "secondary", i)
+        for (s, pm) in enumerate(pm_sec)
+            fix_var_values!(pm, main_var_values)
+            JuMP.optimize!(pm.model)
+            check_solution_secondary(pm, i)
+        end
         time_sec = time() - time_sec_start
 
         inv_cost, op_cost, sol_value, lb = calc_iter_result(pm_main, pm_sec, epi)
@@ -128,7 +149,7 @@ function run_benders_decomposition(
         if sol_value < ub
             ub = sol_value
             current_best = true
-            solution = _IM.build_solution(pm_sec; post_processors=solution_processors)
+            solution = _IM.build_solution.(pm_sec; post_processors=solution_processors) # TODO: parallelize
         end
         rel_gap = (ub-lb)/abs(ub)
         time_iteration = time() - time_iteration_start # Time spent after this line is not measured
@@ -143,6 +164,13 @@ function run_benders_decomposition(
     end
 
     # TODO: possible common parts between first and subsequent iterations could be grouped in a dedicated function.
+
+    (solution, sol_rest) = Iterators.peel(solution)
+    for sol in sol_rest
+        for nw in sol["nw"]
+            push!(solution["nw"], nw)
+        end
+    end
 
     result = Dict{String,Any}()
     result["objective"]    = ub
@@ -168,17 +196,22 @@ function run_benders_decomposition(
     return result
 end
 
-function optimize_and_check!(model, model_name, iter)
-    JuMP.optimize!(model)
-    if JuMP.termination_status(model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
-        Memento.error(_LOGGER, "At iteration $iter, $(JuMP.solver_name(model)) termination status on $model_name problem is: $(JuMP.termination_status(model)).")
+function check_solution_main(pm, iter)
+    if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
+        Memento.error(_LOGGER, "Iteration $iter, main problem: $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
+    end
+end
+
+function check_solution_secondary(pm, iter)
+    if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
+        Memento.error(_LOGGER, "Iteration $iter, secondary problem, scenario $(first(keys(pm.ref[:scenario]))): $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
     end
 end
 
 function get_var_values(pm)
     values = Dict{Int,Any}()
     for (n,nw) in _PM.nws(pm)
-        if n == nw[:benders]["first_nw"]
+        if n == nw[:benders]["first_nw"] # TODO: improve by looping over an adequate data structure instead of checking equality for each nw
             values_n = values[n] = Dict{Symbol,Any}()
             for (key, var_array) in _PM.var(pm, n)
                 # idx is a JuMP.Containers.DenseAxisArrayKey{Tuple{Int64}}. idx[1] is an Int
@@ -190,35 +223,38 @@ function get_var_values(pm)
 end
 
 function fix_var_values!(pm, values)
+    lookup = pm.ref[:benders]["scenario_sub_nw_lookup"]
     for (n, key_vars) in values
         for (key, var) in key_vars
             for (idx, value) in var
-                z_sec = _PM.var(pm, n, key, idx)
+                z_sec = _PM.var(pm, lookup[n], key, idx)
                 JuMP.fix(z_sec, value; force=true)
             end
         end
     end
 end
 
-function add_optimality_cut!(pm_main, pm_sec, main_var_values, epi)
-    optimality_cut = JuMP.AffExpr(JuMP.objective_value(pm_sec.model))
-    for (n, key_vars) in main_var_values
-        for (key, var) in key_vars
-            for (idx, value) in var
-                z_main = _PM.var(pm_main, n, key, idx)
-                z_sec = _PM.var(pm_sec, n, key, idx)
-                lam = JuMP.reduced_cost(z_sec)
-                JuMP.add_to_expression!(optimality_cut, lam*(z_main-value))
-                Memento.trace(_LOGGER, @sprintf("Optimality cut term for nw = %4i: %15.1f * (%18s - %3.1f)", n, lam, z_main, value))
+function add_optimality_cuts!(pm_main, pm_sec, main_var_values, epi)
+    for (s, pm) in enumerate(pm_sec)
+        lookup = pm.ref[:benders]["scenario_sub_nw_lookup"]
+        optimality_cut = JuMP.AffExpr(JuMP.objective_value(pm.model))
+        for (n, key_vars) in main_var_values
+            for (key, var) in key_vars
+                for (idx, value) in var
+                    z_main = _PM.var(pm_main, n, key, idx)
+                    z_sec = _PM.var(pm, lookup[n], key, idx)
+                    lam = JuMP.reduced_cost(z_sec)
+                    JuMP.add_to_expression!(optimality_cut, lam*(z_main-value))
+                    Memento.trace(_LOGGER, @sprintf("Optimality cut term for nw = %4i: %15.1f * (%18s - %3.1f)", lookup[n], lam, z_main, value))
+                end
             end
         end
+        JuMP.@constraint(pm_main.model, epi[s] ≥ optimality_cut)
     end
-    JuMP.@constraint(pm_main.model, epi ≥ optimality_cut)
 end
 
 function calc_first_iter_result(pm_main, pm_sec, inv_cost_expr)
-    mp_obj = JuMP.objective_value(pm_main.model)
-    sp_obj = JuMP.objective_value(pm_sec.model)
+    sp_obj = sum(pm.ref[:scenario_prob]["$s"] * JuMP.objective_value(pm.model) for (s, pm) in enumerate(pm_sec))
     inv_cost = JuMP.value(inv_cost_expr)
     op_cost = sp_obj
     sol_value = inv_cost + op_cost
@@ -228,8 +264,8 @@ end
 
 function calc_iter_result(pm_main, pm_sec, epi)
     mp_obj = JuMP.objective_value(pm_main.model)
-    sp_obj = JuMP.objective_value(pm_sec.model)
-    epi_value = JuMP.value(epi)
+    sp_obj = sum(pm.ref[:scenario_prob]["$s"] * JuMP.objective_value(pm.model) for (s, pm) in enumerate(pm_sec))
+    epi_value = sum(pm.ref[:scenario_prob]["$s"] * JuMP.value(epi[s]) for (s, pm) in enumerate(pm_sec))
     inv_cost = mp_obj - epi_value
     op_cost = sp_obj
     sol_value = mp_obj - epi_value + sp_obj
@@ -259,8 +295,8 @@ function log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap,
     main["ncon"] = sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])
 
     secondary = Dict{String,Any}()
-    secondary["nvar"] = JuMP.num_variables(pm_sec.model)
-    secondary["ncon"] = sum([JuMP.num_constraints(pm_sec.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_sec.model)])
+    secondary["nvar"] = JuMP.num_variables(first(pm_sec).model)
+    secondary["ncon"] = sum([JuMP.num_constraints(first(pm_sec).model, f, s) for (f,s) in JuMP.list_of_constraint_types(first(pm_sec).model)])
 
     time = Dict{String,Any}()
     time["iteration"] = time_iteration
@@ -271,17 +307,17 @@ function log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap,
     stat[i] = Dict{String,Any}("value" => value, "main" => main, "secondary" => secondary, "time" => time)
 end
 
-function add_benders_data!(data::Dict{String,Any})
+function add_benders_nw_data!(data::Dict{String,Any})
     if _IM.ismultinetwork(data)
         if haskey(data, "sub_nw")
             for sub in values(data["sub_nw"])
-                benders_data = Dict{String,Any}("first_nw" => min(sub...))
+                benders_data = Dict{String,Any}("first_nw" => minimum(sub))
                 for n in sub
                     data["nw"][n]["benders"] = benders_data # All nws in the same sub_nw refer to the same Dict
                 end
             end
         else
-            benders_data = Dict{String,Any}("first_nw" => min(parse.(Int,keys(data["nw"]))...))
+            benders_data = Dict{String,Any}("first_nw" => minimum(parse.(Int,keys(data["nw"]))))
             for nw in values(data["nw"])
                 nw["benders"] = benders_data # All nws refer to the same Dict
             end
@@ -289,4 +325,23 @@ function add_benders_data!(data::Dict{String,Any})
     else
         data["benders"] = Dict{String,Any}("first_nw" => 0)
     end
+end
+
+function add_benders_data!(data::Dict{String,Any})
+    lookup = Dict{Int,Int}()
+    if _IM.ismultinetwork(data)
+        if haskey(data, "sub_nw")
+            # TODO: implement this case
+            @assert false "Not yet implemented"
+            #for sub in values(data["sub_nw"])
+            #    ...
+            #end
+        else
+            lookup[1] = minimum(parse.(Int,keys(data["nw"])))
+        end
+    else
+        # TODO: implement this case
+        @assert false "Not yet implemented"
+    end
+    data["benders"] = Dict{String,Any}("scenario_sub_nw_lookup" => lookup)
 end

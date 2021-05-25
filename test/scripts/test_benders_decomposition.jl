@@ -17,16 +17,17 @@ using Printf
 ## Input parameters
 
 # Test case
-test_case = "cigre" # Available test cases (see below): "case2", "case6", "cigre", "cigre_ext"
-number_of_hours = 24 # Number of hourly optimization periods
-scale_cost = 1e-6 # Cost scale factor (to test the numerical tractability of the problem)
+test_case = "case6" # ONLY "case6" WORKS FOR NOW # Available test cases (see below): "case2", "case6", "cigre", "cigre_ext"
+number_of_hours = 12 # Number of hourly optimization periods
+number_of_scenarios = 8 # Number of scenarios (different generation/load profiles)
+scale_cost = 1e-9 # Cost scale factor (to test the numerical tractability of the problem)
 
 # Procedure
 rtol = 1e-6 # Relative tolerance for stopping
-max_iter = 1000 # Iteration limit
+max_iter = 100 # Iteration limit
 
 # Solvers
-use_opensource_solvers = true # More options below
+use_opensource_solvers = false # More options below
 
 # Analysis and output
 out_dir = "test/data/output_files"
@@ -83,7 +84,7 @@ end
 
 optimizer_MILP_name = string(optimizer_MILP.optimizer_constructor)[1:end-10]
 optimizer_LP_name = string(optimizer_LP.optimizer_constructor)[1:end-10]
-param_string = @sprintf("%s_%04i_%s_%s_%.0e", test_case, number_of_hours, optimizer_MILP_name, optimizer_LP_name, scale_cost)
+param_string = @sprintf("%s_%04i_%02i_%s_%s_%.0e", test_case, number_of_hours, number_of_scenarios, optimizer_MILP_name, optimizer_LP_name, scale_cost)
 out_dir = normpath(out_dir, "benders_" * param_string)
 mkpath(out_dir)
 main_log_file = joinpath(out_dir,"decomposition.log")
@@ -105,16 +106,18 @@ if test_case == "case2" # Toy model 2-bus distribution network, single period
     model_type = _FP.BFARadPowerModel
     data = _FP.parse_file(file)
 
-elseif test_case == "case6" # 6-bus transmission network, max 8760 periods
+elseif test_case == "case6" # 6-bus transmission network, max 8760 periods and 35 scenarios
 
     file = "./test/data/combined_td_model/t_case6.m"
 
     model_type = _PM.DCPPowerModel
-    scenario = Dict{String, Any}("hours" => number_of_hours, "sc_years" => Dict{String, Any}())
-    scenario["sc_years"]["1"] = Dict{String, Any}()
-    scenario["sc_years"]["1"]["year"] = 2019
-    scenario["sc_years"]["1"]["start"] = 1546300800000 # 2019-01-01T00:00:00.000 in epoch time
-    scenario["sc_years"]["1"]["probability"] = 1
+    scenario = Dict{String, Any}("hours" => number_of_hours, "mc" => true, "sc_years" => Dict{String, Any}())
+    for y in 1:number_of_scenarios
+        sc_year = Dict{String, Any}()
+        sc_year["year"] = y-1
+        sc_year["probability"] = 1/number_of_scenarios
+        scenario["sc_years"]["$y"] = sc_year
+    end
     scenario["planning_horizon"] = 10
     data = _FP.parse_file(file, scenario; scale_cost)
     data, loadprofile, genprofile = _FP.create_profile_data_italy(data, scenario)
@@ -160,7 +163,8 @@ info(script_logger, "Solving the problem with Benders' decomposition...")
 result_benders = _FP.run_benders_decomposition(
     data, model_type,
     optimizer_MILP, optimizer_LP,
-    _FP.post_flex_tnep_benders_main, _FP.post_flex_tnep_benders_secondary;
+    number_of_scenarios == 1 ? _FP.post_flex_tnep_benders_main : _FP.post_stoch_flex_tnep_benders_main,
+    number_of_scenarios == 1 ? _FP.post_flex_tnep_benders_secondary : _FP.post_stoch_flex_tnep_benders_secondary;
     ref_extensions = model_type == _PM.DCPPowerModel
         ? [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _FP.add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!]
         : [_PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!, _FP.add_candidate_storage!],
@@ -293,11 +297,13 @@ end
 if compare_to_benchmark
     info(script_logger, "Solving the problem as MILP...")
     time_benchmark_start = time()
-    result_benchmark = _FP.flex_tnep(data, model_type, optimizer_benchmark; multinetwork=_PM._IM.ismultinetwork(data), setting=Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false))
+    result_benchmark = (number_of_scenarios == 1
+        ? _FP.flex_tnep(data, model_type, optimizer_benchmark; multinetwork=_PM._IM.ismultinetwork(data), setting=Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false))
+        : _FP.stoch_flex_tnep(data, model_type, optimizer_benchmark; multinetwork=_PM._IM.ismultinetwork(data), setting=Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)) )
     @assert result_benchmark["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
     time_benchmark = time() - time_benchmark_start
     info(script_logger, @sprintf("MILP time: %.1f s", time_benchmark)) # result_benchmark["solve_time"] does not include model build time
-    info(script_logger, @sprintf("Benders/MILP solve time ratio: %.2f", result_benders["solve_time"]/time_benchmark))
+    info(script_logger, @sprintf("Benders/MILP solve time ratio: %.3f", result_benders["solve_time"]/time_benchmark))
 
     # Test solution correctness
 
