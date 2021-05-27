@@ -24,7 +24,7 @@ scale_cost = 1e-9 # Cost scale factor (to test the numerical tractability of the
 
 # Procedure
 rtol = 1e-6 # Relative tolerance for stopping
-max_iter = 100 # Iteration limit
+max_iter = 1000 # Iteration limit
 
 # Solvers
 use_opensource_solvers = false # More options below
@@ -63,8 +63,8 @@ else
         "CPXPARAM_Output_CloneLog" => -1, # ∈ {-1,0,1}, default: 0
         "CPXPARAM_MIP_Display" => 2, # ∈ {0,...,5}, default: 2
     ) # Solver options: <https://www.ibm.com/docs/en/icos/20.1.0?topic=cplex-list-parameters>
-    optimizer_LP = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger("lp"),
-        "CPXPARAM_LPMethod" => 0, # ∈ {0,...,6}, default: 0, <https://www.ibm.com/docs/en/icos/20.1.0?topic=parameters-algorithm-continuous-linear-problems>
+    optimizer_LP = _FP.optimizer_with_attributes(CPLEX.Optimizer, # Log file would be interleaved in case of multiple scenarios. To enable logging, substitute with: _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger("lp"),
+        "CPXPARAM_LPMethod" => 2, # ∈ {0,...,6}, default: 0, <https://www.ibm.com/docs/en/icos/20.1.0?topic=parameters-algorithm-continuous-linear-problems>
         "CPXPARAM_Simplex_Tolerances_Feasibility" => 1e-6, # ∈ [1e-9,1e-1], default: 1e-6
         "CPXPARAM_Read_Scale" => 1, # ∈ {-1,0,1}, default: 0
         "CPXPARAM_ScreenOutput" => 0, # ∈ {0,1}, default: 0

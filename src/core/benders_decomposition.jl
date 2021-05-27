@@ -44,7 +44,7 @@ function run_benders_decomposition(
     )
 
     time_procedure_start = time()
-    Memento.debug(_LOGGER, "Benders' decomposition started")
+    Memento.debug(_LOGGER, "Benders' decomposition started. Available threads: $(Threads.nthreads()).")
 
     if !haskey(data, "scenario")
         Memento.error(_LOGGER, "Missing \"scenario\" key in data.")
@@ -60,14 +60,16 @@ function run_benders_decomposition(
     end
 
     pm_sec = Vector{model_type}(undef, num_scenarios)
-    for (s, scen) in data["scenario"]
+    Threads.@threads for s in 1:num_scenarios
+        ss = "$s"
+        scen = data["scenario"][ss]
         scen_data = copy(data)
-        scen_data["scenario"] = Dict{String,Any}(s => scen)
-        scen_data["scenario_prob"] = Dict{String,Any}(s => data["scenario_prob"][s])
+        scen_data["scenario"] = Dict{String,Any}(ss => scen)
+        scen_data["scenario_prob"] = Dict{String,Any}(ss => data["scenario_prob"][ss])
         scen_data["nw"] = Dict{String,Any}("$n" => data["nw"]["$n"] for n in values(scen))
         add_benders_nw_data!(scen_data)
         add_benders_data!(scen_data)
-        pm = pm_sec[parse(Int,s)] = _PM.instantiate_model(scen_data, model_type, sec_bm; ref_extensions, kwargs...)
+        pm = pm_sec[s] = _PM.instantiate_model(scen_data, model_type, sec_bm; ref_extensions, kwargs...)
         JuMP.relax_integrality(pm.model)
         JuMP.set_optimizer(pm.model, sec_opt)
         if silent
@@ -92,7 +94,7 @@ function run_benders_decomposition(
     Memento.debug(_LOGGER, "Main model has $(JuMP.num_variables(pm_main.model)) variables and $(sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])) constraints initially.")
 
     time_sec_start = time()
-    for pm in pm_sec
+    Threads.@threads for pm in pm_sec
         fix_var_values!(pm, main_var_values)
         JuMP.optimize!(pm.model)
         check_solution_secondary(pm, i)
@@ -107,9 +109,9 @@ function run_benders_decomposition(
     Memento.info(_LOGGER, "┃ iter. │  inv. cost  oper. cost    solution │         UB          LB    rel. gap ┃")
     Memento.info(_LOGGER, "┠───────┼────────────────────────────────────┼────────────────────────────────────┨")
 
-    inv_cost, op_cost, sol_value, lb = calc_first_iter_result(pm_main, pm_sec, investment_cost_expr)
+    inv_cost, op_cost, sol_value, lb = calc_first_iter_result(pm_sec, investment_cost_expr)
     ub = sol_value
-    solution = _IM.build_solution.(pm_sec; post_processors=solution_processors) # TODO: parallelize
+    solution = build_solution_from_secondary_problems(pm_sec, num_scenarios, solution_processors)
     time_iteration = time() - time_iteration_start # Time spent after this line is not measured
     log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, Inf, true, main_var_values, pm_main, pm_sec, time_main, time_sec, time_iteration)
 
@@ -137,7 +139,7 @@ function run_benders_decomposition(
         time_main = time() - time_main_start
 
         time_sec_start = time()
-        for (s, pm) in enumerate(pm_sec)
+        Threads.@threads for pm in pm_sec
             fix_var_values!(pm, main_var_values)
             JuMP.optimize!(pm.model)
             check_solution_secondary(pm, i)
@@ -149,7 +151,7 @@ function run_benders_decomposition(
         if sol_value < ub
             ub = sol_value
             current_best = true
-            solution = _IM.build_solution.(pm_sec; post_processors=solution_processors) # TODO: parallelize
+            solution = build_solution_from_secondary_problems(pm_sec, num_scenarios, solution_processors)
         end
         rel_gap = (ub-lb)/abs(ub)
         time_iteration = time() - time_iteration_start # Time spent after this line is not measured
@@ -164,13 +166,6 @@ function run_benders_decomposition(
     end
 
     # TODO: possible common parts between first and subsequent iterations could be grouped in a dedicated function.
-
-    (solution, sol_rest) = Iterators.peel(solution)
-    for sol in sol_rest
-        for nw in sol["nw"]
-            push!(solution["nw"], nw)
-        end
-    end
 
     result = Dict{String,Any}()
     result["objective"]    = ub
@@ -253,7 +248,7 @@ function add_optimality_cuts!(pm_main, pm_sec, main_var_values, epi)
     end
 end
 
-function calc_first_iter_result(pm_main, pm_sec, inv_cost_expr)
+function calc_first_iter_result(pm_sec, inv_cost_expr)
     sp_obj = sum(pm.ref[:scenario_prob]["$s"] * JuMP.objective_value(pm.model) for (s, pm) in enumerate(pm_sec))
     inv_cost = JuMP.value(inv_cost_expr)
     op_cost = sp_obj
@@ -344,4 +339,18 @@ function add_benders_data!(data::Dict{String,Any})
         @assert false "Not yet implemented"
     end
     data["benders"] = Dict{String,Any}("scenario_sub_nw_lookup" => lookup)
+end
+
+function build_solution_from_secondary_problems(pm_sec, num_scenarios, solution_processors)
+    sol = Vector{Dict{String,Any}}(undef, num_scenarios)
+    Threads.@threads for s in 1:num_scenarios
+        sol[s] = _IM.build_solution(pm_sec[s]; post_processors=solution_processors)
+    end
+    (solution, sol_rest) = Iterators.peel(sol)
+    for sol in sol_rest
+        for nw in sol["nw"]
+            push!(solution["nw"], nw)
+        end
+    end
+    return solution
 end
