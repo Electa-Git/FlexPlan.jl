@@ -89,7 +89,7 @@ function run_benders_decomposition(
     time_main_start = time()
     JuMP.optimize!(pm_main.model)
     check_solution_main(pm_main, i)
-    main_var_values = get_var_values(pm_main)
+    best_main_var_values = main_var_values = get_var_values(pm_main)
     time_main = time() - time_main_start
     Memento.debug(_LOGGER, "Main model has $(JuMP.num_variables(pm_main.model)) variables and $(sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])) constraints initially.")
 
@@ -111,9 +111,9 @@ function run_benders_decomposition(
 
     inv_cost, op_cost, sol_value, lb = calc_first_iter_result(pm_sec, investment_cost_expr)
     ub = sol_value
-    solution = build_solution_from_secondary_problems(pm_sec, num_scenarios, solution_processors)
     time_iteration = time() - time_iteration_start # Time spent after this line is not measured
-    log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, Inf, true, main_var_values, pm_main, pm_sec, time_main, time_sec, time_iteration)
+    current_best = true
+    log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, Inf, current_best, main_var_values, pm_main, pm_sec, time_main, time_sec, time_iteration)
 
     epi = JuMP.@variable(pm_main.model, [s=1:num_scenarios], base_name="benders_epigraph")
     JuMP.@objective(pm_main.model, Min, investment_cost_expr + sum(pm.ref[:scenario_prob]["$s"] * epi[s] for (s, pm) in enumerate(pm_sec)))
@@ -151,7 +151,7 @@ function run_benders_decomposition(
         if sol_value < ub
             ub = sol_value
             current_best = true
-            solution = build_solution_from_secondary_problems(pm_sec, num_scenarios, solution_processors)
+            best_main_var_values = main_var_values
         end
         rel_gap = (ub-lb)/abs(ub)
         time_iteration = time() - time_iteration_start # Time spent after this line is not measured
@@ -166,6 +166,29 @@ function run_benders_decomposition(
     end
 
     # TODO: possible common parts between first and subsequent iterations could be grouped in a dedicated function.
+
+    sol = Vector{Dict{String,Any}}(undef, num_scenarios)
+    if current_best
+        Threads.@threads for s in 1:num_scenarios
+            sol[s] = _IM.build_solution(pm_sec[s]; post_processors=solution_processors)
+        end
+    else
+        Threads.@threads for s in 1:num_scenarios
+            pm = pm_sec[s]
+            fix_var_values!(pm, best_main_var_values)
+            JuMP.optimize!(pm.model)
+            if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
+                Memento.error(_LOGGER, "Secondary problem, scenario $(first(keys(pm.ref[:scenario]))): $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
+            end
+            sol[s] = _IM.build_solution(pm; post_processors=solution_processors)
+        end
+    end
+    (solution, sol_rest) = Iterators.peel(sol)
+    for sol in sol_rest
+        for nw in sol["nw"]
+            push!(solution["nw"], nw)
+        end
+    end
 
     result = Dict{String,Any}()
     result["objective"]    = ub
@@ -339,18 +362,4 @@ function add_benders_data!(data::Dict{String,Any})
         @assert false "Not yet implemented"
     end
     data["benders"] = Dict{String,Any}("scenario_sub_nw_lookup" => lookup)
-end
-
-function build_solution_from_secondary_problems(pm_sec, num_scenarios, solution_processors)
-    sol = Vector{Dict{String,Any}}(undef, num_scenarios)
-    Threads.@threads for s in 1:num_scenarios
-        sol[s] = _IM.build_solution(pm_sec[s]; post_processors=solution_processors)
-    end
-    (solution, sol_rest) = Iterators.peel(sol)
-    for sol in sol_rest
-        for nw in sol["nw"]
-            push!(solution["nw"], nw)
-        end
-    end
-    return solution
 end
