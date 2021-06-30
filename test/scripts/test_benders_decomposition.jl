@@ -1,4 +1,4 @@
-# Test of Benders' decomposition
+# Test of Benders decomposition
 
 
 ## Import packages and load common code
@@ -26,13 +26,13 @@ scale_cost = 1e-9 # Cost scale factor (to test the numerical tractability of the
 # Procedure
 rtol = 1e-6 # Relative tolerance for stopping
 max_iter = 1000 # Iteration limit
+silent = true # Suppress solvers output, taking precedence over any other solver attribute
 
 # Solvers
 use_opensource_solvers = false # More options below
 
 # Analysis and output
 out_dir = "test/data/output_files"
-silent = true # Suppress solvers output, taking precedence over any other solver attribute (effective only in Benders' decomposition)
 make_plots = true # Plot solution value vs. iterations, decision variables vs. iterations, iteration times
 compare_to_benchmark = true # Solve the problem as MILP, check whether solutions are identical and compare solve times
 
@@ -83,9 +83,10 @@ end
 
 ## Process script parameters, set up logging
 
+algorithm_name = last(split(string(algorithm),'.'))
 optimizer_MILP_name = string(optimizer_MILP.optimizer_constructor)[1:end-10]
 optimizer_LP_name = string(optimizer_LP.optimizer_constructor)[1:end-10]
-param_string = @sprintf("%s_%04i_%02i_%s_%s_%.0e", test_case, number_of_hours, number_of_scenarios, optimizer_MILP_name, optimizer_LP_name, scale_cost)
+param_string = @sprintf("%s_%04i_%02i_%s_%s_%s_%.0e", test_case, number_of_hours, number_of_scenarios, algorithm_name, optimizer_MILP_name, optimizer_LP_name, scale_cost)
 out_dir = normpath(out_dir, "benders_" * param_string)
 mkpath(out_dir)
 main_log_file = joinpath(out_dir,"decomposition.log")
@@ -160,8 +161,11 @@ end
 
 ## Solve problem
 
-info(script_logger, "Solving the problem with Benders' decomposition...")
+algorithm = _FP.Benders.Classical(; rtol, max_iter, silent)
+
+info(script_logger, "Solving the problem with Benders decomposition...")
 result_benders = _FP.run_benders_decomposition(
+    algorithm,
     data, model_type,
     optimizer_MILP, optimizer_LP,
     number_of_scenarios == 1 ? _FP.post_flex_tnep_benders_main : _FP.post_stoch_flex_tnep_benders_main,
@@ -170,10 +174,7 @@ result_benders = _FP.run_benders_decomposition(
         ? [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _FP.add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!]
         : [_PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!, _FP.add_candidate_storage!],
     solution_processors = [_PM.sol_data_model!],
-    setting = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false),
-    rtol,
-    max_iter,
-    silent
+    setting = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 )
 
 
@@ -225,7 +226,7 @@ if make_plots
         seriestype = [:steppost :steppost :scatter :scatter],
         color      = [3 2 1 HSL(0,0,0.5)],
         ylims      = [lb[ceil(Int,n_iter/5)], maximum(objective[ceil(Int,n_iter/5):n_iter])],
-        title      = "Benders' decomposition solutions",
+        title      = "Benders decomposition solutions",
         ylabel     = "Cost",
         xlabel     = "Iterations",
         legend     = :topright,
@@ -314,7 +315,7 @@ if compare_to_benchmark
     # Test solution correctness
 
     if !isapprox(opt, result_benchmark["objective"]; rtol)
-        warn(script_logger, "Benders' procedure failed to find an optimal solution within tolerance (benders $opt, benchmark $(result_benchmark["objective"]))")
+        warn(script_logger, "Benders procedure failed to find an optimal solution within tolerance (benders $opt, benchmark $(result_benchmark["objective"]))")
     end
     benchmark_sol = get(result_benchmark["solution"],"multinetwork",false) ? result_benchmark["solution"]["nw"]["1"] : result_benchmark["solution"]
     for (comp, name) in comp_name
@@ -324,7 +325,7 @@ if compare_to_benchmark
                 benchmark_value = benchmark_sol[comp][idx][built]
                 benders_value = benders_sol[comp][idx][built]
                 if !isapprox(benders_value, benchmark_value, atol=1e-1)
-                    warn(script_logger, "Activation variable of $name $idx in Benders' decomposition solution does not match benchmark solution (benders $benders_value, benchmark $benchmark_value)")
+                    warn(script_logger, "Activation variable of $name $idx in Benders decomposition solution does not match benchmark solution (benders $benders_value, benchmark $benchmark_value)")
                 end
             end
         end

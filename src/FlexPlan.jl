@@ -51,9 +51,12 @@ include("core/shared_constraints.jl")
 include("core/line_replacement.jl")
 include("core/distribution.jl")
 include("core/t-d_coupling.jl")
-include("core/benders_decomposition.jl")
 
 include("form/bf.jl")
 include("form/bfarad.jl")
 include("formconv/dcp.jl")
+
+include("benders/benders.jl")
+using .Benders
+
 end
