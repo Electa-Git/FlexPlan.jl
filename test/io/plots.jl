@@ -224,7 +224,7 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
 
     # Number of branches in network
     n_branches = length(input_data[branch_type])
-    
+
     # Extract branch power flow rating (rate_a)
     if !isempty(input_data)
         rate_a = zeros(n_branches, 1)
@@ -240,14 +240,14 @@ function plot_branch_flow(results, i_branch_plot=[], input_data=[], branch_type=
     t_vec = [1:n_time_steps]
 
     # Power flow pt (at the to-end of the branch)
-    pt = zeros(n_time_steps, n_branches)       
+    pt = zeros(n_time_steps, n_branches)
 
         # Extract branch power flow results
     for i_branch = 1:n_branches
         if input_data["branch"][string(i_branch)]["br_status"] == 1
-            for t = 1:n_time_steps                    
-                pt[t,i_branch] = results["solution"]["nw"][string(t)][branch_type][string(i_branch)][flow_key]           
-            end        
+            for t = 1:n_time_steps
+                pt[t,i_branch] = results["solution"]["nw"][string(t)][branch_type][string(i_branch)][flow_key]
+            end
         end
     end
 
@@ -336,7 +336,7 @@ end
 function plot_res(res::Dict, utype::String, unit::String, var::String; kwargs...)
 
     var_table = get_res(res, utype, unit)
-    
+
     time = select(var_table, :time)
     val = select(var_table, Symbol(var))
 
@@ -346,7 +346,7 @@ end
 function plot_res!(res::Dict, utype::String, unit::String, var::String; kwargs...)
 
     var_table = get_res(res, utype, unit)
-    
+
     time = select(var_table, :time)
     val = select(var_table, Symbol(var))
 
@@ -480,15 +480,15 @@ function plot_energy_balance_scenarios(mn_data::Dict, result::Dict, scen_times::
                         else
                             neg = hcat(neg, var_neg)
                             neg_label = hcat(neg_label, var_id)
-                        end       
-                    end 
+                        end
+                    end
                     if var_id ∉ keys(cmap) && (sum(var_pos) > 0.1 || sum(var_neg) > 0.1)
                         cmap[var_id] = color_palette[length(cmap)+1]
                     end
                 end
             end
         end
-        
+
         plot_data[join(["scenario", scenario], " ")] = Dict("time" => time,
                                                        "pos" => pos,
                                                        "neg" => neg*-1,
@@ -523,7 +523,7 @@ function plot_energy_balance_scenarios(mn_data::Dict, result::Dict, scen_times::
     else
         p1 = plot(plots..., color = cmap, layout = plot_layout)
     end
-    
+
     if Bool(nplots%2)
         plots = plot(p1, size=(800, 230*plot_rows))
     elseif legend_pos == "below"

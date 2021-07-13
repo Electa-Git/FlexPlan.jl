@@ -240,7 +240,7 @@ function get_scenario_inv(result, scen_times)
             if "built" in vars
                 build_str = "built"
             elseif "isbuilt" in vars
-                build_str = "isbuilt" 
+                build_str = "isbuilt"
             else
                 continue
             end
