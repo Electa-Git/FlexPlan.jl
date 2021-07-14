@@ -1,6 +1,8 @@
 # UNIT TEST SCRIPT to run multi-period optimisation of demand flexibility for the CIGRE MV benchmark network
 # (It should reproduce the situation shown in Fig. 55 in D1.2 where flexibility is activated and no new line is built.)
 
+include("io/read_case_data_from_csv.jl")
+
 # Input parameters:
 number_of_hours = 72          # Number of time steps
 n_loads = 13                  # Number of load points
@@ -17,7 +19,7 @@ file = normpath(@__DIR__,"..","test","data","CIGRE_MV_benchmark_network_flex.m")
 filename_load_extra = normpath(@__DIR__,"..","test","data","CIGRE_MV_benchmark_network_flex_load_extra.csv")
 
 # Create PowerModels data dictionary (AC networks and storage)
-data = _PM.parse_file(file)  
+data = _PM.parse_file(file)
 
 # Handle possible missing auxiliary fields of the MATPOWER case file
 field_names = ["busdc","busdc_ne","branchdc","branchdc_ne","convdc","convdc_ne","ne_storage","storage","storage_extra"]
@@ -28,10 +30,10 @@ for field_name in field_names
 end
 
 # Read load demand series and assign (relative) profiles to load points in the network
-data,loadprofile,genprofile = _FP.create_profile_data_norway(data, number_of_hours)
+data,loadprofile,genprofile = create_profile_data_norway(data, number_of_hours)
 
 # Add extra_load array for demand flexibility model parameters
-data = _FP.read_case_data_from_csv(data,filename_load_extra,"load_extra")
+data = read_case_data_from_csv(data,filename_load_extra,"load_extra")
 
 # Scale load at all of the load points
 for i_load = 1:n_loads
@@ -40,10 +42,10 @@ for i_load = 1:n_loads
 end
 
 # Add flexible data model
-_FP.add_flexible_demand_data!(data) 
+_FP.add_flexible_demand_data!(data)
 
 # create a dictionary to pass time series data to data dictionary
-extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) 
+extradata = _FP.create_profile_data(number_of_hours, data, loadprofile)
 
 # Create data dictionary where time series data is included at the right place
 mn_data = _FP.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))

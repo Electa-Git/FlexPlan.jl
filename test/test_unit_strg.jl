@@ -1,13 +1,3 @@
-import FlexPlan; const _FP = FlexPlan
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC
-import PowerModels; const _PM = PowerModels
-import InfrastructureModels; const _IM = InfrastructureModels
-
-import JuMP
-import Cbc
-
-using Test
-
 # use non-commercial solver so that tests can run on any machine
 cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=0)
 
