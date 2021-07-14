@@ -52,11 +52,11 @@ open("./test/data/wind_sicily_2019.json") do f
     wind_sicily = JSON.parse(dicttxt)  # parse and transform data
 end
 
-demand_north = convert(Matrix, CSV.read("./test/data/demand_north_2019.csv",DataFrames.DataFrame))[:,3]
-demand_center_north = convert(Matrix, CSV.read("./test/data/demand_center_north_2019.csv",DataFrames.DataFrame))[:,3]
-demand_center_south = convert(Matrix, CSV.read("./test/data/demand_center_south_2019.csv",DataFrames.DataFrame))[:,3]
-demand_south = convert(Matrix, CSV.read("./test/data/demand_south_2019.csv",DataFrames.DataFrame))[:,3]
-demand_sardinia = convert(Matrix, CSV.read("./test/data/demand_sardinia_2019.csv",DataFrames.DataFrame))[:,3]
+demand_north = CSV.read("./test/data/demand_north_2019.csv",DataFrames.DataFrame)[:,3]
+demand_center_north = CSV.read("./test/data/demand_center_north_2019.csv",DataFrames.DataFrame)[:,3]
+demand_center_south = CSV.read("./test/data/demand_center_south_2019.csv",DataFrames.DataFrame)[:,3]
+demand_south = CSV.read("./test/data/demand_south_2019.csv",DataFrames.DataFrame)[:,3]
+demand_sardinia = CSV.read("./test/data/demand_sardinia_2019.csv",DataFrames.DataFrame)[:,3]
 
 demand_north_pu = demand_north ./ maximum(demand_north)
 demand_center_north_pu = demand_north ./ maximum(demand_center_north)
