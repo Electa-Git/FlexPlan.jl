@@ -2,17 +2,16 @@
 # To add a new markdown cell, type ''
 
 # # Reliability testing in  FlexPlan
-using Revise
 import FlexPlan; const _FP = FlexPlan
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
-import InfrastructureModels; const _IM = InfrastructureModels
 
 import JuMP
 import Cbc
 
-using JuliaDB
-using Plots
+include("../io/create_profile.jl")
+include("../io/get_result.jl")
+include("../io/plots.jl")
 
 
 # Solver configurations:
@@ -34,7 +33,7 @@ scenario["contingency"]["0"]["start"] = 1546300800000   # 01.01.2019:00:00 in ep
 scenario["contingency"]["0"]["probability"] = 1.0
 scenario["contingency"]["0"]["faults"] = Dict()
 scenario["utypes"] = []#, "branchdc_ne"] # type of lines considered in contingencies
-scenario["planning_horizon"] = 1 # in years, to scale generation cost  
+scenario["planning_horizon"] = 1 # in years, to scale generation cost
 
 
 # # Define and modify input-data
@@ -43,7 +42,7 @@ data = _PM.parse_file(file); # Create PowerModels data dictionary (AC networks a
 
 
 # Create data for the contingency model based on system data and contingency scenarios:
-data, contingency_profile, loadprofile, genprofile = _FP.create_contingency_data_italy(data, scenario) # create load and generation profiles
+data, contingency_profile, loadprofile, genprofile = create_contingency_data_italy(data, scenario) # create load and generation profiles
 _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
 _FP.add_storage_data!(data) # Add addtional storage data model
 _FP.add_flexible_demand_data!(data) # Add flexible data model
@@ -52,7 +51,7 @@ _FP.scale_cost_data!(data, scenario) # Scale cost data
 
 # Translate data profiles into model parameters:
 dim = number_of_hours * length(data["contingency"])
-extradata = _FP.create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series 
+extradata = _FP.create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series
 
 
 # # Case system
@@ -100,7 +99,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 
 # Solve the model for base case:
 result_base = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s);
-enbal_plot = _FP.plot_energy_balance_scenarios(mn_data, result_base, data["contingency"], 5);
+enbal_plot = plot_energy_balance_scenarios(mn_data, result_base, data["contingency"], 5);
 
 savefig(enbal_plot, "energy_balance_base.png")
 
@@ -115,7 +114,7 @@ result_base = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork
 
 
 # Plot
-enbal_plot = _FP.plot_energy_balance_scenarios(mn_data, result_base, data["contingency"], 5);
+enbal_plot = plot_energy_balance_scenarios(mn_data, result_base, data["contingency"], 5);
 savefig(enbal_plot, "energy_balance_base_2x_load.png")
 
 
@@ -129,7 +128,7 @@ result_base = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork
 
 
 # Plot
-enbal_plot = _FP.plot_energy_balance_scenarios(mn_data, result_base, data["contingency"], 5);
+enbal_plot = plot_energy_balance_scenarios(mn_data, result_base, data["contingency"], 5);
 
 
 # **Issue 1: **{style="color:red"} There are no limits on curtailed power (variable: pcurt), such that interrupted power is never used.
@@ -138,8 +137,8 @@ enbal_plot = _FP.plot_energy_balance_scenarios(mn_data, result_base, data["conti
 
 # After implementing contingency constraints and the objective function term for costs of energy not
 # supplied due to contingencies, one could replicate the load shedding tests above where two branches
-# feeding load bus 5 are sufficient to supply the load demand but a single branch is not. In the "base case" 
-# (intact grid) both branches feeding the load bus should be in an up state, and one of the branches should be 
+# feeding load bus 5 are sufficient to supply the load demand but a single branch is not. In the "base case"
+# (intact grid) both branches feeding the load bus should be in an up state, and one of the branches should be
 # included in the contingency list. In this case, load shedding should be represented in the solution by non-zero
 # values for the slack variable $\Delta P_{u,c,t,y}$  in the contingency case c=1 and not by any of the other slack variables,
 # and there should be no load shedding in the non-contingency case c=0.
@@ -156,20 +155,20 @@ scenario["contingency"]["1"] = Dict{String, Any}()
 scenario["contingency"]["1"]["year"] = 2019
 scenario["contingency"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time
 scenario["contingency"]["1"]["probability"] = 0.01
-scenario["contingency"]["1"]["faults"] = Dict("branchdc" => [1])  
+scenario["contingency"]["1"]["faults"] = Dict("branchdc" => [1])
 # Contingency 2
 scenario["contingency"]["2"] = Dict{String, Any}()
 scenario["contingency"]["2"]["year"] = 2019
-scenario["contingency"]["2"]["start"] = 1546300800000 # 01.01.2019:00:00 in epoch time 
+scenario["contingency"]["2"]["start"] = 1546300800000 # 01.01.2019:00:00 in epoch time
 scenario["contingency"]["2"]["probability"] = 0.01
 scenario["contingency"]["2"]["faults"] = Dict("branchdc" => [2])
 scenario["utypes"] = ["branchdc"] # type of lines considered in contingencies
-scenario["planning_horizon"] = 1 # in years, to scale generation cost  
+scenario["planning_horizon"] = 1 # in years, to scale generation cost
 
 
 
 data = _PM.parse_file(file); # Create PowerModels data dictionary (AC networks and storage)
-data, contingency_profile, loadprofile, genprofile = _FP.create_contingency_data_italy(data, scenario) # create load and generation profiles
+data, contingency_profile, loadprofile, genprofile = create_contingency_data_italy(data, scenario) # create load and generation profiles
 _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
 _FP.add_storage_data!(data) # Add addtional storage data model
 _FP.add_flexible_demand_data!(data) # Add flexible data model
@@ -182,7 +181,7 @@ extradata = _FP.create_contingency_data(dim, data, contingency_profile, loadprof
 extradata["load"]["5"]["pd"] *= load_5_scale;
 extradata["gen"]["1"]["pmax"] *= gen_1_scale;
 data["gen"]["1"]["pmax"] *= gen_1_scale;
-data["branchdc_ne"]["3"]["cost"] *= 100000 # Making building dc line candidate nr. 3 too expensive 
+data["branchdc_ne"]["3"]["cost"] *= 100000 # Making building dc line candidate nr. 3 too expensive
 
 
 # Create multi-network data:
@@ -191,27 +190,27 @@ mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type",
 
 # Solve:
 result_2con = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s);
-enbal_plot = _FP.plot_energy_balance_scenarios(mn_data, result_2con, data["contingency"], 5);
+enbal_plot = plot_energy_balance_scenarios(mn_data, result_2con, data["contingency"], 5);
 savefig(enbal_plot, "energy_balance_2scen_high_inv_cost.png")
 
 
 # We get the following investments:
-_FP.plot_inv_matrix(result_2con, data["contingency"], "0")
+plot_inv_matrix(result_2con, data["contingency"], "0")
 extradata["load"]["5"]["pd"] *= (2/load_5_scale);
-data["branchdc_ne"]["3"]["cost"] *= (50/100000) 
+data["branchdc_ne"]["3"]["cost"] *= (50/100000)
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "contingency", "contingency_prob", "name", "source_version", "per_unit"]))
 result_2con = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s);
-enbal_plot = _FP.plot_energy_balance_scenarios(mn_data, result_2con, data["contingency"], 5);
+enbal_plot = plot_energy_balance_scenarios(mn_data, result_2con, data["contingency"], 5);
 savefig(enbal_plot, "energy_balance_2scen_2xload.png")
 
 
-# Reset investment costs for new dc line nr. 3 to same as base case (10 times costs from input file - not profitable without contingencies): 
+# Reset investment costs for new dc line nr. 3 to same as base case (10 times costs from input file - not profitable without contingencies):
 extradata["load"]["5"]["pd"] *= (load_5_scale/2);
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "contingency", "contingency_prob", "name", "source_version", "per_unit"]))
 result_2con = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s);
-enbal_plot = _FP.plot_energy_balance_scenarios(mn_data, result_2con, data["contingency"], 5);
+enbal_plot = plot_energy_balance_scenarios(mn_data, result_2con, data["contingency"], 5);
 savefig(enbal_plot, "energy_balance_2scen.png")
-_FP.plot_inv_matrix(result_2con, data["contingency"], "0")
+plot_inv_matrix(result_2con, data["contingency"], "0")
 
 
 # # Sensitivity tests
@@ -220,13 +219,13 @@ _FP.plot_inv_matrix(result_2con, data["contingency"], "0")
 #  - Increasing the value of the failure rate of a branch or the mean time to repair for a branch should give changes in the objective value that can be verified analytically.
 
 # Change scenario probability:
-scenario["contingency"]["0"]["probability"] = 0.8 # old: 0.98 
-scenario["contingency"]["1"]["probability"] = 0.2 # old: 0.01 
-scenario["contingency"]["2"]["probability"] = 0.2 # old: 0.01 
+scenario["contingency"]["0"]["probability"] = 0.8 # old: 0.98
+scenario["contingency"]["1"]["probability"] = 0.2 # old: 0.01
+scenario["contingency"]["2"]["probability"] = 0.2 # old: 0.01
 
 # Set new data:
 data = _PM.parse_file(file); # Create PowerModels data dictionary (AC networks and storage)
-data, contingency_profile, loadprofile, genprofile = _FP.create_contingency_data_italy(data, scenario) # create load and generation profiles
+data, contingency_profile, loadprofile, genprofile = create_contingency_data_italy(data, scenario) # create load and generation profiles
 _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
 _FP.add_storage_data!(data) # Add addtional storage data model
 _FP.add_flexible_demand_data!(data) # Add flexible data model
@@ -242,9 +241,9 @@ mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type",
 
 # Solve and plot:
 result_2con_high_prob = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s);
-enbal_plot = _FP.plot_energy_balance_scenarios(mn_data, result_2con_high_prob, data["contingency"], 5);
-_FP.plot_inv_matrix(result_2con, data["contingency"], "0")
-using Printf 
+enbal_plot = plot_energy_balance_scenarios(mn_data, result_2con_high_prob, data["contingency"], 5);
+plot_inv_matrix(result_2con, data["contingency"], "0")
+using Printf
 @printf("Objective value low prob: %.2f \n", result_2con["objective"])
 @printf("Objective value high prob: %.2f \n", result_2con_high_prob["objective"])
 @printf("Relative increase: %.2f percent \n", (result_2con_high_prob["objective"]-result_2con["objective"])*100/result_2con["objective"])
@@ -264,24 +263,24 @@ scenario["contingency"]["1"] = Dict{String, Any}()
 scenario["contingency"]["1"]["year"] = 2019
 scenario["contingency"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time
 scenario["contingency"]["1"]["probability"] = 0.01
-scenario["contingency"]["1"]["faults"] = Dict("branchdc" => [1])  
+scenario["contingency"]["1"]["faults"] = Dict("branchdc" => [1])
 # Contingency 2
 scenario["contingency"]["2"] = Dict{String, Any}()
 scenario["contingency"]["2"]["year"] = 2019
-scenario["contingency"]["2"]["start"] = 1546300800000 # 01.01.2019:00:00 in epoch time 
+scenario["contingency"]["2"]["start"] = 1546300800000 # 01.01.2019:00:00 in epoch time
 scenario["contingency"]["2"]["probability"] = 0.01
 scenario["contingency"]["2"]["faults"] = Dict("branchdc" => [2])
 # Contingency 3
 scenario["contingency"]["3"] = Dict{String, Any}()
 scenario["contingency"]["3"]["year"] = 2019
-scenario["contingency"]["3"]["start"] = 1546300800000 # 01.01.2019:00:00 in epoch time 
+scenario["contingency"]["3"]["start"] = 1546300800000 # 01.01.2019:00:00 in epoch time
 scenario["contingency"]["3"]["probability"] = 0.01
 scenario["contingency"]["3"]["faults"] = Dict("branchdc_ne" => [3])
 scenario["utypes"] = ["branchdc", "branchdc_ne"] # type of lines considered in contingencies
 scenario["planning_horizon"] = 1 # in years, to scale generation cost
 
 data = _PM.parse_file(file); # Create PowerModels data dictionary (AC networks and storage)
-data, contingency_profile, loadprofile, genprofile = _FP.create_contingency_data_italy(data, scenario) # create load and generation profiles
+data, contingency_profile, loadprofile, genprofile = create_contingency_data_italy(data, scenario) # create load and generation profiles
 _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
 _FP.add_storage_data!(data) # Add addtional storage data model
 _FP.add_flexible_demand_data!(data) # Add flexible data model
@@ -294,12 +293,12 @@ mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type",
 extradata["load"]["5"]["pd"] *= load_5_scale;
 extradata["gen"]["1"]["pmax"] *= gen_1_scale;
 data["gen"]["1"]["pmax"] *= gen_1_scale;
-data["branchdc_ne"]["3"]["cost"] *= 10 
+data["branchdc_ne"]["3"]["cost"] *= 10
 
 
 
 result_3con = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s);
-enbal_plot = _FP.plot_energy_balance_scenarios(mn_data, result_3con, data["contingency"], 5);
+enbal_plot = plot_energy_balance_scenarios(mn_data, result_3con, data["contingency"], 5);
 savefig(enbal_plot, "energy_balance_3scen.png")
 
 

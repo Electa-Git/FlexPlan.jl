@@ -10,6 +10,7 @@ import FlexPlan; const _FP = FlexPlan
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
+include("../io/create_profile.jl")
 
 ## Input parameters
 
@@ -28,7 +29,7 @@ data = _PM.parse_file(data_file)
 data["ne_branch"] = Dict{String,Any}()
 
 # Generate hourly time profiles for loads and generators, based on CIGRE benchmark distribution network.
-extradata = _FP.create_profile_data_cigre(data, number_of_hours; scale_load = scale_load, scale_gen = scale_gen)
+extradata = create_profile_data_cigre(data, number_of_hours; scale_load = scale_load, scale_gen = scale_gen)
 
 # Add storage data to the data dictionary
 _FP.add_storage_data!(data)

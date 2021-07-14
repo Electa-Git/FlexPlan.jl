@@ -10,6 +10,8 @@ import FlexPlan; const _FP = FlexPlan
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
+include("../io/create_profile.jl")
+
 
 ## Input parameters
 
@@ -25,9 +27,9 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 scenario = Dict{String, Any}("hours" => number_of_hours, "sc_years" => Dict{String, Any}())
 scenario["sc_years"]["1"] = Dict{String, Any}()
 scenario["sc_years"]["1"]["year"] = 2019
-scenario["sc_years"]["1"]["start"] = 1546300800000 # 2019-01-01T00:00:00.000 in epoch time  
+scenario["sc_years"]["1"]["start"] = 1546300800000 # 2019-01-01T00:00:00.000 in epoch time
 scenario["sc_years"]["1"]["probability"] = 1
-scenario["planning_horizon"] = 1 # in years, to scale generation cost  
+scenario["planning_horizon"] = 1 # in years, to scale generation cost
 
 
 ## Transmission network instance (all data preparation except for multinetwork_data() call)
@@ -35,7 +37,7 @@ scenario["planning_horizon"] = 1 # in years, to scale generation cost
 t_file = "./test/data/combined_td_model/t_case6.m" # Input case for transmission network
 
 t_data = _FP.parse_file(t_file, scenario)
-t_data, t_loadprofile, t_genprofile = _FP.create_profile_data_italy(t_data, scenario) # Create load and generation profiles
+t_data, t_loadprofile, t_genprofile = create_profile_data_italy(t_data, scenario) # Create load and generation profiles
 t_extradata = _FP.create_profile_data(scenario["hours"]*length(t_data["scenario"]), t_data, t_loadprofile, t_genprofile) # Create a dictionary to pass time series data to data dictionary
 
 
@@ -46,7 +48,7 @@ scale_load = 1.0 # Scaling factor of loads
 scale_gen  = 1.0 # Scaling factor of generators
 
 d_data_1 = _FP.parse_file(d_file, scenario)
-d_extradata = _FP.create_profile_data_cigre(d_data_1, number_of_hours; scale_load, scale_gen) # Generate hourly time profiles for loads and generators, based on CIGRE benchmark distribution network.
+d_extradata = create_profile_data_cigre(d_data_1, number_of_hours; scale_load, scale_gen) # Generate hourly time profiles for loads and generators, based on CIGRE benchmark distribution network.
 _FP.add_td_coupling_data!(t_data, d_data_1; t_bus = 1, sub_nw = 1) # The first distribution network is connected to bus 1 of transmission network.
 
 
@@ -90,7 +92,7 @@ for sub_nw in 1:sub_nws
     @printf("%13s%10s", "p_dist$sub_nw", "q_dist$sub_nw")
 end
 println()
-for t_nw in 1:t_nws 
+for t_nw in 1:t_nws
     @printf("%6i:", t_nw)
     for sub_nw in 1:sub_nws
         d_nw = sub_nw * t_nws + t_nw

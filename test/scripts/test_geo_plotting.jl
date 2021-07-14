@@ -5,9 +5,9 @@
 import FlexPlan; const _FP = FlexPlan
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
-import InfrastructureModels; const _IM = InfrastructureModels
+import DataFrames
 
-# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
+# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP,
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
 import Ipopt
 import SCS
@@ -33,30 +33,30 @@ juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= 
 # Read in renewable generation and demand profile data
 #pv_sicily, pv_south_central, wind_sicily = _FP.read_res_and_demand_data()
 pv_sicily = Dict()
-open("./test/data/pv_sicily.json") do f
+open("./test/data/pv_sicily_2019.json") do f
     global pv_sicily
     dicttxt = read(f, String)  # file information to string
     pv_sicily = JSON.parse(dicttxt)  # parse and transform data
 end
 pv_south_central = Dict()
-open("./test/data/pv_south_central.json") do f
+open("./test/data/pv_south_central_2019.json") do f
     global pv_south_central
     dicttxt = read(f, String)  # file information to string
     pv_south_central = JSON.parse(dicttxt)  # parse and transform data
 end
 
 wind_sicily = Dict()
-open("./test/data/wind_sicily.json") do f
+open("./test/data/wind_sicily_2019.json") do f
     global wind_sicily
     dicttxt = read(f, String)  # file information to string
     wind_sicily = JSON.parse(dicttxt)  # parse and transform data
 end
 
-demand_north = convert(Matrix, CSV.read("./test/data/demand_north.csv",DataFrames.DataFrame))[:,3]
-demand_center_north = convert(Matrix, CSV.read("./test/data/demand_center_north.csv",DataFrames.DataFrame))[:,3]
-demand_center_south = convert(Matrix, CSV.read("./test/data/demand_center_south.csv",DataFrames.DataFrame))[:,3]
-demand_south = convert(Matrix, CSV.read("./test/data/demand_south.csv",DataFrames.DataFrame))[:,3]
-demand_sardinia = convert(Matrix, CSV.read("./test/data/demand_sardinia.csv",DataFrames.DataFrame))[:,3]
+demand_north = convert(Matrix, CSV.read("./test/data/demand_north_2019.csv",DataFrames.DataFrame))[:,3]
+demand_center_north = convert(Matrix, CSV.read("./test/data/demand_center_north_2019.csv",DataFrames.DataFrame))[:,3]
+demand_center_south = convert(Matrix, CSV.read("./test/data/demand_center_south_2019.csv",DataFrames.DataFrame))[:,3]
+demand_south = convert(Matrix, CSV.read("./test/data/demand_south_2019.csv",DataFrames.DataFrame))[:,3]
+demand_sardinia = convert(Matrix, CSV.read("./test/data/demand_sardinia_2019.csv",DataFrames.DataFrame))[:,3]
 
 demand_north_pu = demand_north ./ maximum(demand_north)
 demand_center_north_pu = demand_north ./ maximum(demand_center_north)
@@ -64,7 +64,7 @@ demand_south_pu = demand_south ./ maximum(demand_south)
 demand_center_south_pu = demand_center_south ./ maximum(demand_center_south)
 demand_sardinia_pu = demand_sardinia ./ maximum(demand_sardinia)
 
-# TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments 
+# TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 # Input parameters
 start_hour = 1546300800000   # 01.01.2019:00:00 in epoch time
 number_of_hours = 4 # Number of time points
