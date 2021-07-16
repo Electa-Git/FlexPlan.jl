@@ -3,8 +3,9 @@ import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
 import InfrastructureModels; const _IM = InfrastructureModels
 using JuMP
-using JSON
 using Memento
+
+include("io/create_profile.jl")
 
 # Suppress warnings during testing.
 Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")

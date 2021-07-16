@@ -1,4 +1,4 @@
-# TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments 
+# TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 
 # Input parameters:
 number_of_hours = 96        # Number of time steps
@@ -15,7 +15,7 @@ t_vec = start_hour:start_hour+(number_of_hours-1)
 # Manipulate load profile: Load number 5 changes over time: Orignal load is 240 MW.
 load_mod_mean = 120
 load_mod_var = 120
-loadprofile[i_load_mod,:] = ( load_mod_mean .+ load_mod_var .* sin.(t_vec * 2*pi/24) )/240 
+loadprofile[i_load_mod,:] = ( load_mod_mean .+ load_mod_var .* sin.(t_vec * 2*pi/24) )/240
 
 # Increase load on one of the days
 day = 2
