@@ -3,8 +3,9 @@ import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
 import InfrastructureModels; const _IM = InfrastructureModels
 using JuMP
-using JSON
 using Memento
+
+include("io/create_profile.jl")
 
 # Suppress warnings during testing.
 Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
@@ -29,5 +30,6 @@ juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver" => ipopt
     include("bfarad.jl")
     include("test_flex_demand.jl")
     include("test_unit_flex_demand_CIGRE_MV.jl")
+    include("test_unit_strg.jl")
 
 end;

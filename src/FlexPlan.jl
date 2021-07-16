@@ -4,9 +4,6 @@ module FlexPlan
 
 # import Compat
 import JuMP
-import JSON
-import CSV
-import DataFrames
 import Memento
 import PowerModels
 import PowerModelsACDC
@@ -20,7 +17,6 @@ const _MOI = _IM._MOI # MathOptInterface
 import JuMP: with_optimizer, optimizer_with_attributes
 export with_optimizer, optimizer_with_attributes
 
-import Plots
 using Printf
 
 # Create our module level logger (this will get precompiled)
@@ -39,14 +35,8 @@ include("prob/reliability_tnep.jl")
 
 include("io/common.jl")
 include("io/multinetwork.jl")
-include("io/profile_data.jl")
 include("io/plot_geo_data.jl")
-include("io/plots.jl")
-include("io/read_case_data_from_csv.jl")
-include("io/read_res_data.jl")
-include("io/read_demand_data.jl")
-include("io/get_result.jl")
-include("io/get_data.jl")
+include("io/profile_data.jl")
 
 include("core/types.jl")
 include("core/flexible_demand.jl")

@@ -6,13 +6,13 @@
 import FlexPlan; const _FP = FlexPlan
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
-import InfrastructureModels; const _IM = InfrastructureModels
 
-include("../../src/io/plots.jl")
-include("../../src/io/get_result.jl")
-include("../../src/io/get_data.jl")
+include("../io/plots.jl")
+include("../io/create_profile.jl")
+include("../io/get_result.jl")
+include("../io/get_data.jl")
 
-# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
+# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP,
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
 #import Ipopt
 #import SCS
@@ -34,7 +34,7 @@ cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
 #juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
 
 
-# TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments 
+# TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 
 # Input parameters:
 number_of_hours = 96        # Number of time steps
@@ -50,7 +50,7 @@ t_vec = start_hour:start_hour+(number_of_hours-1)
 # Manipulate load profile: Load number 5 changes over time: Orignal load is 240 MW.
 load_mod_mean = 120
 load_mod_var = 120
-loadprofile[i_load_mod,:] = ( load_mod_mean .+ load_mod_var .* sin.(t_vec * 2*pi/24) )/240 
+loadprofile[i_load_mod,:] = ( load_mod_mean .+ load_mod_var .* sin.(t_vec * 2*pi/24) )/240
 
 # Increase load on one of the days
 day = 2
@@ -204,7 +204,7 @@ plot_res(result_test1, "load", "5", shift_vars)
 
 ## Run marginal analysis with model
 include("../../src/addon/marginal_analysis.jl")
-include("../../src/io/get_marginal_analysis_results.jl")
+include("../../test/io/get_marginal_analysis_results.jl")
 
 m_utype = "load"
 m_unit = "5"

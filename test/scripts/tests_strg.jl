@@ -5,9 +5,10 @@
 import FlexPlan; const _FP = FlexPlan
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
-import InfrastructureModels; const _IM = InfrastructureModels
 
-# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
+include("../io/create_profile.jl")
+
+# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP,
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
 import Ipopt
 import SCS
@@ -29,7 +30,7 @@ mosek = JuMP.with_optimizer(Mosek.Optimizer)
 juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
 
 
-# TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments 
+# TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 # Input parameters
 dim = 4 # Number of time points
 file = "./test/data/case6_strg.m"  #Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines and candidate storage
