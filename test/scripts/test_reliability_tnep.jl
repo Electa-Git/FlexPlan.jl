@@ -5,9 +5,12 @@
 import FlexPlan; const _FP = FlexPlan
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
-import InfrastructureModels; const _IM = InfrastructureModels
 
-# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
+include("../io/create_profile.jl")
+include("../io/get_result.jl")
+include("../io/plots.jl")
+
+# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP,
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
 import Ipopt
 import SCS
@@ -42,24 +45,24 @@ scenario["contingency"]["1"] = Dict{String, Any}()
 scenario["contingency"]["1"]["year"] = 2019
 scenario["contingency"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time
 scenario["contingency"]["1"]["probability"] = 0.01
-scenario["contingency"]["1"]["faults"] = Dict("branchdc" => [1])  
+scenario["contingency"]["1"]["faults"] = Dict("branchdc" => [1])
 scenario["contingency"]["2"] = Dict{String, Any}()
 scenario["contingency"]["2"]["year"] = 2019
-scenario["contingency"]["2"]["start"] = 1546300800000 #1514764800000   # 01.01.2018:00:00 in epoch time  
+scenario["contingency"]["2"]["start"] = 1546300800000 #1514764800000   # 01.01.2018:00:00 in epoch time
 scenario["contingency"]["2"]["probability"] = 0.01
 scenario["contingency"]["2"]["faults"] = Dict("branchdc_ne" => [3])
 scenario["contingency"]["3"] = Dict{String, Any}()
 scenario["contingency"]["3"]["year"] = 2019
-scenario["contingency"]["3"]["start"] = 1546300800000 #1514764800000   # 01.01.2018:00:00 in epoch time  
+scenario["contingency"]["3"]["start"] = 1546300800000 #1514764800000   # 01.01.2018:00:00 in epoch time
 scenario["contingency"]["3"]["probability"] = 0.01
 scenario["contingency"]["3"]["faults"] = Dict("branchdc" => [2])
 scenario["utypes"] = [ "branchdc", "branchdc_ne"] # type of lines considered in contingencies
-scenario["planning_horizon"] = 1 # in years, to scale generation cost  
+scenario["planning_horizon"] = 1 # in years, to scale generation cost
 #######################cs######################################
 # TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments for the Italian case
 
 data = _PM.parse_file(file) # Create PowerModels data dictionary (AC networks and storage)
-data, contingency_profile, loadprofile, genprofile = _FP.create_contingency_data_italy(data, scenario) # create load and generation profiles
+data, contingency_profile, loadprofile, genprofile = create_contingency_data_italy(data, scenario) # create load and generation profiles
 _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
 _FP.add_storage_data!(data) # Add addtional storage data model
 _FP.add_flexible_demand_data!(data) # Add flexible data model
@@ -88,22 +91,22 @@ result = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true
 
 # Espen
 
-res_struct = _FP.get_res_structure(result)
+res_struct = get_res_structure(result)
 
-utypes = _FP.get_utypes(result)
-gen_vars = _FP.get_utype_vars(result,"gen")
-branch_2 = _FP.get_res(result, "branch", "1")
+utypes = get_utypes(result)
+gen_vars = get_utype_vars(result,"gen")
+branch_2 = get_res(result, "branch", "1")
 
-_FP.plot_res_by_scenario(result, data["contingency"], "gen","1", "pg")
+plot_res_by_scenario(result, data["contingency"], "gen","1", "pg")
 
-#_FP.plot_res_by_scenario(result,"branch","1", 20)
+#plot_res_by_scenario(result,"branch","1", 20)
 
 
 # Get variables per unit by times
-load5 = _FP.get_res(result, "load", "5")
-branchdc_1 = _FP.get_res(result, "branchdc", "1")
-branchdc_2 = _FP.get_res(result, "branchdc", "2")
-branchdc_ne_3 = _FP.get_res(result, "branchdc_ne", "3")
+load5 = get_res(result, "load", "5")
+branchdc_1 = get_res(result, "branchdc", "1")
+branchdc_2 = get_res(result, "branchdc", "2")
+branchdc_ne_3 = get_res(result, "branchdc_ne", "3")
 
 t_vec = Array(1:dim)
 # Plot combined stacked area and line plot for energy balance in bus 5
@@ -113,12 +116,12 @@ using Plots
 stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pnce) select(load5, :pcurt) select(load5, :pinter)]
 replace!(stack_series, NaN=>0)
 stack_labels = ["dc branch 2" "new dc branch 3" "dc branch 1"  "reduced load" "curtailed load" "energy not served"]
-stacked_plot = _FP.stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
+stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
 #... lines for base and flexible demand
 bus_nr = 5
 #load5_input = transpose(extradata["load"][string(bus_nr)]["pd"])
 #_FP.plot!(t_vec, load5_input, color=:red, width=3.0, label="base demand", line=:dash)
-_FP.plot_res!(result, "load", string(bus_nr),"pflex", label="flexible demand",
+plot_res!(result, "load", string(bus_nr),"pflex", label="flexible demand",
           ylabel="power (p.u.)", color=:blue, width=3.0, line=:dash, gridalpha=0.5)
 #... save figure
 savefig(stacked_plot, "bus5_balance.png")
@@ -126,11 +129,11 @@ savefig(stacked_plot, "bus5_balance.png")
 
 
 # Plot energy not served
-plot_not_served = _FP.plot_res(result, "load", "5", "ence", color=:black, width=3.0,
+plot_not_served = plot_res(result, "load", "5", "ence", color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
                            ylabel="energy (p.u.)", legend=false, gridalpha=0.5)
 
-enbal_plot = _FP.plot_energy_balance_scenarios(data, result, "contingency", 5)
+enbal_plot = plot_energy_balance_scenarios(data, result, "contingency", 5)
 savefig(enbal_plot, "bus5_enbal.png")
 # Make legend in new plot
 #pos = (0,.7)
