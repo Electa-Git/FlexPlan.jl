@@ -1,7 +1,7 @@
 # Test of Benders' decomposition
 
 
-## Import packages
+## Import packages and load common code
 
 import PowerModels; const _PM = PowerModels
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
@@ -9,8 +9,9 @@ import FlexPlan; const _FP = FlexPlan
 using DataFrames
 using Dates
 using Memento
-using StatsPlots
 using Printf
+using StatsPlots
+include("../io/create_profile.jl")
 # Solvers are imported later
 
 
@@ -120,7 +121,7 @@ elseif test_case == "case6" # 6-bus transmission network, max 8760 periods and 3
     end
     scenario["planning_horizon"] = 10
     data = _FP.parse_file(file, scenario; scale_cost)
-    data, loadprofile, genprofile = _FP.create_profile_data_italy(data, scenario)
+    data, loadprofile, genprofile = create_profile_data_italy(data, scenario)
     extradata = _FP.create_profile_data(scenario["hours"]*length(data["scenario"]), data, loadprofile, genprofile)
     data = _FP.multinetwork_data(data, extradata)
 
@@ -221,7 +222,7 @@ if make_plots
     # Solution value versus iterations
     plt = plot(1:n_iter, [ub, lb, objective_improving, objective_nonimproving];
         label      = ["UB" "LB" "improving solution" "non-improving solution"],
-        seriestype = [:step :step :scatter :scatter],
+        seriestype = [:steppost :steppost :scatter :scatter],
         color      = [3 2 1 HSL(0,0,0.5)],
         ylims      = [lb[ceil(Int,n_iter/5)], maximum(objective[ceil(Int,n_iter/5):n_iter])],
         title      = "Benders' decomposition solutions",
@@ -247,7 +248,7 @@ if make_plots
             end
         end
     end
-    sort!(int_vars, (:name, :idx))
+    sort!(int_vars, [:name, :idx])
     select!(int_vars, :legend, :values)
     values_matrix = Array{Int}(undef, nrow(int_vars), n_iter)
     for n in 1:nrow(int_vars)
@@ -260,15 +261,20 @@ if make_plots
     # |     1 | dark grey  |       yes        |          no          |
     # |     2 | light blue |        no        |         yes          |
     # |     3 | dark blue  |       yes        |         yes          |
+    palette = cgrad([HSL(0,0,0.75), HSL(0,0,0.5), HSL(203,0.5,0.76), HSL(203,0.5,0.51)], 4, categorical = true)
     plt = heatmap(1:n_iter, int_vars.legend, values_matrix_plot;
         yflip    = true,
         yticks   = :all,
         title    = "Investment decisions",
         ylabel   = "Components",
         xlabel   = "Iterations",
-        color    = ColorGradient([HSL(0,0,0.75), HSL(0,0,0.5), HSL(203,0.5,0.76), HSL(203,0.5,0.51)], [0.0, 1//3, 2//3, 1.0]),
+        color    = palette,
         colorbar = :none,
+        #legend   = :outerbottom
     )
+    #for (idx, lab) in enumerate(["not built, non-improving iteration", "built, non-improving iteration", "not built, improving iteration", "built, improving iteration"])
+    #    plot!([], [], seriestype=:shape, label=lab, color=palette[idx])
+    #end
     savefig(plt, joinpath(out_dir,"intvars.svg"))
     display(plt)
 
