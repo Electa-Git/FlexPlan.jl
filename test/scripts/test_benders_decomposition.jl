@@ -24,8 +24,10 @@ number_of_scenarios = 8 # Number of scenarios (different generation/load profile
 scale_cost = 1e-9 # Cost scale factor (to test the numerical tractability of the problem)
 
 # Procedure
-rtol = 1e-6 # Relative tolerance for stopping
+algorithm = _FP.Benders.Classical
+obj_rtol = 1e-6 # Relative tolerance for stopping
 max_iter = 1000 # Iteration limit
+tightening_rtol = 1e-6 # Relative tolerance for adding optimality cuts
 silent = true # Suppress solvers output, taking precedence over any other solver attribute
 
 # Solvers
@@ -161,11 +163,9 @@ end
 
 ## Solve problem
 
-algorithm = _FP.Benders.Classical(; rtol, max_iter, silent)
-
 info(script_logger, "Solving the problem with Benders decomposition...")
 result_benders = _FP.run_benders_decomposition(
-    algorithm,
+    algorithm(; obj_rtol, max_iter, tightening_rtol, silent),
     data, model_type,
     optimizer_MILP, optimizer_LP,
     number_of_scenarios == 1 ? _FP.post_flex_tnep_benders_main : _FP.post_stoch_flex_tnep_benders_main,
@@ -314,7 +314,7 @@ if compare_to_benchmark
 
     # Test solution correctness
 
-    if !isapprox(opt, result_benchmark["objective"]; rtol)
+    if !isapprox(opt, result_benchmark["objective"]; rtol=obj_rtol)
         warn(script_logger, "Benders procedure failed to find an optimal solution within tolerance (benders $opt, benchmark $(result_benchmark["objective"]))")
     end
     benchmark_sol = get(result_benchmark["solution"],"multinetwork",false) ? result_benchmark["solution"]["nw"]["1"] : result_benchmark["solution"]

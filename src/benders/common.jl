@@ -2,16 +2,18 @@
 Abstract type for Benders decomposition algorithms.
 
 All concrete types shall have the following fields:
-- `rtol`: stop when `(ub-lb)/abs(ub) < obj_rtol`, where `ub` and `lb` are the upper and lower bounds of the optimal solution value. Default: `sqrt(eps())`.
 - `max_iter`: maximum number of iterations before stopping. Default: 1000.
+- `tightening_rtol`: add an optimality cut only if `(sp_obj-sp_obj_lb)/abs(sp_obj) > tightening_rtol`, where `sp_obj` is the objective function value of the secondary problem and and `sp_obj_lb` is the value of the corresponding surrogate function. Default: `sqrt(eps())`.
+- `sp_obj_lb_min`: constant term of the initial optimality cut, which prevents the main problem from being unbounded at the beginning. Default: `-1e12`."
 - `silent`: require the solvers to produce no output; take precedence over any other attribute controlling verbosity. Default: `true`.
 """
 abstract type BendersAlgorithm end
 
 "A macro for adding the standard fields to a concrete BendersAlgorithm type"
 _IM.@def benders_fields begin
-    rtol::Float64
     max_iter::Int
+    tightening_rtol::Float64
+    sp_obj_lb_min::Float64
     silent::Bool
 end
 
@@ -57,20 +59,6 @@ function check_solution_secondary(pm, iter)
     end
 end
 
-function get_var_values(pm)
-    values = Dict{Int,Any}()
-    for (n,nw) in _PM.nws(pm)
-        if n == nw[:benders]["first_nw"] # TODO: improve by looping over an adequate data structure instead of checking equality for each nw
-            values_n = values[n] = Dict{Symbol,Any}()
-            for (key, var_array) in _PM.var(pm, n)
-                # idx is a JuMP.Containers.DenseAxisArrayKey{Tuple{Int64}}. idx[1] is an Int
-                values_n[key] = Dict{Int,Int}((idx[1],round(Int,JuMP.value(var_array[idx]))) for idx in keys(var_array))
-            end
-        end
-    end
-    return values
-end
-
 function fix_var_values!(pm, values)
     lookup = pm.ref[:benders]["scenario_sub_nw_lookup"]
     for (n, key_vars) in values
@@ -83,52 +71,7 @@ function fix_var_values!(pm, values)
     end
 end
 
-function add_optimality_cuts!(pm_main, pm_sec, main_var_values, epi)
-    for (s, pm) in enumerate(pm_sec)
-        lookup = pm.ref[:benders]["scenario_sub_nw_lookup"]
-        optimality_cut = JuMP.AffExpr(JuMP.objective_value(pm.model))
-        for (n, key_vars) in main_var_values
-            for (key, var) in key_vars
-                for (idx, value) in var
-                    z_main = _PM.var(pm_main, n, key, idx)
-                    z_sec = _PM.var(pm, lookup[n], key, idx)
-                    lam = JuMP.reduced_cost(z_sec)
-                    JuMP.add_to_expression!(optimality_cut, lam*(z_main-value))
-                    Memento.trace(_LOGGER, @sprintf("Optimality cut term for nw = %4i: %15.1f * (%18s - %3.1f)", lookup[n], lam, z_main, value))
-                end
-            end
-        end
-        JuMP.@constraint(pm_main.model, epi[s] >= optimality_cut)
-    end
-end
-
-function calc_first_iter_result(pm_sec, inv_cost_expr)
-    sp_obj = sum(pm.ref[:scenario_prob]["$s"] * JuMP.objective_value(pm.model) for (s, pm) in enumerate(pm_sec))
-    inv_cost = JuMP.value(inv_cost_expr)
-    op_cost = sp_obj
-    sol_value = inv_cost + op_cost
-    lb = -Inf
-    return inv_cost, op_cost, sol_value, lb
-end
-
-function calc_iter_result(pm_main, pm_sec, epi)
-    mp_obj = JuMP.objective_value(pm_main.model)
-    sp_obj = sum(pm.ref[:scenario_prob]["$s"] * JuMP.objective_value(pm.model) for (s, pm) in enumerate(pm_sec))
-    epi_value = sum(pm.ref[:scenario_prob]["$s"] * JuMP.value(epi[s]) for (s, pm) in enumerate(pm_sec))
-    inv_cost = mp_obj - epi_value
-    op_cost = sp_obj
-    sol_value = mp_obj - epi_value + sp_obj
-    lb = mp_obj
-    return inv_cost, op_cost, sol_value, lb
-end
-
-function log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, main_var_values, pm_main, pm_sec, time_main, time_sec, time_iteration)
-    if current_best
-        Memento.info(_LOGGER, @sprintf("┃ •%4i │%11.3e%12.3e%12.3e │%11.3e%12.3e%12.3e ┃", i, inv_cost, op_cost, sol_value, ub, lb, rel_gap))
-    else
-        Memento.info(_LOGGER, @sprintf("┃  %4i │%11.3e%12.3e%12.3e │%11.3e%12.3e%12.3e ┃", i, inv_cost, op_cost, sol_value, ub, lb, rel_gap))
-    end
-
+function record_statistics!(stat, algo, iter, iter_cuts, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, main_var_values, pm_main, pm_sec, time_main, time_sec, time_iteration)
     value = Dict{String,Any}()
     value["inv_cost"] = inv_cost
     value["op_cost"] = op_cost
@@ -140,6 +83,7 @@ function log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap,
 
     main = Dict{String,Any}()
     main["sol"] = main_var_values
+    main["iter_cuts"] = iter_cuts
     main["nvar"] = JuMP.num_variables(pm_main.model)
     main["ncon"] = sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])
 
@@ -153,7 +97,9 @@ function log_statistics!(stat, i, inv_cost, op_cost, sol_value, ub, lb, rel_gap,
     time["secondary"] = time_sec
     time["other"] = time_iteration - (time_main + time_sec)
 
-    stat[i] = Dict{String,Any}("value" => value, "main" => main, "secondary" => secondary, "time" => time)
+    stat[iter] = Dict{String,Any}("iter" => iter, "value" => value, "main" => main, "secondary" => secondary, "time" => time)
+
+    log_statistics(algo, stat[iter])
 end
 
 function add_benders_nw_data!(data::Dict{String,Any})
@@ -193,4 +139,21 @@ function add_benders_data!(data::Dict{String,Any})
         @assert false "Not yet implemented"
     end
     data["benders"] = Dict{String,Any}("scenario_sub_nw_lookup" => lookup)
+end
+
+function calc_optimality_cut(pm_main, one_pm_sec, main_var_values)
+    lookup = one_pm_sec.ref[:benders]["scenario_sub_nw_lookup"]
+    optimality_cut_expr = JuMP.AffExpr(JuMP.objective_value(one_pm_sec.model))
+    for (n, key_vars) in main_var_values
+        for (key, var) in key_vars
+            for (idx, value) in var
+                z_main = _PM.var(pm_main, n, key, idx)
+                z_sec = _PM.var(one_pm_sec, lookup[n], key, idx)
+                lam = JuMP.reduced_cost(z_sec)
+                JuMP.add_to_expression!(optimality_cut_expr, lam*(z_main-value))
+                Memento.trace(_LOGGER, @sprintf("Optimality cut term for nw = %4i: %15.1f * (%18s - %3.1f)", lookup[n], lam, z_main, value))
+            end
+        end
+    end
+    return optimality_cut_expr
 end
