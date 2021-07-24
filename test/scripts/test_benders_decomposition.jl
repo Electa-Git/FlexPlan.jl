@@ -24,7 +24,7 @@ number_of_scenarios = 8 # Number of scenarios (different generation/load profile
 scale_cost = 1e-9 # Cost scale factor (to test the numerical tractability of the problem)
 
 # Procedure
-algorithm = _FP.Benders.Classical
+algorithm = _FP.Benders.Modern # `_FP.Benders.Classical` or `_FP.Benders.Modern`
 obj_rtol = 1e-6 # Relative tolerance for stopping
 max_iter = 1000 # Iteration limit
 tightening_rtol = 1e-6 # Relative tolerance for adding optimality cuts
@@ -62,6 +62,7 @@ else
         end
     end
     optimizer_MILP = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger("milp"),
+        "CPXPARAM_MIP_Tolerances_MIPGap" => algorithm==_FP.Benders.Modern ? obj_rtol : 1e-4, # 1e-4 is CPLEX default
         "CPXPARAM_ScreenOutput" => 0, # ∈ {0,1}, default: 0
         "CPXPARAM_Output_CloneLog" => -1, # ∈ {-1,0,1}, default: 0
         "CPXPARAM_MIP_Display" => 2, # ∈ {0,...,5}, default: 2
@@ -164,8 +165,9 @@ end
 ## Solve problem
 
 info(script_logger, "Solving the problem with Benders decomposition...")
+algo = algorithm == _FP.Benders.Classical ? algorithm(; obj_rtol, max_iter, tightening_rtol, silent) : algorithm(; max_iter, tightening_rtol, silent)
 result_benders = _FP.run_benders_decomposition(
-    algorithm(; obj_rtol, max_iter, tightening_rtol, silent),
+    algo,
     data, model_type,
     optimizer_MILP, optimizer_LP,
     number_of_scenarios == 1 ? _FP.post_flex_tnep_benders_main : _FP.post_stoch_flex_tnep_benders_main,

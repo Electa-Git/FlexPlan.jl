@@ -10,5 +10,6 @@ using Printf
 
 include("common.jl")
 include("classical.jl")
+include("modern.jl")
 
 end
