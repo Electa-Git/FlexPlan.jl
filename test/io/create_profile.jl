@@ -2,56 +2,43 @@ import CSV
 import DataFrames
 import JSON
 
-function create_profile_data_italy(data, scenario = Dict{String, Any}())
+function create_profile_data_italy!(data)
 
-    genprofile = ones(length(data["gen"]), length(scenario["sc_years"]) * scenario["hours"])
-    loadprofile = ones(length(data["load"]), length(scenario["sc_years"]) * scenario["hours"])
+    hours = length(data["dim"][:hour])
+    scenarios = length(data["dim"][:scenario])
 
-    data["scenario"] = Dict{String, Any}()
-    data["scenario_prob"] = Dict{String, Any}()
+    genprofile = ones(length(data["gen"]), hours*scenarios)
+    loadprofile = ones(length(data["load"]), hours*scenarios)
 
-    if haskey(scenario, "mc")
-        monte_carlo = scenario["mc"]
-    else
-        monte_carlo = false
-    end
+    monte_carlo = get(data["dim"][:meta][:scenario], "mc", false)
 
-    for (s, scnr) in scenario["sc_years"]
-        year = scnr["year"]
-        pv_sicily, pv_south_central, wind_sicily = read_res_data(year; mc = monte_carlo)
-        demand_center_north_pu, demand_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu = read_demand_data(year; mc = monte_carlo)
+    for (s, scnr) in data["dim"][:scenario]
+        pv_sicily, pv_south_central, wind_sicily = read_res_data(s-1; mc = monte_carlo)
+        demand_center_north_pu, demand_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu = read_demand_data(s-1; mc = monte_carlo)
 
-        start_idx = (parse(Int, s) - 1) * scenario["hours"]
+        start_idx = (s-1) * hours
         if monte_carlo == false
-            for h in 1 : scenario["hours"]
+            for h in 1 : hours
                 h_idx = scnr["start"] + ((h-1) * 3600000)
                 genprofile[3, start_idx + h] = pv_south_central["data"]["$h_idx"]["electricity"]
                 genprofile[5, start_idx + h] = pv_sicily["data"]["$h_idx"]["electricity"]
                 genprofile[6, start_idx + h] = wind_sicily["data"]["$h_idx"]["electricity"]
             end
         else
-            genprofile[3, start_idx + 1 : start_idx + scenario["hours"]] = pv_south_central[1: scenario["hours"]]
-            genprofile[5, start_idx + 1 : start_idx + scenario["hours"]] = pv_sicily[1: scenario["hours"]]
-            genprofile[6, start_idx + 1 : start_idx + scenario["hours"]] = wind_sicily[1: scenario["hours"]]
+            genprofile[3, start_idx + 1 : start_idx + hours] = pv_south_central[1: hours]
+            genprofile[5, start_idx + 1 : start_idx + hours] = pv_sicily[1: hours]
+            genprofile[6, start_idx + 1 : start_idx + hours] = wind_sicily[1: hours]
         end
-        loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = [demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1: scenario["hours"]]
-        # loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = repeat([demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1],1,scenario["hours"])
-
-        data["scenario"][s] = Dict()
-        data["scenario_prob"][s] = scnr["probability"]
-        for h in 1 : scenario["hours"]
-            network = start_idx + h
-            data["scenario"][s]["$h"] = network
-        end
-
+        loadprofile[:, start_idx + 1 : start_idx + hours] = [demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1: hours]
+        # loadprofile[:, start_idx + 1 : start_idx + number_of_hours] = repeat([demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1],1,number_of_hours)
     end
-    # Add bus loactions to data dictionary
-    data["bus"]["1"]["lat"] = 43.4894; data["bus"]["1"]["lon"] =  11.7946; #Italy central north
-    data["bus"]["2"]["lat"] = 45.3411; data["bus"]["2"]["lon"] =  9.9489;  #Italy north
-    data["bus"]["3"]["lat"] = 41.8218; data["bus"]["3"]["lon"] =   13.8302; #Italy central south
-    data["bus"]["4"]["lat"] = 40.5228; data["bus"]["4"]["lon"] =   16.2155; #Italy south
-    data["bus"]["5"]["lat"] = 40.1717; data["bus"]["5"]["lon"] =   9.0738; # Sardinia
-    data["bus"]["6"]["lat"] = 37.4844; data["bus"]["6"]["lon"] =   14.1568; # Sicily
+    # Add bus locations to data dictionary
+    data["bus"]["1"]["lat"] = 43.4894; data["bus"]["1"]["lon"] = 11.7946; # Italy central north
+    data["bus"]["2"]["lat"] = 45.3411; data["bus"]["2"]["lon"] =  9.9489; # Italy north
+    data["bus"]["3"]["lat"] = 41.8218; data["bus"]["3"]["lon"] = 13.8302; # Italy central south
+    data["bus"]["4"]["lat"] = 40.5228; data["bus"]["4"]["lon"] = 16.2155; # Italy south
+    data["bus"]["5"]["lat"] = 40.1717; data["bus"]["5"]["lon"] =  9.0738; # Sardinia
+    data["bus"]["6"]["lat"] = 37.4844; data["bus"]["6"]["lon"] = 14.1568; # Sicily
     # Return info
     return data, loadprofile, genprofile
 end
@@ -168,7 +155,6 @@ function create_profile_data_cigre(data, number_of_hours; start_period = 1, scal
     ## Prepare output structure
 
     extradata = Dict{String,Any}()
-    extradata["dim"] = number_of_hours
 
     ## Loads
 

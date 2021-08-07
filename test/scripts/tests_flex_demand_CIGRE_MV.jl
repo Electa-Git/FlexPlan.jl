@@ -93,11 +93,7 @@ _FP.add_flexible_demand_data!(data)
 extradata = _FP.create_profile_data(number_of_hours, data, loadprofile)
 
 # Create data dictionary where time series data is included at the right place
-if use_DC
-      mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
-else
-      mn_data = _FP.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
-end
+mn_data = _FP.multinetwork_data(data, extradata)
 
 # Add PowerModels(ACDC) settings
 if use_DC

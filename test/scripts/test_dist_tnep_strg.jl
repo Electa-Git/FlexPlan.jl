@@ -35,7 +35,8 @@ extradata = create_profile_data_cigre(data, number_of_hours; scale_load = scale_
 _FP.add_storage_data!(data)
 
 # Create multi-period data dictionary where time series data is included at the right place
-mn_data = _FP.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+_FP.add_dimension!(data, :hour, number_of_hours)
+mn_data = _FP.multinetwork_data(data, extradata)
 
 
 ## Solve problem

@@ -35,9 +35,10 @@ function add_storage_data!(data)
     return data
 end
 
-function scale_cost_data!(data, scenario)
-    rescale_hourly = x -> (8760*scenario["planning_horizon"] / scenario["hours"]) * x # scale hourly costs to the planning horizon
-    rescale_total  = x -> (                                1 / scenario["hours"]) * x # scale total costs to the planning horizon
+function scale_cost_data!(data, planning_horizon)
+    hours = length(data["dim"][:hour])
+    rescale_hourly = x -> (8760*planning_horizon / hours) * x # scale hourly costs to the planning horizon
+    rescale_total  = x -> (                    1 / hours) * x # scale total costs to the planning horizon
     for (g, gen) in data["gen"]
         _PM._apply_func!(gen, "cost", rescale_hourly)
     end
@@ -158,24 +159,22 @@ function add_generation_emission_data!(data)
     return data
 end
 
-function create_profile_data(number_of_hours, data, loadprofile = ones(length(data["load"]), number_of_hours), genprofile = ones(length(data["gen"]), number_of_hours))
+function create_profile_data(number_of_periods, data, loadprofile = ones(length(data["load"]), number_of_periods), genprofile = ones(length(data["gen"]), number_of_periods))
     extradata = Dict{String,Any}()
-    extradata["dim"] = Dict{String,Any}()
-    extradata["dim"] = number_of_hours
     extradata["load"] = Dict{String,Any}()
     extradata["gen"] = Dict{String,Any}()
     for (l, load) in data["load"]
         extradata["load"][l] = Dict{String,Any}()
-        extradata["load"][l]["pd"] = Array{Float64,2}(undef, 1, number_of_hours)
-        for d in 1:number_of_hours
+        extradata["load"][l]["pd"] = Array{Float64,2}(undef, 1, number_of_periods)
+        for d in 1:number_of_periods
             extradata["load"][l]["pd"][1, d] = data["load"][l]["pd"] * loadprofile[parse(Int, l), d]
         end
     end
 
     for (g, gen) in data["gen"]
         extradata["gen"][g] = Dict{String,Any}()
-        extradata["gen"][g]["pmax"] = Array{Float64,2}(undef, 1, number_of_hours)
-        for d in 1:number_of_hours
+        extradata["gen"][g]["pmax"] = Array{Float64,2}(undef, 1, number_of_periods)
+        for d in 1:number_of_periods
             extradata["gen"][g]["pmax"][1, d] = data["gen"][g]["pmax"] * genprofile[parse(Int, g), d]
         end
     end
