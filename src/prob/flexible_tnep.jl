@@ -36,8 +36,8 @@ end
 
 "Builds transmission model."
 function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
-# VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl    
-    for n in _PM.nw_ids(pm)
+# VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl
+    for n in nw_ids(pm)
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -67,8 +67,8 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
     if objective
         objective_min_cost_flex(pm)
     end
-#CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: flexible_demand.jl   
-    for n in _PM.nw_ids(pm)
+#CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: flexible_demand.jl
+    for n in nw_ids(pm)
         _PM.constraint_model_voltage(pm; nw = n)
         _PM.constraint_ne_model_voltage(pm; nw = n)
         _PMACDC.constraint_voltage_dc(pm; nw = n)
@@ -88,7 +88,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
                 constraint_thermal_limit_from_repl(pm, i; nw = n)
                 constraint_thermal_limit_to_repl(pm, i; nw = n)
             end
-        else    
+        else
             for i in _PM.ids(pm, n, :branch)
                 _PM.constraint_ohms_yt_from(pm, i; nw = n)
                 _PM.constraint_ohms_yt_to(pm, i; nw = n)
@@ -173,7 +173,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         end
     end
 
-    network_ids = sort(collect(_PM.nw_ids(pm)))
+    network_ids = nw_ids(pm)
     n_1 = network_ids[1]
     n_last = network_ids[end]
 
@@ -225,8 +225,8 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             if _PM.ref(pm, n_2, :load, i, "flex") == 1
                 constraint_ence_state(pm, i, n_1, n_2)
                 constraint_shift_up_state(pm, n_1, n_2, i)
-                constraint_shift_down_state(pm, n_1, n_2, i) 
-                constraint_shift_duration(pm, n_2, network_ids, i)
+                constraint_shift_down_state(pm, n_1, n_2, i)
+                constraint_shift_duration(pm, network_ids[1], n_2, i)
                 constraint_flex_investment(pm, n_1, n_2, i)
             end
         end
@@ -237,7 +237,7 @@ end
 "Builds distribution model."
 function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemporal_constraints::Bool=true)
 
-    for n in _PM.nw_ids(pm)
+    for n in nw_ids(pm)
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -261,7 +261,7 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
         objective_min_cost_flex(pm)
     end
 
-    for n in _PM.nw_ids(pm)
+    for n in nw_ids(pm)
         _PM.constraint_model_current(pm; nw = n)
         constraint_ne_model_current(pm; nw = n)
 
@@ -314,13 +314,13 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
         else
             sub_nws = Dict{String,Set{Int}}("0" => _PM.nw_ids(pm))
         end
-        
+
         for (sub_nw, nw_ids) in sub_nws
 
             network_ids = sort(collect(nw_ids))
             n_1 = network_ids[1]
             n_last = network_ids[end]
-            
+
             # NW = 1
             for i in _PM.ids(pm, :storage, nw = n_1)
                 constraint_storage_state(pm, i, nw = n_1)
@@ -373,8 +373,8 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
                     if _PM.ref(pm, n_2, :load, i, "flex") == 1
                         constraint_ence_state(pm, i, n_1, n_2)
                         constraint_shift_up_state(pm, n_1, n_2, i)
-                        constraint_shift_down_state(pm, n_1, n_2, i) 
-                        constraint_shift_duration(pm, n_2, network_ids, i)
+                        constraint_shift_down_state(pm, n_1, n_2, i)
+                        constraint_shift_duration(pm, network_ids[1], n_2, i)
                         constraint_flex_investment(pm, n_1, n_2, i)
                     end
                 end
@@ -395,7 +395,7 @@ function post_flex_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
 
     # Variables related to the combined model
     # (No new variables are needed here.)
-    
+
     # Constraints related to the combined model
     constraint_td_coupling(t_pm, d_pm)
 

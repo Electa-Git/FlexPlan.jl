@@ -122,7 +122,7 @@ function add_td_coupling_data!(d_data::Dict{String,Any}; sub_nw::Int, qs_ratio_b
     if length(d_ref_gens) > 1
         Memento.error(_LOGGER, "Distribution network data must have 0 or 1 generator connected to ref bus, but $(length(d_ref_gens)) are present.")
     end
-    
+
     # Define an upper bound on the rated apparent power based on the rated power of existing and candidate branches connected to the reference bus
     d_s_rate = (
           sum(branch["rate_a"] for (b,branch) in d_data["branch"]    if (branch["f_bus"]==d_ref_bus || branch["t_bus"]==d_ref_bus) && branch["br_status"]==1) # In t_bus here, the t stands for "to" (not for "transmission" as in the rest of the function)
@@ -243,12 +243,12 @@ Connect each distribution nw to the corresponding transmission nw and apply coup
 The coupling constraint is applied to the two generators that each distribution nw indicates.
 """
 function constraint_td_coupling(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
-    t_nws = sort(collect(_PM.nw_ids(t_pm)))
+    t_nws = nw_ids(t_pm)
 
     for (sub_nw, nw_ids) in d_pm.ref[:sub_nw]
         d_nws = sort(collect(nw_ids))
         for i in 1:length(t_nws)
-            t_nw = t_nws[i] 
+            t_nw = t_nws[i]
             d_nw = d_nws[i]
 
             constraint_td_coupling_power_balance(t_pm, d_pm, t_nw, d_nw)

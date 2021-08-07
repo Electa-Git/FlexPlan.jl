@@ -1,18 +1,23 @@
 export strg_tnep
 
 ""
-function strg_tnep(data::Dict{String,Any}, model_type::Type, solver; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
-    s = setting
-    return _PM.run_model(data, model_type, solver, post_strg_tnep; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
+function strg_tnep(data::Dict{String,Any}, model_type::Type, solver; kwargs...)
+    return _PM.run_model(
+        data, model_type, solver, post_strg_tnep;
+        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        kwargs...
+    )
 end
 
 # for distribution models
 ""
 function strg_tnep(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
-    return _PM.run_model(data, model_type, optimizer, post_strg_tnep;
-                         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
-                         solution_processors = [_PM.sol_data_model!],
-                         kwargs...)
+    return _PM.run_model(
+        data, model_type, optimizer, post_strg_tnep;
+        ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+        solution_processors = [_PM.sol_data_model!],
+        kwargs...
+    )
 end
 
 
@@ -21,8 +26,8 @@ end
 
 ""
 function post_strg_tnep(pm::_PM.AbstractPowerModel)
-# VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: see storage.jl  
-    for n in _PM.nw_ids(pm)
+# VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: see storage.jl
+    for n in nw_ids(pm)
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -50,8 +55,8 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
     end
 #OBJECTIVE see objective.jl
     objective_min_cost_storage(pm)
-#CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: storage.jl 
-    for n in _PM.nw_ids(pm)
+#CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: storage.jl
+    for n in nw_ids(pm)
         _PM.constraint_model_voltage(pm; nw = n)
         _PM.constraint_ne_model_voltage(pm; nw = n)
         _PMACDC.constraint_voltage_dc(pm; nw = n)
@@ -71,7 +76,7 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
                 constraint_thermal_limit_from_repl(pm, i; nw = n)
                 constraint_thermal_limit_to_repl(pm, i; nw = n)
             end
-        else    
+        else
             for i in _PM.ids(pm, n, :branch)
                 _PM.constraint_ohms_yt_from(pm, i; nw = n)
                 _PM.constraint_ohms_yt_to(pm, i; nw = n)
@@ -147,10 +152,10 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
         end
     end
 
-    network_ids = sort(collect(_PM.nw_ids(pm)))
+    network_ids = nw_ids(pm)
     n_1 = network_ids[1]
     n_last = network_ids[end]
-    
+
     for i in _PM.ids(pm, :storage, nw = n_1)
         constraint_storage_state(pm, i, nw = n_1)
         constraint_maximum_absorption(pm, i, nw = n_1)
@@ -188,7 +193,7 @@ end
 ""
 function post_strg_tnep(pm::_PM.AbstractBFModel)
 
-    for n in _PM.nw_ids(pm)
+    for n in nw_ids(pm)
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -209,7 +214,7 @@ function post_strg_tnep(pm::_PM.AbstractBFModel)
 
     objective_min_cost_storage(pm)
 
-    for n in _PM.nw_ids(pm)
+    for n in nw_ids(pm)
         _PM.constraint_model_current(pm; nw = n)
         constraint_ne_model_current(pm; nw = n)
 
@@ -242,7 +247,7 @@ function post_strg_tnep(pm::_PM.AbstractBFModel)
         end
     end
 
-    network_ids = sort(collect(_PM.nw_ids(pm)))
+    network_ids = nw_ids(pm)
     n_1 = network_ids[1]
     n_last = network_ids[end]
 

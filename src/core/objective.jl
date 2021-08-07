@@ -11,7 +11,7 @@ function objective_min_cost_storage(pm::_PM.AbstractPowerModel)
             + calc_ne_branch_cost(pm, n, add_co2_cost)
             + calc_branchdc_ne_cost(pm, n, add_co2_cost)
             + calc_ne_storage_cost(pm, n, add_co2_cost)
-        for n in _PM.nw_ids(pm))
+        for n in nw_ids(pm))
     )
 end
 
@@ -30,7 +30,7 @@ function objective_min_cost_flex(pm::_PM.AbstractPowerModel)
             + calc_branchdc_ne_cost(pm, n, add_co2_cost)
             + calc_ne_storage_cost(pm, n, add_co2_cost)
             + calc_load_cost(pm, n, add_co2_cost)
-        for n in _PM.nw_ids(pm))
+        for n in nw_ids(pm))
     )
 end
 
@@ -45,7 +45,7 @@ function objective_min_cost_flex(t_pm::_PM.AbstractPowerModel, d_pm::_PM.Abstrac
             + calc_branchdc_ne_cost(t_pm, n, add_co2_cost)
             + calc_ne_storage_cost(t_pm, n, add_co2_cost)
             + calc_load_cost(t_pm, n, add_co2_cost)
-        for n in _PM.nw_ids(t_pm))
+        for n in nw_ids(t_pm))
         +
         # Cost related to distribution (multi)network
         # Note: distribution networks do not have DC components (modeling decision)
@@ -54,7 +54,7 @@ function objective_min_cost_flex(t_pm::_PM.AbstractPowerModel, d_pm::_PM.Abstrac
             + calc_ne_branch_cost(d_pm, n, add_co2_cost)
             + calc_ne_storage_cost(d_pm, n, add_co2_cost)
             + calc_load_cost(d_pm, n, add_co2_cost)
-        for n in _PM.nw_ids(d_pm))
+        for n in nw_ids(d_pm))
     )
 end
 
@@ -66,7 +66,7 @@ end
 function objective_stoch_flex(pm::_PM.AbstractPowerModel)
     add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
     return JuMP.@objective(pm.model, Min,
-        sum(pm.ref[:scenario_prob][s] * 
+        sum(scenario["probability"] *
             sum(
                 calc_gen_cost(pm, n, add_co2_cost)
                 + calc_convdc_ne_cost(pm, n, add_co2_cost)
@@ -74,8 +74,8 @@ function objective_stoch_flex(pm::_PM.AbstractPowerModel)
                 + calc_branchdc_ne_cost(pm, n, add_co2_cost)
                 + calc_ne_storage_cost(pm, n, add_co2_cost)
                 + calc_load_cost(pm, n, add_co2_cost)
-            for (sc, n) in scenario)
-        for (s, scenario) in pm.ref[:scenario])
+            for n in nw_ids(pm; scenario=s))
+        for (s, scenario) in dim(pm, :scenario))
     )
 end
 
@@ -87,7 +87,7 @@ end
 function objective_reliability(pm::_PM.AbstractPowerModel)
     add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
     return JuMP.@objective(pm.model, Min,
-        sum(pm.ref[:contingency_prob][s] * 
+        sum(pm.ref[:contingency_prob][s] *
             sum(
                 calc_gen_cost(pm, n, add_co2_cost)
                 + calc_convdc_ne_cost(pm, n, add_co2_cost)
@@ -109,7 +109,7 @@ end
 function calc_gen_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
 
     function calc_single_gen_cost(i, g_cost)
-        len = length(g_cost)      
+        len = length(g_cost)
         cost = 0.0
         if len >= 1
             cost = g_cost[len] # Constant term
@@ -132,7 +132,7 @@ function calc_convdc_ne_cost(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::B
     cost = 0.0
     if haskey(_PM.ref(pm, n), :convdc_ne)
         convdc_ne = _PM.ref(pm, n, :convdc_ne)
-        if !isempty(convdc_ne)    
+        if !isempty(convdc_ne)
             cost = sum(conv["cost"]*_PM.var(pm, n, :conv_ne, i) for (i,conv) in convdc_ne)
             if add_co2_cost
                 cost += sum(conv["co2_cost"]*_PM.var(pm, n, :conv_ne, i) for (i,conv) in convdc_ne)
