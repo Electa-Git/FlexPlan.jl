@@ -18,6 +18,9 @@ julia> nw_ids(pm; hour = 24, scenario = 3)
 ```
 """
 function nw_ids(pm::_PM.AbstractPowerModel; kwargs...)
+    if !haskey(pm.ref, :dim)
+        return [0]
+    end
     dim = pm.ref[:dim]
     return vec(dim[:ids][(get(kwargs, name, 1:length(dim[name])) for name in dim[:names])...])
 end
