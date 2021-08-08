@@ -24,21 +24,21 @@ result_test1 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
 @testset "Storage first test (TNEP with constant demand at loads)" begin
     nw = result_test1["solution"]["nw"]["1"]
     for (key, value) in nw["branchdc_ne"]
-        if key in ["3", "11"] # DC lines 3 and 11 should be built
+        if key in ["9"] # only DC line 9 should be built
             @test nw["branchdc_ne"][key]["isbuilt"] == 1.0
         else
             @test nw["branchdc_ne"][key]["isbuilt"] == 0.0
         end
     end
     for (key, value) in nw["convdc_ne"]
-        if key in ["2", "5", "6"]  # conveters 2, 5 and 6 should be built
+        if key in ["4", "6"]  # converters 4 and 6 should be built
             @test nw["convdc_ne"][key]["isbuilt"] == 1.0
         else
             @test nw["convdc_ne"][key]["isbuilt"] == 0.0
         end
     end
     for (key, value) in nw["ne_branch"]
-        if key in []  # no AC line should be built
+        if key in ["1"]  # AC line 1 should be built
             @test nw["ne_branch"][key]["built"] == 1.0
         else
             @test nw["ne_branch"][key]["built"] == 0.0
@@ -83,7 +83,7 @@ result_test2 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
         end
     end
     for (key, value) in nw1["convdc_ne"]
-        if key in ["4", "6"]  # conveters 4 and 6 should be built
+        if key in ["4", "6"]  # converters 4 and 6 should be built
             @test nw1["convdc_ne"][key]["isbuilt"] == 1.0
         else
             @test nw1["convdc_ne"][key]["isbuilt"] == 0.0
@@ -128,7 +128,7 @@ mn_data = _FP.multinetwork_data(data, extradata)
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 result_test3 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
 
-# Test 3: the results  should stay the same than in Test 2 except that a new storage is built at bus 5 to replace
+# Test 3: the results should stay the same than in Test 2 except that a new storage is built at bus 5 to replace
 #         the deactivted storage asset
 @testset "Storage third test (TNEP with storage dectivated)" begin
     nw1 = result_test3["solution"]["nw"]["1"]
@@ -140,7 +140,7 @@ result_test3 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
         end
     end
     for (key, value) in nw1["convdc_ne"]
-        if key in ["4", "6"]  # conveters 4 and 6 should be built
+        if key in ["4", "6"]  # converters 4 and 6 should be built
             @test nw1["convdc_ne"][key]["isbuilt"] == 1.0
         else
             @test nw1["convdc_ne"][key]["isbuilt"] == 0.0
@@ -191,7 +191,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 
 result_test4 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
 
-# Test 4: results should stay the same than in Test 4 except that a the smaller and cheaper storage
+# Test 4: results should stay the same than in Test 3 except that a the smaller and cheaper storage
 #         is built
 @testset "Storage fourth test (TNEP with second storage candidate)" begin
     nw1 = result_test4["solution"]["nw"]["1"]
@@ -203,7 +203,7 @@ result_test4 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
         end
     end
     for (key, value) in nw1["convdc_ne"]
-        if key in ["4", "6"]  # conveters 4 and 6 should be built
+        if key in ["4", "6"]  # converters 4 and 6 should be built
             @test nw1["convdc_ne"][key]["isbuilt"] == 1.0
         else
             @test nw1["convdc_ne"][key]["isbuilt"] == 0.0
@@ -230,4 +230,4 @@ result_test4 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
     # at step 3 storage should have accumulated enough energy to cover residual demand at load 5 in step 4
     @test nw3["ne_storage"]["2"]["se_ne"] ≈ (0.8/data["ne_storage"]["2"]["discharge_efficiency"]) atol=0.01
     @test nw4["ne_storage"]["2"]["sd_ne"] ≈ 0.8 atol=0.01
-end
+end;
