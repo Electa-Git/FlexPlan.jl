@@ -26,14 +26,3 @@ function parse_file(file::String; kwargs...)
     end
     return data
 end
-
-"""
-    parse_file(file, scenario; <keyword arguments>)
-
-Also scale cost data according to `scenario`.
-"""
-function parse_file(file::String, scenario::Dict{String,Any}; kwargs...)
-    data = parse_file(file; kwargs...)
-    scale_cost_data!(data, scenario)
-    return data
-end
