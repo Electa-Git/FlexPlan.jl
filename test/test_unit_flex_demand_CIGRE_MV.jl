@@ -20,6 +20,7 @@ filename_load_extra = normpath(@__DIR__,"..","test","data","CIGRE_MV_benchmark_n
 
 # Create PowerModels data dictionary (AC networks and storage)
 data = _PM.parse_file(file)
+_FP.add_dimension!(data, :hour, number_of_hours)
 
 # Handle possible missing auxiliary fields of the MATPOWER case file
 field_names = ["busdc","busdc_ne","branchdc","branchdc_ne","convdc","convdc_ne","ne_storage","storage","storage_extra"]
@@ -48,7 +49,7 @@ _FP.add_flexible_demand_data!(data)
 extradata = _FP.create_profile_data(number_of_hours, data, loadprofile)
 
 # Create data dictionary where time series data is included at the right place
-mn_data = _FP.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+mn_data = _FP.multinetwork_data(data, extradata)
 
 # Build optimisation model, solve it and write solution dictionary:
 s = Dict("output" => Dict("branch_flows" => true))

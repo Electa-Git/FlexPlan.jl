@@ -1,5 +1,5 @@
 # use non-commercial solver so that tests can run on any machine
-cbc = JuMP.with_optimizer(Cbc.Optimizer, logLevel=0)
+#cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "logLevel" => 0)
 
 dim = 4 # Number of time points
 cd(dirname(@__FILE__)) # set working directory to file directory
@@ -7,13 +7,14 @@ file = "./data/case6_strg.m"
 
 # Test 1: constant demand at all loads (base case)
 data = _PM.parse_file(file)
-
 _PMACDC.process_additional_data!(data)
 _FP.add_storage_data!(data)
+_FP.add_dimension!(data, :hour, dim)
+
 loadprofile = ones(5, dim)
 
 extradata = _FP.create_profile_data(dim, data, loadprofile)
-mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+mn_data = _FP.multinetwork_data(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 
@@ -59,11 +60,12 @@ end
 data = _PM.parse_file(file)
 _PMACDC.process_additional_data!(data)
 _FP.add_storage_data!(data)
+_FP.add_dimension!(data, :hour, dim)
 loadprofile = ones(5, dim)
 loadprofile[end, :] = repeat([100 100 100 240] / 240, 1 , Int(dim /4))
 
 extradata = _FP.create_profile_data(dim, data, loadprofile)
-mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+mn_data = _FP.multinetwork_data(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 
@@ -115,12 +117,13 @@ end
 data = _PM.parse_file(file)
 _PMACDC.process_additional_data!(data)
 _FP.add_storage_data!(data)
+_FP.add_dimension!(data, :hour, dim)
 data["storage"]["1"]["status"] = 0 # take existing storage out of service
 loadprofile = ones(5, dim)
 loadprofile[end, :] = repeat([100 100 100 240] / 240, 1 , Int(dim /4))
 
 extradata = _FP.create_profile_data(dim, data, loadprofile)
-mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+mn_data = _FP.multinetwork_data(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 result_test3 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
@@ -171,6 +174,7 @@ end
 data = _PM.parse_file(file)
 _PMACDC.process_additional_data!(data)
 _FP.add_storage_data!(data)
+_FP.add_dimension!(data, :hour, dim)
 data["storage"]["1"]["status"] = 0 # take existing storage out of service
 data["ne_storage"]["2"] = copy(data["ne_storage"]["1"]) # create new candidate
 data["ne_storage"]["2"]["index"] = 2
@@ -181,7 +185,7 @@ loadprofile = ones(5, dim)
 loadprofile[end, :] = repeat([100 100 100 240] / 240, 1 , Int(dim /4))
 
 extradata = _FP.create_profile_data(dim, data, loadprofile)
-mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+mn_data = _FP.multinetwork_data(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 

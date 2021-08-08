@@ -24,15 +24,12 @@ loadprofile[mins[day-1]:mins[day]] *= 3
 day = 3
 loadprofile[mins[day-1]:mins[day]] *= 2.5
 
-# Data manipulation (per unit conversions and matching data models)
-data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
-_PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
-_FP.add_flexible_demand_data!(data) # Add flexible data model
-
+data = _FP.parse_file(file) # Create FlexPlan data dictionary
+_FP.add_dimension!(data, :hour, number_of_hours)
 
 extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
-mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+mn_data = _FP.multinetwork_data(data, extradata)
 
 # Add PowerModels(ACDC) settings
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
