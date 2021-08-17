@@ -95,16 +95,24 @@
         @test _FP.first_nw(pm, 16, :scenario) == 16
         @test _FP.first_nw(pm, 19, :scenario) == 15
         @test _FP.first_nw(pm, 22, :scenario) == 14
+        @test _FP.first_nw(pm, 13, :hour, :scenario) == 13
+        @test _FP.first_nw(pm, 16, :hour, :scenario) == 13
+        @test _FP.first_nw(pm, 21, :hour, :scenario) == 13
+        @test _FP.first_nw(pm, 24, :hour, :scenario) == 13
     end
 
     @testset "last_nw()" begin
-        @test _FP.last_nw(pm, 5, :hour) ==  8
-        @test _FP.last_nw(pm, 6, :hour) ==  8
-        @test _FP.last_nw(pm, 7, :hour) ==  8
-        @test _FP.last_nw(pm, 8, :hour) ==  8
-        @test _FP.last_nw(pm, 9, :scenario) ==  9
-        @test _FP.last_nw(pm, 6, :scenario) == 10
-        @test _FP.last_nw(pm, 3, :scenario) == 11
+        @test _FP.last_nw(pm,  8, :hour) ==  8
+        @test _FP.last_nw(pm,  7, :hour) ==  8
+        @test _FP.last_nw(pm,  6, :hour) ==  8
+        @test _FP.last_nw(pm,  5, :hour) ==  8
+        @test _FP.last_nw(pm,  9, :scenario) ==  9
+        @test _FP.last_nw(pm,  6, :scenario) == 10
+        @test _FP.last_nw(pm,  3, :scenario) == 11
+        @test _FP.last_nw(pm, 12, :hour, :scenario) == 12
+        @test _FP.last_nw(pm,  9, :hour, :scenario) == 12
+        @test _FP.last_nw(pm,  4, :hour, :scenario) == 12
+        @test _FP.last_nw(pm,  1, :hour, :scenario) == 12
     end
 
     @testset "prev_nw()" begin

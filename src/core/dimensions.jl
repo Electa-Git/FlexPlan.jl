@@ -89,29 +89,35 @@ function is_last_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)
 end
 
 """
-    first_nw(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
+    first_nw(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
 
 Return the first network in `pm` along `dimension` while keeping the other dimensions fixed.
 """
-function first_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)
+function first_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
     dim = pm.ref[:dim]
-    order = dim[:meta][dimension]["order"]
-    id_along_dim = dim[:ids_lookup][n][order]
-    step = stride(dim[:ids], order)
-    return n - step * (id_along_dim-1)
+    for d in dimension
+        order = dim[:meta][d]["order"]
+        id_along_dim = dim[:ids_lookup][n][order]
+        step = stride(dim[:ids], order)
+        n = n - step * (id_along_dim-1)
+    end
+    return n
 end
 
 """
-    last_nw(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
+    last_nw(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
 
 Return the last network in `pm` along `dimension` while keeping the other dimensions fixed.
 """
-function last_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)
+function last_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
     dim = pm.ref[:dim]
-    order = dim[:meta][dimension]["order"]
-    id_along_dim = dim[:ids_lookup][n][order]
-    step = stride(dim[:ids], order)
-    return n + step * (length(dim[dimension])-id_along_dim)
+    for d in dimension
+        order = dim[:meta][d]["order"]
+        id_along_dim = dim[:ids_lookup][n][order]
+        step = stride(dim[:ids], order)
+        n = n + step * (length(dim[d])-id_along_dim)
+    end
+    return n
 end
 
 """
