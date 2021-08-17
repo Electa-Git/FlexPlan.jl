@@ -35,39 +35,29 @@ function add_storage_data!(data)
     return data
 end
 
-function scale_cost_data!(data, planning_horizon)
+"""
+    scale_cost_data!(data, planning_horizon_years)
+
+Scale hourly costs to the planning horizon.
+
+Scale hourly costs so that the sum of the costs over all optimization periods represents the
+cost over the entire planning horizon. In this way it is possible to perform the
+optimization using a reduced number of periods and still obtain a cost that approximates the
+cost that would be obtained if 8760 periods were used for each year.
+"""
+function scale_cost_data!(data, planning_horizon_years)
     hours = length(data["dim"][:hour])
-    rescale_hourly = x -> (8760*planning_horizon / hours) * x # scale hourly costs to the planning horizon
-    rescale_total  = x -> (                    1 / hours) * x # scale total costs to the planning horizon
+    rescale = x -> (8760*planning_horizon_years / hours) * x # scale hourly costs to the planning horizon
     for (g, gen) in data["gen"]
-        _PM._apply_func!(gen, "cost", rescale_hourly)
-    end
-    for (b, branch) in get(data, "ne_branch", Dict{String,Any}())
-        _PM._apply_func!(branch, "construction_cost", rescale_total)
-        _PM._apply_func!(branch, "co2_cost", rescale_total)
-    end
-    for (b, branch) in get(data, "branchdc_ne", Dict{String,Any}())
-        _PM._apply_func!(branch, "cost", rescale_total)
-        _PM._apply_func!(branch, "co2_cost", rescale_total)
-    end
-    for (c, conv) in get(data, "convdc_ne", Dict{String,Any}())
-        _PM._apply_func!(conv, "cost", rescale_total)
-        _PM._apply_func!(conv, "co2_cost", rescale_total)
-    end
-    for (s, strg) in get(data, "ne_storage", Dict{String,Any}())
-        _PM._apply_func!(strg, "eq_cost", rescale_total)
-        _PM._apply_func!(strg, "inst_cost", rescale_total)
-        _PM._apply_func!(strg, "co2_cost", rescale_total)
+        _PM._apply_func!(gen, "cost", rescale)
     end
     for (l, load) in data["load"]
-        _PM._apply_func!(load, "cost_shift_up", rescale_hourly)     # Compensation for demand shifting
-        _PM._apply_func!(load, "cost_shift_down", rescale_hourly)   # Compensation for demand shifting
-        _PM._apply_func!(load, "cost_curtailment", rescale_hourly)  # Compensation for load curtailment (i.e. involuntary demand reduction)
-        _PM._apply_func!(load, "cost_reduction", rescale_hourly)    # Compensation for consuming less (i.e. voluntary demand reduction)
-        _PM._apply_func!(load, "cost_investment", rescale_total)    # Investment costs for enabling flexible demand
-        _PM._apply_func!(load, "co2_cost", rescale_total)           # CO2 costs for enabling flexible demand
+        _PM._apply_func!(load, "cost_shift_up", rescale)     # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_shift_down", rescale)   # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_curtailment", rescale)  # Compensation for load curtailment (i.e. involuntary demand reduction)
+        _PM._apply_func!(load, "cost_reduction", rescale)    # Compensation for consuming less (i.e. voluntary demand reduction)
     end
-    _PM._apply_func!(data, "co2_emission_cost", rescale_hourly)
+    _PM._apply_func!(data, "co2_emission_cost", rescale)
 end
 
 function add_flexible_demand_data!(data)
