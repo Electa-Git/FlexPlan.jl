@@ -395,14 +395,6 @@ function constraint_shift_state_final(pm::_PM.AbstractPowerModel, n::Int, i::Int
     JuMP.@constraint(pm.model, pshift_up_tot == pshift_down_tot)
 end
 
-function constraint_flex_investment(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int)
-    z_1 = _PM.var(pm, n_1, :z_flex, i)
-    z_2 = _PM.var(pm, n_2, :z_flex, i)
-
-    # Demand flexibility enabled at one time step should also be enabled at another time step
-    JuMP.@constraint(pm.model, z_1 == z_2)
-end
-
 function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, n::Int, i::Int, start_grace::Int, placeholder::Nothing) # Placeholder is to distinguish constraint template and constraint implementation through multiple dispatch
     pshift_up = _PM.var(pm, n, :pshift_up, i)
     pshift_up_max = JuMP.upper_bound(pshift_up)

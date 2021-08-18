@@ -105,9 +105,6 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             _PM.constraint_ne_voltage_angle_difference(pm, i; nw = n)
             _PM.constraint_ne_thermal_limit_from(pm, i; nw = n)
             _PM.constraint_ne_thermal_limit_to(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_acbranches_mp(pm, n, i)
-            end
         end
 
         for i in _PM.ids(pm, n, :busdc)
@@ -123,9 +120,6 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         for i in _PM.ids(pm, n, :branchdc_ne)
             _PMACDC.constraint_ohms_dc_branch_ne(pm, i; nw = n)
             _PMACDC.constraint_branch_limit_on_off(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_dcbranches_mp(pm, n, i)
-            end
         end
 
         for i in _PM.ids(pm, n, :convdc)
@@ -142,9 +136,6 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             _PMACDC.constraint_converter_losses_ne(pm, i; nw = n)
             _PMACDC.constraint_converter_current_ne(pm, i; nw = n)
             _PMACDC.constraint_converter_limit_on_off(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_converters_mp(pm, n, i)
-            end
             _PMACDC.constraint_conv_transformer_ne(pm, i; nw = n)
             _PMACDC.constraint_conv_reactor_ne(pm, i; nw = n)
             _PMACDC.constraint_conv_filter_ne(pm, i; nw = n)
@@ -221,7 +212,6 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         for i in _PM.ids(pm, :ne_storage, nw = n_2)
             constraint_storage_state_ne(pm, i, n_1, n_2)
             constraint_maximum_absorption_ne(pm, i, n_1, n_2)
-            constraint_storage_investment(pm, n_1, n_2, i)
         end
         for i in _PM.ids(pm, :load, nw = n_2)
             if _PM.ref(pm, n_2, :load, i, "flex") == 1
@@ -229,7 +219,6 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
                 constraint_shift_up_state(pm, n_1, n_2, i)
                 constraint_shift_down_state(pm, n_1, n_2, i)
                 constraint_shift_duration(pm, network_ids[1], n_2, i)
-                constraint_flex_investment(pm, n_1, n_2, i)
             end
         end
         n_1 = n_2
@@ -358,10 +347,6 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
 
             # NW = 2......last
             for n_2 in network_ids[2:end]
-                for i in _PM.ids(pm, :ne_branch, nw = n_2)
-                    # Constrains binary activation variable of ne_branch i to the same value in n_2-1 and n_2 nws
-                    _PMACDC.constraint_candidate_acbranches_mp(pm, n_2, i)
-                end
                 for i in _PM.ids(pm, :storage, nw = n_2)
                     constraint_storage_state(pm, i, n_1, n_2)
                     constraint_maximum_absorption(pm, i, n_1, n_2)
@@ -369,7 +354,6 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
                 for i in _PM.ids(pm, :ne_storage, nw = n_2)
                     constraint_storage_state_ne(pm, i, n_1, n_2)
                     constraint_maximum_absorption_ne(pm, i, n_1, n_2)
-                    constraint_storage_investment(pm, n_1, n_2, i)
                 end
                 for i in _PM.ids(pm, :load, nw = n_2)
                     if _PM.ref(pm, n_2, :load, i, "flex") == 1
@@ -377,7 +361,6 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
                         constraint_shift_up_state(pm, n_1, n_2, i)
                         constraint_shift_down_state(pm, n_1, n_2, i)
                         constraint_shift_duration(pm, network_ids[1], n_2, i)
-                        constraint_flex_investment(pm, n_1, n_2, i)
                     end
                 end
                 n_1 = n_2

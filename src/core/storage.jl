@@ -590,10 +590,3 @@ function constraint_storage_bounds_ne(pm::_PM.AbstractActivePowerModel, n::Int, 
     JuMP.@constraint(pm.model, ps  <= ps_max * z)
     JuMP.@constraint(pm.model, ps  >= ps_min * z)
 end
-
-function constraint_storage_investment(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int)
-    z_1 = _PM.var(pm, n_1, :z_strg_ne, i)
-    z_2 = _PM.var(pm, n_2, :z_strg_ne, i)
-
-    JuMP.@constraint(pm.model, z_1 == z_2)
-end
