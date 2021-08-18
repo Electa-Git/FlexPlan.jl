@@ -308,7 +308,7 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
 
         for (sub_nw, nw_ids) in sub_nws
 
-            network_ids = sort(collect(nw_ids))
+            network_ids = sort!(collect(nw_ids))
             n_1 = network_ids[1]
             n_last = network_ids[end]
 

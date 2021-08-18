@@ -1,6 +1,6 @@
 export stoch_flex_tnep
 
-""
+"Multi-scenario TNEP with flexible loads and storage, for transmission networks"
 function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
     return _PM.run_model(
         data, model_type, optimizer, post_stoch_flex_tnep;
@@ -9,10 +9,10 @@ function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kw
     )
 end
 
-# for distribution models
-""
-function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
-    return _PM.run_model(data, model_type, optimizer, post_stoch_flex_tnep;
+"Multi-scenario TNEP with flexible loads and storage, for distribution networks"
+function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{BF}, optimizer; kwargs...) where BF <: _PM.AbstractBFModel
+    return _PM.run_model(
+        data, model_type, optimizer, post_stoch_flex_tnep;
         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
         solution_processors = [_PM.sol_data_model!],
         kwargs...
@@ -21,9 +21,9 @@ end
 
 
 # Here the problem is defined, which is then sent to the solver.
-# It is basically a declarion of variables and constraint of the problem
+# It is basically a declaration of variables and constraints of the problem
 
-""
+"Builds transmission model."
 function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
 # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl
     for n in nw_ids(pm)
@@ -40,7 +40,6 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
         variable_absorbed_energy(pm; nw = n)
         variable_absorbed_energy_ne(pm; nw = n)
         variable_flexible_demand(pm; nw = n)
-
 
         # new variables for TNEP problem
         variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
@@ -212,8 +211,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
     end
 end
 
-# distribution version
-""
+"Builds distribution model."
 function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
 
     for n in nw_ids(pm)
@@ -242,6 +240,10 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
     for n in nw_ids(pm)
         _PM.constraint_model_current(pm; nw = n)
         constraint_ne_model_current(pm; nw = n)
+
+        if haskey(_PM.ref(pm, n), :td_coupling)
+            constraint_td_coupling_power_reactive_bounds(pm; nw = n)
+        end
 
         for i in _PM.ids(pm, n, :ref_buses)
             _PM.constraint_theta_ref(pm, i, nw = n)
