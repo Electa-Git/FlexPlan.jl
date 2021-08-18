@@ -53,13 +53,15 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         variable_flexible_demand(pm; nw = n)
 
         # new variables for TNEP problem
-        _PM.variable_ne_branch_indicator(pm; nw = n)
+        variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
+        variable_ne_branch_investment(pm; nw = n)
         _PM.variable_ne_branch_power(pm; nw = n)
         _PM.variable_ne_branch_voltage(pm; nw = n)
         variable_storage_power_ne(pm; nw = n)
         _PMACDC.variable_active_dcbranch_flow_ne(pm; nw = n)
-        _PMACDC.variable_branch_ne(pm; nw = n)
-        _PMACDC.variable_dc_converter_ne(pm; nw = n)
+        variable_ne_branchdc_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PMACDC.variable_branch_ne().
+        variable_ne_branchdc_investment(pm; nw = n)
+        variable_dc_converter_ne(pm; nw = n) # FlexPlan version: replaces _PMACDC.variable_dc_converter_ne().
         _PMACDC.variable_dcbranch_current_ne(pm; nw = n)
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
     end
@@ -250,7 +252,7 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
         variable_flexible_demand(pm; nw = n)
 
         # new variables for TNEP problem
-        _PM.variable_ne_branch_indicator(pm; nw = n)
+        variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
         _PM.variable_ne_branch_power(pm; nw = n, bounded = false) # Bounds computed here would be too limiting in the case of ne_branches added in parallel
         variable_ne_branch_current(pm; nw = n)
         variable_oltc_ne_branch_transform(pm; nw = n)

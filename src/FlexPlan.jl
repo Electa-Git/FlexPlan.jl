@@ -41,6 +41,9 @@ include("io/profile_data.jl")
 include("core/base.jl")
 include("core/types.jl")
 include("core/dimensions.jl")
+include("core/variable.jl")
+include("core/variableconv.jl")
+include("core/variabledcgrid.jl")
 include("core/flexible_demand.jl")
 include("core/storage.jl")
 include("core/objective.jl")
@@ -53,4 +56,6 @@ include("core/t-d_coupling.jl")
 
 include("form/bf.jl")
 include("form/bfarad.jl")
+include("formconv/dcp.jl")
+
 end

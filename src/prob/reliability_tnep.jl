@@ -34,13 +34,15 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             variable_demand_interruption(pm; nw = n) # reliability specific
         end
         # new variables for TNEP problem
-        _PM.variable_ne_branch_indicator(pm; nw = n)
+        variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
+        variable_ne_branch_investment(pm; nw = n)
         _PM.variable_ne_branch_power(pm; nw = n)
         _PM.variable_ne_branch_voltage(pm; nw = n)
         variable_storage_power_ne(pm; nw = n)
         _PMACDC.variable_active_dcbranch_flow_ne(pm; nw = n)
-        _PMACDC.variable_branch_ne(pm; nw = n)
-        _PMACDC.variable_dc_converter_ne(pm; nw = n)
+        variable_ne_branchdc_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PMACDC.variable_branch_ne().
+        variable_ne_branchdc_investment(pm; nw = n)
+        variable_dc_converter_ne(pm; nw = n) # FlexPlan version: replaces _PMACDC.variable_dc_converter_ne().
         _PMACDC.variable_dcbranch_current_ne(pm; nw = n)
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
     end

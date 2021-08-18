@@ -40,6 +40,7 @@ function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
     variable_storage_energy_ne(pm; kwargs...)
     variable_storage_charge_ne(pm; kwargs...)
     variable_storage_discharge_ne(pm; kwargs...)
+    variable_storage_indicator(pm; kwargs..., relax=true)
     variable_storage_investment(pm; kwargs...)
 end
 
@@ -168,23 +169,51 @@ function variable_storage_discharge_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cn
     report && _IM.sol_component_value(pm, nw, :ne_storage, :sd_ne, _PM.ids(pm, nw, :ne_storage), sd)
 end
 
-function variable_storage_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
-    if !relax
-        z = _PM.var(pm, nw)[:z_strg_ne] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_z_strg_ne",
-        binary = true,
-        start = 0
-        )
+function variable_storage_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
+    first_n = first_nw(pm, nw, :hour, :scenario)
+    if nw == first_n
+        if !relax
+            z = _PM.var(pm, nw)[:z_strg_ne] = JuMP.@variable(pm.model,
+                [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_z_strg_ne",
+                binary = true,
+                start = 0
+            )
+        else
+            z = _PM.var(pm, nw)[:z_strg_ne] = JuMP.@variable(pm.model,
+                [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_z_strg_ne",
+                lower_bound = 0,
+                upper_bound = 1,
+                start = 0
+            )
+        end
     else
-        z = _PM.var(pm, nw)[:z_strg_ne] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_z_strg_ne",
-        lower_bound = 0,
-        upper_bound = 1,
-        start = 0
-        )
+        z = _PM.var(pm, nw)[:z_strg_ne] = _PM.var(pm, first_n)[:z_strg_ne]
     end
     report && _IM.sol_component_value(pm, nw, :ne_storage, :isbuilt, _PM.ids(pm, nw, :ne_storage), z)
- end
+end
+
+function variable_storage_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
+    first_n = first_nw(pm, nw, :hour, :scenario)
+    if nw == first_n
+        if !relax
+            investment = _PM.var(pm, nw)[:z_strg_ne_investment] = JuMP.@variable(pm.model,
+                [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_z_strg_ne_investment",
+                binary = true,
+                start = 0
+            )
+        else
+            investment = _PM.var(pm, nw)[:z_strg_ne_investment] = JuMP.@variable(pm.model,
+                [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_z_strg_ne_investment",
+                lower_bound = 0,
+                upper_bound = 1,
+                start = 0
+            )
+        end
+    else
+        investment = _PM.var(pm, nw)[:z_strg_ne_investment] = _PM.var(pm, first_n)[:z_strg_ne_investment]
+    end
+    report && _IM.sol_component_value(pm, nw, :ne_storage, :investment, _PM.ids(pm, nw, :ne_storage), investment)
+end
 
 # ####################################################
 # Constraint Templates: They are used to do all data manipuations and return a function with the same name,
