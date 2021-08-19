@@ -323,3 +323,40 @@ mpc.branchdc_ne = [
 					5       7       0.0012   0   0   1575    1575    1575     1 2500 15;
 					3       9       0.0012   0   0   1575    1575    1575     1 2500 15;
  ];
+
+
+
+ % hours
+mpc.time_elapsed = 1.0
+
+%% storage data
+%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status
+mpc.storage = [
+     5   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250.0   -50.0   70.0    0.1     0.0     0.0     0.0     0;
+];
+
+%% storage additional data
+%column_names%  max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
+mpc.storage_extra = [
+2400 0 0 1e-4;
+];
+
+
+%% storage data
+%column_names%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
+mpc.ne_storage = [
+     2   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     2500     5000     1 2400 0 0 0.001;
+     5   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     2500     5000     1 2400 0 0 0.001;
+];
+
+
+
+%% load additional data
+%column_names% load_id e_nce_max p_red_max p_shift_up_max p_shift_down_max p_shift_down_tot_max t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost
+mpc.load_extra = [
+1 100 0.3 0.3 1.0 100 10 10 0.1 0.00 0.00 2000 800 1 0.5;
+2 100 0.3 0.3 1.0 100 10 10 0.1 0.00 0.00 2000 240 1 0.5;
+3 100 0.3 0.3 1.0 100 10 10 0.1 0.00 0.00 2000 400 1 0.5;
+4 100 0.3 0.3 1.0 100 10 10 0.1 0.00 0.00 2000 160 1 0.5;
+5 100 0.3 0.3 1.0 100 10 10 0.1 0.00 0.00 2000 240 1 0.5;
+];

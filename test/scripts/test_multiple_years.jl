@@ -18,7 +18,7 @@ optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer,
 
 ## Input parameters
 
-test_case = "case6" # Available test cases (see below): "case6", "cigre"
+test_case = "case67" # Available test cases (see below): "case6", "case67"
 number_of_hours = 4 # Number of hourly optimization periods
 number_of_scenarios = 3 # Number of scenarios (different generation/load profiles)
 number_of_years = 3
