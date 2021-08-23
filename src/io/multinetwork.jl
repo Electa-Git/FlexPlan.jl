@@ -29,7 +29,7 @@ function multinetwork_data(
         Memento.error(_LOGGER, "Missing `dim` dict in `sn_data` argument. The function `add_dimension!()` must be called before `multinetwork_data()`.")
     end
 
-    count = length(sn_data["dim"][:ids]) # Number of networks to be created
+    count = length(sn_data["dim"][:li]) # Number of networks to be created
 
     mn_data = merge_into # Just to rename
 

@@ -45,10 +45,10 @@
 
     sn_data = Dict{String,Any}(c=>Dict{String,Any}() for c in ("bus","branch","dcline","gen","load","shunt","switch","storage")) # Fake a single-network data structure
     _FP.add_dimension!(sn_data, :hour, 4)
-    _FP.add_dimension!(sn_data, :scenario, Dict(s => Dict{String,Any}("probability"=>1/s) for s in 1:3))
+    _FP.add_dimension!(sn_data, :scenario, Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3))
     _FP.add_dimension!(sn_data, :sub_nw, 2; metadata = Dict{String,Any}("description"=>"sub_nws model different physical networks"))
-    mn_data = Dict{String,Any}("dim"=>sn_data["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data)) # Fake a multinetwork data structure
-    pm = _PM.instantiate_model(mn_data, _PM.ACPPowerModel, pm->nothing)
+    dt = Dict{String,Any}("dim"=>sn_data["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data)) # Fake a multinetwork data structure
+    pm = _PM.instantiate_model(dt, _PM.ACPPowerModel, pm->nothing)
 
     @testset "nw_ids()" begin
         @test _FP.nw_ids(pm)                         == benchmark.nw
@@ -62,29 +62,23 @@
         @test _FP.nw_ids(pm, hour=[2,4], scenario=2) == DataFrames.filter(r -> r.hour∈(2,4) && r.scenario==2, benchmark).nw
     end
 
-    @testset "dim()" begin
-        @test _FP.dim(pm, :hour) == Dict(h => Dict{String,Any}() for h in 1:4)
-        @test _FP.dim(pm, :scenario) == Dict(s => Dict{String,Any}("probability"=>1/s) for s in 1:3)
+    @testset "similar_ids()" begin
+        @test _FP.similar_ids(pm, 7)                           == [7]
+        @test _FP.similar_ids(pm, 7, hour=4)                   == [8]
+        @test _FP.similar_ids(pm, 7, scenario=1)               == [3]
+        @test _FP.similar_ids(pm, 7, hour=4, scenario=1)       == [4]
+        @test _FP.similar_ids(pm, 7, hour=2:4)                 == [6,7,8]
+        @test _FP.similar_ids(pm, 7, hour=[2,4])               == [6,8]
+        @test _FP.similar_ids(pm, 7, scenario=1:3)             == [3,7,11]
+        @test _FP.similar_ids(pm, 7, scenario=[1,3])           == [3,11]
+        @test _FP.similar_ids(pm, 7, hour=[2,4], scenario=1:3) == [2,4,6,8,10,12]
     end
 
-    @testset "dim_meta()" begin
-        @test typeof(_FP.dim_meta(pm, :hour)) == Dict{String,Any}
-        @test haskey(_FP.dim_meta(pm, :sub_nw), "description")
-        @test _FP.dim_meta(pm, :sub_nw, "description") == "sub_nws model different physical networks"
-    end
-
-    @testset "is_first_nw()" begin
-        @test _FP.is_first_nw(pm, 14, :hour) == false
-        @test _FP.is_first_nw(pm, 14, :scenario) == true
-        @test _FP.is_first_nw(pm, 17, :hour) == true
-        @test _FP.is_first_nw(pm, 17, :scenario) == false
-    end
-
-    @testset "is_last_nw()" begin
-        @test _FP.is_last_nw(pm, 20, :hour) == true
-        @test _FP.is_last_nw(pm, 20, :scenario) == false
-        @test _FP.is_last_nw(pm, 21, :hour) == false
-        @test _FP.is_last_nw(pm, 21, :scenario) == true
+    @testset "similar_id()" begin
+        @test _FP.similar_id(pm, 7)                     == 7
+        @test _FP.similar_id(pm, 7, hour=4)             == 8
+        @test _FP.similar_id(pm, 7, scenario=1)         == 3
+        @test _FP.similar_id(pm, 7, hour=4, scenario=1) == 4
     end
 
     @testset "first_nw()" begin
@@ -116,11 +110,11 @@
     end
 
     @testset "prev_nw()" begin
-        @test_throws ErrorException _FP.prev_nw(pm, 17, :hour)
+        @test_throws BoundsError _FP.prev_nw(pm, 17, :hour)
         @test _FP.prev_nw(pm, 18, :hour) == 17
         @test _FP.prev_nw(pm, 19, :hour) == 18
         @test _FP.prev_nw(pm, 20, :hour) == 19
-        @test_throws ErrorException _FP.prev_nw(pm, 16, :scenario)
+        @test_throws BoundsError _FP.prev_nw(pm, 16, :scenario)
         @test _FP.prev_nw(pm, 19, :scenario) == 15
         @test _FP.prev_nw(pm, 22, :scenario) == 18
     end
@@ -129,10 +123,55 @@
         @test _FP.next_nw(pm, 5, :hour) ==  6
         @test _FP.next_nw(pm, 6, :hour) ==  7
         @test _FP.next_nw(pm, 7, :hour) ==  8
-        @test_throws ErrorException _FP.next_nw(pm, 8, :hour)
-        @test_throws ErrorException _FP.next_nw(pm, 9, :scenario)
+        @test_throws BoundsError _FP.next_nw(pm, 8, :hour)
+        @test_throws BoundsError _FP.next_nw(pm, 9, :scenario)
         @test _FP.next_nw(pm, 6, :scenario) == 10
         @test _FP.next_nw(pm, 3, :scenario) ==  7
+    end
+
+    @testset "is_first_nw()" begin
+        @test _FP.is_first_nw(pm, 14, :hour) == false
+        @test _FP.is_first_nw(pm, 14, :scenario) == true
+        @test _FP.is_first_nw(pm, 17, :hour) == true
+        @test _FP.is_first_nw(pm, 17, :scenario) == false
+    end
+
+    @testset "is_last_nw()" begin
+        @test _FP.is_last_nw(pm, 20, :hour) == true
+        @test _FP.is_last_nw(pm, 20, :scenario) == false
+        @test _FP.is_last_nw(pm, 21, :hour) == false
+        @test _FP.is_last_nw(pm, 21, :scenario) == true
+    end
+
+    @testset "dim_prop()" begin
+        @test Set(keys(_FP.dim_prop(dt))) == Set((:hour, :scenario, :sub_nw))
+        @test Set(keys(_FP.dim_prop(pm))) == Set((:hour, :scenario, :sub_nw))
+        @test _FP.dim_prop(dt, :hour) == Dict(h => Dict{String,Any}() for h in 1:4)
+        @test _FP.dim_prop(pm, :hour) == Dict(h => Dict{String,Any}() for h in 1:4)
+        @test _FP.dim_prop(dt, :scenario) == Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3)
+        @test _FP.dim_prop(pm, :scenario) == Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3)
+        @test _FP.dim_prop(dt, :scenario, 1) == Dict{String,Any}("probability"=>1/3)
+        @test _FP.dim_prop(pm, :scenario, 1) == Dict{String,Any}("probability"=>1/3)
+        @test _FP.dim_prop(dt, :scenario, 1, "probability") == 1/3
+        @test _FP.dim_prop(pm, :scenario, 1, "probability") == 1/3
+    end
+
+    @testset "dim_meta()" begin
+        @test Set(keys(_FP.dim_meta(dt))) == Set((:hour, :scenario, :sub_nw))
+        @test Set(keys(_FP.dim_meta(pm))) == Set((:hour, :scenario, :sub_nw))
+        @test _FP.dim_meta(dt, :hour) == Dict{String,Any}()
+        @test _FP.dim_meta(pm, :hour) == Dict{String,Any}()
+        @test _FP.dim_meta(dt, :sub_nw) == Dict{String,Any}("description" => "sub_nws model different physical networks")
+        @test _FP.dim_meta(pm, :sub_nw) == Dict{String,Any}("description" => "sub_nws model different physical networks")
+        @test _FP.dim_meta(dt, :sub_nw, "description") == "sub_nws model different physical networks"
+        @test _FP.dim_meta(pm, :sub_nw, "description") == "sub_nws model different physical networks"
+    end
+
+    @testset "dim_length()" begin
+        @test _FP.dim_length(dt, :hour) == 4
+        @test _FP.dim_length(pm, :hour) == 4
+        @test _FP.dim_length(dt, :scenario) == 3
+        @test _FP.dim_length(pm, :scenario) == 3
     end
 
     Memento.setlevel!(Memento.getlogger(FlexPlan), previous_FlexPlan_logger_level)

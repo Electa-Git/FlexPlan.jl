@@ -46,7 +46,7 @@ optimization using a reduced number of periods and still obtain a cost that appr
 cost that would be obtained if 8760 periods were used for each year.
 """
 function scale_cost_data!(data, planning_horizon_years)
-    hours = length(data["dim"][:hour])
+    hours = dim_length(data, :hour)
     rescale = x -> (8760*planning_horizon_years / hours) * x # scale hourly costs to the planning horizon
     for (g, gen) in data["gen"]
         _PM._apply_func!(gen, "cost", rescale)

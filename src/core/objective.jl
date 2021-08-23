@@ -75,7 +75,7 @@ function objective_stoch_flex(pm::_PM.AbstractPowerModel)
                 + calc_ne_storage_cost(pm, n, add_co2_cost)
                 + calc_load_cost(pm, n, add_co2_cost)
             for n in nw_ids(pm; scenario=s))
-        for (s, scenario) in dim(pm, :scenario))
+        for (s, scenario) in dim_prop(pm, :scenario))
     )
 end
 
