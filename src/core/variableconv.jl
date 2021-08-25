@@ -1,6 +1,6 @@
 # To be used instead of _PMACDC.variable_converter_ne() - supports deduplication of variables
 function variable_ne_converter_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
-    first_n = first_nw(pm, nw, :hour, :scenario)
+    first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
             Z_dc_conv_ne = _PM.var(pm, nw)[:conv_ne] = JuMP.@variable(pm.model,
@@ -23,7 +23,7 @@ function variable_ne_converter_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.
 end
 
 function variable_ne_converter_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
-    first_n = first_nw(pm, nw, :hour, :scenario)
+    first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
             investment = _PM.var(pm, nw)[:conv_ne_investment] = JuMP.@variable(pm.model,

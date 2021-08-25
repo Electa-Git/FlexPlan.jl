@@ -40,7 +40,7 @@ metadata and length (cardinality) of a dimension. They apply to both data dictio
 function add_dimension!(data::Dict{String,Any}, name::Symbol, properties::Dict{Int,Dict{String,Any}}; metadata::Dict{String,Any}=Dict{String,Any}())
     dim = get!(data, "dim", _initialize_dim())
 
-    if haskey(dim, name)
+    if haskey(dim[:pos], name)
         Memento.error(_LOGGER, "A dimension named \"$name\" is already present in data.")
     end
     if Set(keys(properties)) != Set(1:length(properties))
@@ -97,7 +97,8 @@ function nw_ids(pm::_PM.AbstractPowerModel; kwargs...)::Vector{Int}
     end
     dim = pm.ref[:dim]
     names = keys(dim[:pos])
-    nws = dim[:li][ntuple(i -> get(kwargs, names[i], axes(dim[:li], i)), ndims(dim[:li]))...]
+    li = dim[:li]
+    nws = li[ntuple(i -> get(kwargs, names[i], axes(li, i)), ndims(li))...]
     ndims(nws) >= 1 ? vec(nws) : [nws]
 end
 
@@ -123,8 +124,9 @@ julia> similar_ids(pm, 3; hour = 24, scenario = 3)
 function similar_ids(pm::_PM.AbstractPowerModel, n::Int; kwargs...)::Vector{Int}
     dim = pm.ref[:dim]
     names = keys(dim[:pos])
+    li = dim[:li]
     ci_n = dim[:ci][n]
-    nws = dim[:li][ntuple(i -> get(kwargs, names[i], ci_n[i]), ndims(dim[:li]))...]
+    nws = li[ntuple(i -> get(kwargs, names[i], ci_n[i]), ndims(li))...]
     ndims(nws) >= 1 ? vec(nws) : [nws]
 end
 
@@ -145,16 +147,17 @@ julia> similar_id(pm, 3; hour = 24, scenario = 3)
 function similar_id(pm::_PM.AbstractPowerModel, n::Int; kwargs...)::Int
     dim = pm.ref[:dim]
     names = keys(dim[:pos])
+    li = dim[:li]
     ci_n = dim[:ci][n]
-    dim[:li][ntuple(i -> get(kwargs, names[i], ci_n[i])::Int, ndims(dim[:li]))...]
+    li[ntuple(i -> get(kwargs, names[i], ci_n[i])::Int, ndims(li))...]
 end
 
 """
-    first_nw(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
+    first_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
 
 Return the first network in `pm` along `dimension` while keeping the other dimensions fixed.
 """
-function first_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
+function first_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
     dim = pm.ref[:dim]
     names = keys(dim[:pos])
     li = dim[:li]
@@ -163,11 +166,11 @@ function first_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
 end
 
 """
-    last_nw(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
+    last_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
 
 Return the last network in `pm` along `dimension` while keeping the other dimensions fixed.
 """
-function last_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
+function last_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
     dim = pm.ref[:dim]
     names = keys(dim[:pos])
     li = dim[:li]
@@ -176,11 +179,11 @@ function last_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
 end
 
 """
-    prev_nw(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
+    prev_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
 
 Return the previous network in `pm` along `dimension` while keeping the other dimensions fixed.
 """
-function prev_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)
+function prev_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Int
     dim = pm.ref[:dim]
     pos_d = dim[:pos][dimension]
     li = dim[:li]
@@ -189,11 +192,24 @@ function prev_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)
 end
 
 """
-    next_nw(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
+    prev_ids(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
+
+Return the previous networks in `pm` along `dimension` while keeping the other dimensions fixed.
+"""
+function prev_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Vector{Int}
+    dim = pm.ref[:dim]
+    pos_d = dim[:pos][dimension]
+    li = dim[:li]
+    ci_n = Tuple(dim[:ci][n])
+    li[CartesianIndex(ci_n[1:pos_d-1]), CartesianIndices((1:ci_n[pos_d]-1,)), CartesianIndex(ci_n[pos_d+1:end])]
+end
+
+"""
+    next_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
 
 Return the next network in `pm` along `dimension` while keeping the other dimensions fixed.
 """
-function next_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)
+function next_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Int
     dim = pm.ref[:dim]
     pos_d = dim[:pos][dimension]
     li = dim[:li]
@@ -201,15 +217,28 @@ function next_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)
     li[ntuple(i -> i == pos_d ? ci_n[i]+1 : ci_n[i], ndims(li))...]
 end
 
+"""
+    next_ids(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
+
+Return the next networks in `pm` along `dimension` while keeping the other dimensions fixed.
+"""
+function next_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Vector{Int}
+    dim = pm.ref[:dim]
+    pos_d = dim[:pos][dimension]
+    li = dim[:li]
+    ci_n = Tuple(dim[:ci][n])
+    li[CartesianIndex(ci_n[1:pos_d-1]), CartesianIndices((ci_n[pos_d]+1:size(li,pos_d),)), CartesianIndex(ci_n[pos_d+1:end])]
+end
+
 
 ## Query properties of nw ids
 
 """
-    is_first_nw(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
+    is_first_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
 
 Return whether the network `n` is the first along `dimension` in `pm`.
 """
-function is_first_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
+function is_first_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
     dim = pm.ref[:dim]
     pos = dim[:pos]
     ci_n = dim[:ci][n]
@@ -217,11 +246,11 @@ function is_first_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
 end
 
 """
-    is_last_nw(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
+    is_last_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
 
 Return whether the network `n` is the last along `dimension` in `pm`.
 """
-function is_last_nw(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
+function is_last_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
     dim = pm.ref[:dim]
     pos = dim[:pos]
     li = dim[:li]

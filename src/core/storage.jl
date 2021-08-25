@@ -170,7 +170,7 @@ function variable_storage_discharge_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cn
 end
 
 function variable_storage_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
-    first_n = first_nw(pm, nw, :hour, :scenario)
+    first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
             z = _PM.var(pm, nw)[:z_strg_ne] = JuMP.@variable(pm.model,
@@ -193,7 +193,7 @@ function variable_storage_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, 
 end
 
 function variable_storage_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
-    first_n = first_nw(pm, nw, :hour, :scenario)
+    first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
             investment = _PM.var(pm, nw)[:z_strg_ne_investment] = JuMP.@variable(pm.model,

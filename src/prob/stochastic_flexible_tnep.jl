@@ -152,7 +152,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
 
-        if is_first_nw(pm, n, :hour)
+        if is_first_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, nw = n)
                 constraint_maximum_absorption(pm, i, nw = n)
@@ -172,7 +172,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             end
 
         else
-            if is_last_nw(pm, n, :hour)
+            if is_last_id(pm, n, :hour)
                 for i in _PM.ids(pm, :storage, nw = n)
                     constraint_storage_state_final(pm, i, nw = n)
                 end
@@ -189,8 +189,8 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             end
 
             # From second hour to last hour
-            prev_n = prev_nw(pm, n, :hour)
-            first_n = first_nw(pm, n, :hour)
+            prev_n = prev_id(pm, n, :hour)
+            first_n = first_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, prev_n, n)
                 constraint_maximum_absorption(pm, i, prev_n, n)
@@ -282,7 +282,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
 
-        if is_first_nw(pm, n, :hour)
+        if is_first_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, nw = n)
                 constraint_maximum_absorption(pm, i, nw = n)
@@ -302,7 +302,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
             end
 
         else
-            if is_last_nw(pm, n, :hour)
+            if is_last_id(pm, n, :hour)
                 for i in _PM.ids(pm, :storage, nw = n)
                     constraint_storage_state_final(pm, i, nw = n)
                 end
@@ -319,8 +319,8 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
             end
 
             # From second hour to last hour
-            prev_n = prev_nw(pm, n, :hour)
-            first_n = first_nw(pm, n, :hour)
+            prev_n = prev_id(pm, n, :hour)
+            first_n = first_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, prev_n, n)
                 constraint_maximum_absorption(pm, i, prev_n, n)

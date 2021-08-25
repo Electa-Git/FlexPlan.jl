@@ -1,6 +1,6 @@
 # To be used instead of _PM.variable_ne_branch_indicator() - supports deduplication of variables
 function variable_ne_branch_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
-    first_n = first_nw(pm, nw, :hour, :scenario)
+    first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
             z_branch_ne = _PM.var(pm, nw)[:branch_ne] = JuMP.@variable(pm.model,
@@ -23,7 +23,7 @@ function variable_ne_branch_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw
 end
 
 function variable_ne_branch_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
-    first_n = first_nw(pm, nw, :hour, :scenario)
+    first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
             investment = _PM.var(pm, nw)[:branch_ne_investment] = JuMP.@variable(pm.model,

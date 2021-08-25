@@ -140,7 +140,7 @@ end
 
 function variable_flexible_demand_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
     # Integer (boolean) decision variable for investment in enabling flexible demand at a load point.
-    first_n = first_nw(pm, nw, :hour, :scenario)
+    first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
             z = _PM.var(pm, nw)[:z_flex] = JuMP.@variable(pm.model,
@@ -163,7 +163,7 @@ function variable_flexible_demand_indicator(pm::_PM.AbstractPowerModel; nw::Int=
 end
 
 function variable_flexible_demand_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
-    first_n = first_nw(pm, nw, :hour, :scenario)
+    first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
             investment = _PM.var(pm, nw)[:z_flex_investment] = JuMP.@variable(pm.model,
