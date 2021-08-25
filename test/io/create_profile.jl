@@ -70,7 +70,6 @@ function create_profile_data_germany!(data)
                 end 
             end
         end
-        print(demand_profile[1:hours])
         loadprofile[:, start_idx + 1 : start_idx + hours] .= repeat(demand_profile[1:hours]', size(loadprofile, 1))
     end
     # Return info
