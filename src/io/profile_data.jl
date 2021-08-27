@@ -35,31 +35,6 @@ function add_storage_data!(data)
     return data
 end
 
-"""
-    scale_cost_data!(data, planning_horizon_years)
-
-Scale hourly costs to the planning horizon.
-
-Scale hourly costs so that the sum of the costs over all optimization periods represents the
-cost over the entire planning horizon. In this way it is possible to perform the
-optimization using a reduced number of periods and still obtain a cost that approximates the
-cost that would be obtained if 8760 periods were used for each year.
-"""
-function scale_cost_data!(data, planning_horizon_years)
-    hours = dim_length(data, :hour)
-    rescale = x -> (8760*planning_horizon_years / hours) * x # scale hourly costs to the planning horizon
-    for (g, gen) in data["gen"]
-        _PM._apply_func!(gen, "cost", rescale)
-    end
-    for (l, load) in data["load"]
-        _PM._apply_func!(load, "cost_shift_up", rescale)     # Compensation for demand shifting
-        _PM._apply_func!(load, "cost_shift_down", rescale)   # Compensation for demand shifting
-        _PM._apply_func!(load, "cost_curtailment", rescale)  # Compensation for load curtailment (i.e. involuntary demand reduction)
-        _PM._apply_func!(load, "cost_reduction", rescale)    # Compensation for consuming less (i.e. voluntary demand reduction)
-    end
-    _PM._apply_func!(data, "co2_emission_cost", rescale)
-end
-
 function add_flexible_demand_data!(data)
     for (le, load_extra) in data["load_extra"]
 
@@ -107,6 +82,9 @@ function add_flexible_demand_data!(data)
         # Maximum energy not consumed (accumulated voluntary load reduction) (MWh)
         data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
 
+        # Expected lifetime of flexibility-enabling equipment (years)
+        data["load"]["$idx"]["lifetime"] = load_extra["lifetime"]
+
         # Value of Lost Load (VOLL), i.e. costs for load curtailment due to contingencies (€/MWh)
         if haskey(load_extra, "cost_voll")
             data["load"]["$idx"]["cost_voll"] = load_extra["cost_voll"]
@@ -147,6 +125,67 @@ function add_generation_emission_data!(data)
     end
     delete!(data, "load_extra")
     return data
+end
+
+"""
+    scale_data!(data; year_scale_factor)
+
+Scale cost and lifetime data when representative years are used to model a longer period.
+
+`year_scale_factor` is how many years a representative year should represent.
+"""
+function scale_data!(data; year_scale_factor::Int)
+    _scale_cost_data!(data, year_scale_factor)
+    _scale_time_data!(data, year_scale_factor)
+end
+
+"""
+    _scale_cost_data!(data, planning_horizon_years)
+
+Scale hourly costs to the planning horizon.
+
+Scale hourly costs so that the sum of the costs over all optimization periods represents the
+cost over the entire planning horizon. In this way it is possible to perform the
+optimization using a reduced number of periods and still obtain a cost that approximates the
+cost that would be obtained if 8760 periods were used for each year.
+"""
+function _scale_cost_data!(data, planning_horizon_years)
+    hours = dim_length(data, :hour)
+    rescale = x -> (8760*planning_horizon_years / hours) * x # scale hourly costs to the planning horizon
+    for (g, gen) in data["gen"]
+        _PM._apply_func!(gen, "cost", rescale)
+    end
+    for (l, load) in data["load"]
+        _PM._apply_func!(load, "cost_shift_up", rescale)     # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_shift_down", rescale)   # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_curtailment", rescale)  # Compensation for load curtailment (i.e. involuntary demand reduction)
+        _PM._apply_func!(load, "cost_reduction", rescale)    # Compensation for consuming less (i.e. voluntary demand reduction)
+    end
+    _PM._apply_func!(data, "co2_emission_cost", rescale)
+end
+
+"""
+    _scale_time_data!(data, year_scale_factor)
+
+Scale lifetime data from years to periods of `year_scale_factor`.
+"""
+function _scale_time_data!(data, year_scale_factor)
+    rescale = x -> x ÷ year_scale_factor
+    for component in ("ne_branch", "branchdc_ne", "ne_storage", "convdc_ne", "load")
+        for (key, val) in data[component]
+            if !haskey(val, "lifetime")
+                if component == "load" && !Bool(get(val, "flex", 0))
+                    continue # "lifetime" field may not be used in cases where the load is not flexible
+                else
+                    Memento.error(_LOGGER, "Missing `lifetime` key in `$component` $key.")
+                end
+            end
+            if val["lifetime"] % year_scale_factor != 0
+                Memento.error(_LOGGER, "Lifetime of $component $key ($(val["lifetime"])) must be a multiple of the year scale factor ($year_scale_factor).")
+            end
+            _PM._apply_func!(val, "lifetime", rescale)
+        end
+    end
 end
 
 function create_profile_data(number_of_periods, data, loadprofile = ones(length(data["load"]), number_of_periods), genprofile = ones(length(data["gen"]), number_of_periods))
@@ -221,4 +260,3 @@ function create_contingency_data(number_of_hours, data, contingency_profiles=Dic
     end
     return extradata
 end
-

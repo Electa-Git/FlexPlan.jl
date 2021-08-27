@@ -59,14 +59,13 @@ function add_hours_and_scenarios!(data, case, number_of_hours, number_of_scenari
         scenario = Dict(s => Dict{String,Any}("probability"=>1/number_of_scenarios) for s in 1:number_of_scenarios)
         _FP.add_dimension!(data, :scenario, scenario, metadata = Dict{String,Any}("mc"=>get(kwargs, :mc, true)))
 
-        _FP.scale_cost_data!(data, year_scale_factor)
+        _FP.scale_data!(data; year_scale_factor)
         data, loadprofile, genprofile = create_profile_data_italy!(data)
         extradata = _FP.create_profile_data(number_of_hours*number_of_scenarios, data, loadprofile, genprofile)
         data = _FP.multinetwork_data(data, extradata)
     elseif case == "case67"
         _FP.add_dimension!(data, :hour, number_of_hours)
 
-        #scenario = Dict(s => Dict{String,Any}("probability"=>1/number_of_scenarios) for s in 1:number_of_scenarios)
         scenario = Dict(s => Dict{String,Any}("probability"=>1/number_of_scenarios) for s in 1:number_of_scenarios)
         # metadata = Dict{String,Any}("mc"=>mc)
         years = [2017, 2018, 2019]
@@ -77,7 +76,7 @@ function add_hours_and_scenarios!(data, case, number_of_hours, number_of_scenari
             scenario[s]["start"] = start[s]
         end
         _FP.add_dimension!(data, :scenario, scenario)
-        _FP.scale_cost_data!(data, year_scale_factor)
+        _FP.scale_data!(data; year_scale_factor)
         data, loadprofile, genprofile = create_profile_data_germany!(data)
         extradata = _FP.create_profile_data(number_of_hours*number_of_scenarios, data, loadprofile, genprofile)
         data = _FP.multinetwork_data(data, extradata)
