@@ -1,6 +1,7 @@
 ##################################################################################
-#### DEFINTION OF NEW VARIABLES FOR FLEXIBLE DEMAND ACCORDING TO FlexPlan MODEL
+#### DEFINITION OF NEW VARIABLES FOR FLEXIBLE DEMAND ACCORDING TO FlexPlan MODEL
 ##################################################################################
+
 function variable_flexible_demand(pm::_PM.AbstractPowerModel; kwargs...)
     variable_total_flex_demand(pm; kwargs...)
     variable_demand_reduction(pm; kwargs...)
@@ -185,10 +186,12 @@ function variable_flexible_demand_investment(pm::_PM.AbstractPowerModel; nw::Int
     report && _IM.sol_component_value(pm, nw, :load, :investment, _PM.ids(pm, nw, :load), investment)
 end
 
+
 # ####################################################
 # Constraint Templates: They are used to do all data manipuations and return a function with the same name,
 # this way the constraint itself only containts the mathematical formulation
 # ###################################################
+
 function constraint_fixed_demand(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
     constraint_fixed_demand(pm, nw, i)
 end
@@ -269,10 +272,21 @@ function constraint_shift_down_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int
     end
     constraint_shift_down_state_initial(pm, nw, i)
 end
-#
+
+function constraint_flexible_demand_activation(pm::_PM.AbstractPowerModel, i::Int, prev_nws::Vector{Int}, nw::Int)
+    investment_horizon = [nw]
+    lifetime = _PM.ref(pm, nw, :load, i, "lifetime")
+    for n in Iterators.reverse(prev_nws[1:min(lifetime-1,length(prev_nws))])
+        i in _PM.ids(pm, n, :load) ? push!(investment_horizon, n) : break
+    end
+    constraint_flexible_demand_activation(pm, nw, i, investment_horizon)
+end
+
+
 # ####################################################
 # ############### Constraints
 # ###################################################
+
 function constraint_fixed_demand(pm::_PM.AbstractPowerModel, n::Int, i)
     pshift_up = _PM.var(pm, n, :pshift_up, i)
     pshift_down = _PM.var(pm, n, :pshift_down, i)
@@ -413,3 +427,10 @@ function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, n::Int, i::I
     JuMP.@constraint(pm.model, pshift_down <= pshift_down_max - sum(_PM.var(pm, t, :pshift_down, i) for t in start_grace:n-1))
 end
 
+function constraint_flexible_demand_activation(pm::_PM.AbstractPowerModel, n::Int, i::Int, horizon::Vector{Int})
+    indicator = _PM.var(pm, n, :z_flex, i)
+    investments = _PM.var.(Ref(pm), horizon, :z_flex_investment, i)
+
+    # Activate the flexibility depending on the investment decisions in the load's horizon.
+    JuMP.@constraint(pm.model, indicator == sum(investments))
+end

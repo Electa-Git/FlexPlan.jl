@@ -91,3 +91,36 @@ function constraint_power_balance_reliability(pm::_PM.AbstractDCPModel, n::Int, 
 
     JuMP.@constraint(pm.model, sum(p[a] for a in bus_arcs) + sum(p_ne[a] for a in bus_arcs_ne) + sum(pconv_grid_ac[c] for c in bus_convs_ac) + sum(pconv_grid_ac_ne[c] for c in bus_convs_ac_ne)  == sum(pg[g] for g in bus_gens) - sum(ps[s] for s in bus_storage) -sum(ps_ne[s] for s in bus_storage_ne) - sum(pflex[d] for d in bus_loads) + sum(pinter[d] for d in bus_loads) - sum(gs[s] for s in bus_shunts)*v^2)
 end
+
+
+## Candidate AC branches
+
+# Activate a candidate AC branch depending on the investment decisions in the candidate's horizon.
+function constraint_ne_branch_activation(pm::_PM.AbstractPowerModel, n::Int, i::Int, horizon::Vector{Int})
+    indicator = _PM.var(pm, n, :branch_ne, i)
+    investments = _PM.var.(Ref(pm), horizon, :branch_ne_investment, i)
+
+    JuMP.@constraint(pm.model, indicator == sum(investments))
+end
+
+
+## Candidate DC branches
+
+# Activate a candidate DC branch depending on the investment decisions in the candidate's horizon.
+function constraint_ne_branchdc_activation(pm::_PM.AbstractPowerModel, n::Int, i::Int, horizon::Vector{Int})
+    indicator = _PM.var(pm, n, :branchdc_ne, i)
+    investments = _PM.var.(Ref(pm), horizon, :branchdc_ne_investment, i)
+
+    JuMP.@constraint(pm.model, indicator == sum(investments))
+end
+
+
+## Candidate converters
+
+# Activate a candidate AC/DC converter depending on the investment decisions in the candidate's horizon.
+function constraint_ne_converter_activation(pm::_PM.AbstractPowerModel, n::Int, i::Int, horizon::Vector{Int})
+    indicator = _PM.var(pm, n, :conv_ne, i)
+    investments = _PM.var.(Ref(pm), horizon, :conv_ne_investment, i)
+
+    JuMP.@constraint(pm.model, indicator == sum(investments))
+end

@@ -1,6 +1,7 @@
 ##################################################################################
 #### DEFINTION OF NEW VARIABLES FOR STORAGE INVESTMENTS ACCODING TO FlexPlan MODEL
 ##################################################################################
+
 function variable_absorbed_energy(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool = true, report::Bool=true)
     e_abs = _PM.var(pm, nw)[:e_abs] = JuMP.@variable(pm.model,
     [i in _PM.ids(pm, nw, :storage)], base_name="$(nw)_e_abs",
@@ -30,7 +31,6 @@ function variable_absorbed_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw,
 
     report && _IM.sol_component_value(pm, nw, :ne_storage, :e_abs_ne, _PM.ids(pm, nw, :ne_storage), e_abs)
 end
-
 
 function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
     variable_storage_power_real_ne(pm; kwargs...)
@@ -215,10 +215,12 @@ function variable_storage_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw,
     report && _IM.sol_component_value(pm, nw, :ne_storage, :investment, _PM.ids(pm, nw, :ne_storage), investment)
 end
 
+
 # ####################################################
 # Constraint Templates: They are used to do all data manipuations and return a function with the same name,
 # this way the constraint itself only containts the mathematical formulation
 # ###################################################
+
 function constraint_storage_thermal_limit_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
     storage = _PM.ref(pm, nw, :ne_storage, i)
     constraint_storage_thermal_limit_ne(pm, nw, i, storage["thermal_rating"])
@@ -377,6 +379,15 @@ function  constraint_maximum_absorption_ne(pm::_PM.AbstractPowerModel, i::Int, n
     end
 end
 
+function constraint_ne_storage_activation(pm::_PM.AbstractPowerModel, i::Int, prev_nws::Vector{Int}, nw::Int)
+    investment_horizon = [nw]
+    lifetime = _PM.ref(pm, nw, :ne_storage, i, "lifetime")
+    for n in Iterators.reverse(prev_nws[1:min(lifetime-1,length(prev_nws))])
+        i in _PM.ids(pm, n, :ne_storage) ? push!(investment_horizon, n) : break
+    end
+    constraint_ne_storage_activation(pm, nw, i, investment_horizon)
+end
+
 
 ####################################################
 ############### Constraints
@@ -533,7 +544,6 @@ function constraint_storage_excl_slack_ne(pm::_PM.AbstractPowerModel, n::Int, i:
     JuMP.@constraint(pm.model, sc + sd <= s_bound)
 end
 
-
 function constraint_storage_bounds_ne(pm::_PM.AbstractPowerModel, n::Int, i::Int)
     se = _PM.var(pm, n, :se_ne, i)
     sc = _PM.var(pm, n, :sc_ne, i)
@@ -589,4 +599,11 @@ function constraint_storage_bounds_ne(pm::_PM.AbstractActivePowerModel, n::Int, 
     JuMP.@constraint(pm.model, sd  >= sd_min * z)
     JuMP.@constraint(pm.model, ps  <= ps_max * z)
     JuMP.@constraint(pm.model, ps  >= ps_min * z)
+end
+
+function constraint_ne_storage_activation(pm::_PM.AbstractPowerModel, n::Int, i::Int, horizon::Vector{Int})
+    indicator = _PM.var(pm, n, :z_strg_ne, i)
+    investments = _PM.var.(Ref(pm), horizon, :z_strg_ne_investment, i)
+
+    JuMP.@constraint(pm.model, indicator == sum(investments))
 end
