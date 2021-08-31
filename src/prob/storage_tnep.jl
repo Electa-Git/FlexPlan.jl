@@ -1,17 +1,16 @@
 export strg_tnep
 
-""
-function strg_tnep(data::Dict{String,Any}, model_type::Type, solver; kwargs...)
+"TNEP with storage, for transmission networks"
+function strg_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
     return _PM.run_model(
-        data, model_type, solver, post_strg_tnep;
+        data, model_type, optimizer, post_strg_tnep;
         ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
         kwargs...
     )
 end
 
-# for distribution models
-""
-function strg_tnep(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
+"TNEP with storage, for distribution networks"
+function strg_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
     return _PM.run_model(
         data, model_type, optimizer, post_strg_tnep;
         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
@@ -22,9 +21,9 @@ end
 
 
 # Here the problem is defined, which is then sent to the solver.
-# It is basically a declarion of variables and constraint of the problem
+# It is basically a declaration of variables and constraints of the problem
 
-""
+"Builds transmission model."
 function post_strg_tnep(pm::_PM.AbstractPowerModel)
 # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: see storage.jl
     for n in nw_ids(pm)
@@ -143,46 +142,60 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
             constraint_storage_losses_ne(pm, i, nw = n)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
-    end
 
-    network_ids = nw_ids(pm)
-    n_1 = network_ids[1]
-    n_last = network_ids[end]
+        if is_first_id(pm, n, :hour)
+            for i in _PM.ids(pm, :storage, nw = n)
+                constraint_storage_state(pm, i, nw = n)
+                constraint_maximum_absorption(pm, i, nw = n)
+            end
 
-    for i in _PM.ids(pm, :storage, nw = n_1)
-        constraint_storage_state(pm, i, nw = n_1)
-        constraint_maximum_absorption(pm, i, nw = n_1)
-    end
+            for i in _PM.ids(pm, :ne_storage, nw = n)
+                constraint_storage_state_ne(pm, i, nw = n)
+                constraint_maximum_absorption_ne(pm, i, nw = n)
+            end
+        else
+            if is_last_id(pm, n, :hour)
+                for i in _PM.ids(pm, :storage, nw = n)
+                    constraint_storage_state_final(pm, i, nw = n)
+                end
 
-    for i in _PM.ids(pm, :ne_storage, nw = n_1)
-        constraint_storage_state_ne(pm, i, nw = n_1)
-        constraint_maximum_absorption_ne(pm, i, nw = n_1)
-    end
+                for i in _PM.ids(pm, :ne_storage, nw = n)
+                    constraint_storage_state_final_ne(pm, i, nw = n)
+                end
+            end
 
-    for i in _PM.ids(pm, :storage, nw = n_last)
-        constraint_storage_state_final(pm, i, nw = n_last)
-    end
-
-    for i in _PM.ids(pm, :ne_storage, nw = n_last)
-        constraint_storage_state_final_ne(pm, i, nw = n_last)
-    end
-
-    for n_2 in network_ids[2:end]
-        for i in _PM.ids(pm, :storage, nw = n_2)
-            constraint_storage_state(pm, i, n_1, n_2)
-            constraint_maximum_absorption(pm, i, n_1, n_2)
+            # From second hour to last hour
+            prev_n = prev_id(pm, n, :hour)
+            for i in _PM.ids(pm, :storage, nw = n)
+                constraint_storage_state(pm, i, prev_n, n)
+                constraint_maximum_absorption(pm, i, prev_n, n)
+            end
+            for i in _PM.ids(pm, :ne_storage, nw = n)
+                constraint_storage_state_ne(pm, i, prev_n, n)
+                constraint_maximum_absorption_ne(pm, i, prev_n, n)
+            end
         end
-        for i in _PM.ids(pm, :ne_storage, nw = n_2)
-            constraint_storage_state_ne(pm, i, n_1, n_2)
-            constraint_maximum_absorption_ne(pm, i, n_1, n_2)
-        end
-        n_1 = n_2
-    end
 
+        # Inter-year constraints on investments
+        if is_first_id(pm, n, :hour)
+            prev_nws = prev_ids(pm, n, :year)
+            for i in _PM.ids(pm, :ne_branch; nw = n)
+                constraint_ne_branch_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :branchdc_ne; nw = n)
+                constraint_ne_branchdc_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :convdc_ne; nw = n)
+                constraint_ne_converter_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :ne_storage; nw = n)
+                constraint_ne_storage_activation(pm, i, prev_nws, n)
+            end
+        end
+    end
 end
 
-# distribution version
-""
+"Builds distribution model."
 function post_strg_tnep(pm::_PM.AbstractBFModel)
 
     for n in nw_ids(pm)
@@ -211,6 +224,10 @@ function post_strg_tnep(pm::_PM.AbstractBFModel)
         _PM.constraint_model_current(pm; nw = n)
         constraint_ne_model_current(pm; nw = n)
 
+        if haskey(_PM.ref(pm, n), :td_coupling)
+            constraint_td_coupling_power_reactive_bounds(pm; nw = n)
+        end
+
         for i in _PM.ids(pm, n, :ref_buses)
             _PM.constraint_theta_ref(pm, i, nw = n)
         end
@@ -238,40 +255,49 @@ function post_strg_tnep(pm::_PM.AbstractBFModel)
             constraint_storage_losses_ne(pm, i, nw = n)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
-    end
 
-    network_ids = nw_ids(pm)
-    n_1 = network_ids[1]
-    n_last = network_ids[end]
+        if is_first_id(pm, n, :hour)
+            for i in _PM.ids(pm, :storage, nw = n)
+                constraint_storage_state(pm, i, nw = n)
+                constraint_maximum_absorption(pm, i, nw = n)
+            end
 
-    for i in _PM.ids(pm, :storage, nw = n_1)
-        constraint_storage_state(pm, i, nw = n_1)
-        constraint_maximum_absorption(pm, i, nw = n_1)
-    end
+            for i in _PM.ids(pm, :ne_storage, nw = n)
+                constraint_storage_state_ne(pm, i, nw = n)
+                constraint_maximum_absorption_ne(pm, i, nw = n)
+            end
+        else
+            if is_last_id(pm, n, :hour)
+                for i in _PM.ids(pm, :storage, nw = n)
+                    constraint_storage_state_final(pm, i, nw = n)
+                end
 
-    for i in _PM.ids(pm, :ne_storage, nw = n_1)
-        constraint_storage_state_ne(pm, i, nw = n_1)
-        constraint_maximum_absorption_ne(pm, i, nw = n_1)
-    end
+                for i in _PM.ids(pm, :ne_storage, nw = n)
+                    constraint_storage_state_final_ne(pm, i, nw = n)
+                end
+            end
 
-    for i in _PM.ids(pm, :storage, nw = n_last)
-        constraint_storage_state_final(pm, i, nw = n_last)
-    end
-
-    for i in _PM.ids(pm, :ne_storage, nw = n_last)
-        constraint_storage_state_final_ne(pm, i, nw = n_last)
-    end
-
-    for n_2 in network_ids[2:end]
-        for i in _PM.ids(pm, :storage, nw = n_2)
-            constraint_storage_state(pm, i, n_1, n_2)
-            constraint_maximum_absorption(pm, i, n_1, n_2)
+            # From second hour to last hour
+            prev_n = prev_id(pm, n, :hour)
+            for i in _PM.ids(pm, :storage, nw = n)
+                constraint_storage_state(pm, i, prev_n, n)
+                constraint_maximum_absorption(pm, i, prev_n, n)
+            end
+            for i in _PM.ids(pm, :ne_storage, nw = n)
+                constraint_storage_state_ne(pm, i, prev_n, n)
+                constraint_maximum_absorption_ne(pm, i, prev_n, n)
+            end
         end
-        for i in _PM.ids(pm, :ne_storage, nw = n_2)
-            constraint_storage_state_ne(pm, i, n_1, n_2)
-            constraint_maximum_absorption_ne(pm, i, n_1, n_2)
-        end
-        n_1 = n_2
-    end
 
+        # Inter-year constraints on investments
+        if is_first_id(pm, n, :hour)
+            prev_nws = prev_ids(pm, n, :year)
+            for i in _PM.ids(pm, :ne_branch; nw = n)
+                constraint_ne_branch_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :ne_storage; nw = n)
+                constraint_ne_storage_activation(pm, i, prev_nws, n)
+            end
+        end
+    end
 end

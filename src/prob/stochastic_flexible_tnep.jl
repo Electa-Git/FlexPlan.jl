@@ -10,7 +10,7 @@ function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kw
 end
 
 "Multi-scenario TNEP with flexible loads and storage, for distribution networks"
-function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{BF}, optimizer; kwargs...) where BF <: _PM.AbstractBFModel
+function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
     return _PM.run_model(
         data, model_type, optimizer, post_stoch_flex_tnep;
         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
@@ -170,7 +170,6 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
                     constraint_shift_down_state(pm, i, nw = n)
                 end
             end
-
         else
             if is_last_id(pm, n, :hour)
                 for i in _PM.ids(pm, :storage, nw = n)
@@ -205,6 +204,28 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
                     constraint_shift_up_state(pm, prev_n, n, i)
                     constraint_shift_down_state(pm, prev_n, n, i)
                     constraint_shift_duration(pm, first_n, n, i)
+                end
+            end
+        end
+
+        # Inter-year constraints on investments
+        if is_first_id(pm, n, :hour, :scenario)
+            prev_nws = prev_ids(pm, n, :year)
+            for i in _PM.ids(pm, :ne_branch; nw = n)
+                constraint_ne_branch_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :branchdc_ne; nw = n)
+                constraint_ne_branchdc_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :convdc_ne; nw = n)
+                constraint_ne_converter_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :ne_storage; nw = n)
+                constraint_ne_storage_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :load; nw = n)
+                if _PM.ref(pm, n, :load, i, "flex") == 1
+                    constraint_flexible_demand_activation(pm, i, prev_nws, n)
                 end
             end
         end
@@ -335,6 +356,22 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
                     constraint_shift_up_state(pm, prev_n, n, i)
                     constraint_shift_down_state(pm, prev_n, n, i)
                     constraint_shift_duration(pm, first_n, n, i)
+                end
+            end
+        end
+
+        # Inter-year constraints on investments
+        if is_first_id(pm, n, :hour, :scenario)
+            prev_nws = prev_ids(pm, n, :year)
+            for i in _PM.ids(pm, :ne_branch; nw = n)
+                constraint_ne_branch_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :ne_storage; nw = n)
+                constraint_ne_storage_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :load; nw = n)
+                if _PM.ref(pm, n, :load, i, "flex") == 1
+                    constraint_flexible_demand_activation(pm, i, prev_nws, n)
                 end
             end
         end
