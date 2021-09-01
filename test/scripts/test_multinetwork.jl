@@ -40,7 +40,7 @@ if test_case == "case6" # 6-bus transmission network, max 8760 periods and 35 sc
     _FP.scale_cost_data!(data, planning_horizon)
     data, loadprofile, genprofile = create_profile_data_italy!(data)
     extradata = _FP.create_profile_data(number_of_hours*number_of_scenarios, data, loadprofile, genprofile)
-    data = _FP.multinetwork_data(data, extradata)
+    data = _FP.make_multinetwork(data, extradata)
 
 elseif test_case == "cigre" # 15-bus distribution network, max 24 periods. CIGRE MV test network.
 
@@ -60,7 +60,7 @@ elseif test_case == "cigre" # 15-bus distribution network, max 24 periods. CIGRE
 
     _FP.scale_cost_data!(data, planning_horizon)
     extradata = create_profile_data_cigre(data, number_of_hours; scale_load, scale_gen)
-    data = _FP.multinetwork_data(data, extradata)
+    data = _FP.make_multinetwork(data, extradata)
 
 end
 

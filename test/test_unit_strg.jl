@@ -14,7 +14,7 @@ _FP.add_dimension!(data, :hour, dim)
 loadprofile = ones(5, dim)
 
 extradata = _FP.create_profile_data(dim, data, loadprofile)
-mn_data = _FP.multinetwork_data(data, extradata)
+mn_data = _FP.make_multinetwork(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 
@@ -65,7 +65,7 @@ loadprofile = ones(5, dim)
 loadprofile[end, :] = repeat([100 100 100 240] / 240, 1 , Int(dim /4))
 
 extradata = _FP.create_profile_data(dim, data, loadprofile)
-mn_data = _FP.multinetwork_data(data, extradata)
+mn_data = _FP.make_multinetwork(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 
@@ -123,7 +123,7 @@ loadprofile = ones(5, dim)
 loadprofile[end, :] = repeat([100 100 100 240] / 240, 1 , Int(dim /4))
 
 extradata = _FP.create_profile_data(dim, data, loadprofile)
-mn_data = _FP.multinetwork_data(data, extradata)
+mn_data = _FP.make_multinetwork(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 result_test3 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
@@ -185,7 +185,7 @@ loadprofile = ones(5, dim)
 loadprofile[end, :] = repeat([100 100 100 240] / 240, 1 , Int(dim /4))
 
 extradata = _FP.create_profile_data(dim, data, loadprofile)
-mn_data = _FP.multinetwork_data(data, extradata)
+mn_data = _FP.make_multinetwork(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 

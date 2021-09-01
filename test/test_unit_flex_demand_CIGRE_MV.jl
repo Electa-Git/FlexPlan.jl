@@ -49,7 +49,7 @@ _FP.add_flexible_demand_data!(data)
 extradata = _FP.create_profile_data(number_of_hours, data, loadprofile)
 
 # Create data dictionary where time series data is included at the right place
-mn_data = _FP.multinetwork_data(data, extradata)
+mn_data = _FP.make_multinetwork(data, extradata)
 
 # Build optimisation model, solve it and write solution dictionary:
 s = Dict("output" => Dict("branch_flows" => true))

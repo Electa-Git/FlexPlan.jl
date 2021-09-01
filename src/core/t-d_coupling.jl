@@ -106,7 +106,7 @@ Add to distribution single-network data structures the data needed for T&D coupl
 Return `d_gen`.
 
 This function is intended to be the last that edits distribution single-network data structures: it
-should be called just before `multinetwork_data()`.
+should be called just before `make_multinetwork`.
 """
 function add_td_coupling_data!(d_data::Dict{String,Any}; sub_nw::Int, qs_ratio_bound::Float64=0.48)
 
@@ -172,7 +172,7 @@ In addition to `add_td_coupling_data!(d_data; sub_nw, qs_ratio_bound)`, do the f
 Return `t_gen`.
 
 This function is intended to be the last that edits transmission and distribution single-network
-data structures: it should be called just before `multinetwork_data()`.
+data structures: it should be called just before `make_multinetwork`.
 """
 function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any}; t_bus::Int, sub_nw::Int, qs_ratio_bound::Float64=0.48)
 

@@ -62,7 +62,7 @@ function add_hours_and_scenarios!(data, case, number_of_hours, number_of_scenari
         _FP.scale_data!(data; year_scale_factor)
         data, loadprofile, genprofile = create_profile_data_italy!(data)
         extradata = _FP.create_profile_data(number_of_hours*number_of_scenarios, data, loadprofile, genprofile)
-        data = _FP.multinetwork_data(data, extradata)
+        data = _FP.make_multinetwork(data, extradata)
     elseif case == "case67"
         _FP.add_dimension!(data, :hour, number_of_hours)
 
@@ -79,7 +79,7 @@ function add_hours_and_scenarios!(data, case, number_of_hours, number_of_scenari
         _FP.scale_data!(data; year_scale_factor)
         data, loadprofile, genprofile = create_profile_data_germany!(data)
         extradata = _FP.create_profile_data(number_of_hours*number_of_scenarios, data, loadprofile, genprofile)
-        data = _FP.multinetwork_data(data, extradata)
+        data = _FP.make_multinetwork(data, extradata)
     else
         error("Case \"$(case)\" not (yet) supported.")
     end

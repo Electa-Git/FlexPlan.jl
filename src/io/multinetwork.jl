@@ -1,131 +1,93 @@
 """
-    multinetwork_data(sn_data, extradata; global_keys, merge_into, nw_id_offset)
+    make_multinetwork(sn_data, time_series; global_keys, nw_id_offset)
 
-Generate a multinetwork data structure.
+Generate a multinetwork data structure from a single network and a time series.
 
 # Arguments
 - `sn_data`: single-network data structure to be replicated.
-- `extradata`: data structure containing the timeseries.
+- `time_series`: data structure containing the time series.
 - `global_keys`: keys that are stored once per multinetwork (they are not repeated in each
   `nw`).
-- `merge_into`: an optional multinetwork data structure to merge into.
-- `nw_id_offset`: optional value to be added to extradata ids to shift `nw` ids in
-  multinetwork data structure; if `merge_into` is used, then the maximum nw idx is adopted
-  as default value.
+- `nw_id_offset`: optional value to be added to `time_series` ids to shift `nw` ids in
+  multinetwork data structure.
 """
-function multinetwork_data(
+function make_multinetwork(
         sn_data::Dict{String,Any},
-        extradata::Dict{String,Any};
-        global_keys = ["dim","source_type","source_version","per_unit"],
-        merge_into::Dict{String,Any} = Dict{String,Any}("nw"=>Dict{String,Any}()),
-        nw_id_offset::Int = !haskey(merge_into, "sub_nw") ? 0 : max((max(nw_set...) for nw_set in values(merge_into["sub_nw"]))...)
+        time_series::Dict{String,Any};
+        global_keys = ["dim","multinetwork","name","per_unit","source_type","source_version"],
+        nw_id_offset::Int = 0
     )
 
-    if InfrastructureModels.ismultinetwork(sn_data)
-        Memento.error(_LOGGER, "replicate can only be used on single networks")
+    if _IM.ismultinetwork(sn_data)
+        Memento.error(_LOGGER, "`sn_data` argument must be a single network.")
     end
-
     if !haskey(sn_data, "dim")
-        Memento.error(_LOGGER, "Missing `dim` dict in `sn_data` argument. The function `add_dimension!()` must be called before `multinetwork_data()`.")
+        Memento.error(_LOGGER, "Missing `dim` dict in `sn_data` argument. The function `add_dimension!` must be called before `make_multinetwork`.")
     end
 
-    count = length(sn_data["dim"][:li]) # Number of networks to be created
-
-    mn_data = merge_into # Just to rename
-
-    template_nw = deepcopy(sn_data)
-
-    # Move global keys from template_nw to mn_data, so they will not be repeated in each nw
-    for k in global_keys
-        if haskey(template_nw, k)
-            mn_data[k] = template_nw[k]
-            delete!(template_nw, k)
-        end
-    end
-
-    mn_data["multinetwork"] = true
-    delete!(template_nw, "multinetwork") # In case is not passed among global keys
-
-    if haskey(mn_data, "name")
-        mn_data["name"] *= ", " * get(sn_data, "name", "anonymous")
-    else
-        mn_data["name"] = "Multinetwork based on: " * get(sn_data, "name", "anonymous")
-    end
-    delete!(template_nw, "name") # In case is not passed among global keys
-
-    # If the multinetwork is intended to store data belonging to different physical networks, add or update sub_nw lookup dict
-    if haskey(sn_data, "td_coupling")
-        sub_nw = sn_data["td_coupling"]["sub_nw"]
-        if !haskey(mn_data, "sub_nw")
-            mn_data["sub_nw"] = Dict{String,Set{Int}}()
-        end
-        if haskey(mn_data["sub_nw"], sub_nw)
-            Memento.error(_LOGGER, "Subnetwork $sub_nw already exists in multinetwork data.")
-        end
-        mn_data["sub_nw"]["$sub_nw"] = Set{Int}()
-    end
-
-    # Build multinetwork data structure: for each network, replicate the template and replace with data from extradata
-    for extradata_idx in 1:count
-        n = extradata_idx + nw_id_offset
-        if haskey(mn_data, "sub_nw")
-            push!(mn_data["sub_nw"]["$sub_nw"], n) # Add nw idx to sub_nw lookup dict
-        end
-        mn_data["nw"]["$n"] = copy(template_nw)
-        for (key, element) in extradata
-            if haskey(mn_data["nw"]["$n"], key)
-                mn_data["nw"]["$n"][key] = copy(template_nw[key])
-                for (l, element) in extradata[key]
-                    if haskey(mn_data["nw"]["$n"][key], l)
-                        mn_data["nw"]["$n"][key][l] = deepcopy(template_nw[key][l])
-                        for (m, property) in extradata[key][l]
-                            if haskey(mn_data["nw"]["$n"][key][l], m)
-                                mn_data["nw"]["$n"][key][l][m] = property[extradata_idx]
-                            else
-                                Memento.warn(_LOGGER, "Property $m for $key $l not found, will be ignored.")
-                            end
-                        end
-                    else
-                        Memento.warn(_LOGGER, "Key $l not found, will be ignored.")
-                    end
-                end
-            else
-                Memento.warn(_LOGGER, "Key $key not found, will be ignored.")
-            end
-        end
-    end
+    mn_data = Dict{String,Any}("nw"=>Dict{String,Any}())
+    _add_mn_global_values!(mn_data, sn_data, global_keys)
+    _add_time_series!(mn_data, sn_data, global_keys, time_series, nw_id_offset)
 
     return mn_data
 end
 
 """
-    shift_sub_nw!(mn_data; <keyword arguments>)
+    make_multinetwork(sn_data; global_keys)
 
-Shift `sub_nw` and `nw` ids of a multinetwork data structure.
+Generate a multinetwork data structure - having only one `nw` - from a single network.
 
-Keyword arguments `sub_nw_offset` and `nw_offset` can be used to specify the shift amounts.
-Their default values are the minimal quantities that ensure that the ids do not overlap.
+# Arguments
+- `sn_data`: single-network data structure to be replicated.
+- `global_keys`: keys that are stored once per multinetwork (they are not repeated in each
+  `nw`).
 """
-function shift_sub_nw!(
-        mn_data::Dict{String,Any};
-        sub_nw_offset = max(parse.(Int,keys(mn_data["sub_nw"]))...) - min(parse.(Int,keys(mn_data["sub_nw"]))...) + 1,
-        nw_offset = max(parse.(Int,keys(mn_data["nw"]))...) - min(parse.(Int,keys(mn_data["nw"]))...) + 1
+function make_multinetwork(
+        sn_data::Dict{String,Any},
+        global_keys = ["dim","source_type","source_version","per_unit"],
     )
-    sub_nws = mn_data["sub_nw"]
-    nws = mn_data["nw"]
 
-    for n in collect(keys(nws)) # collect is needed to iterate while deleting keys
-        nws["$(parse(Int,n)+nw_offset)"] = pop!(nws, n)
+    if _IM.ismultinetwork(sn_data)
+        Memento.error(_LOGGER, "`sn_data` argument must be a single network.")
+    end
+    if !haskey(sn_data, "dim")
+        Memento.error(_LOGGER, "Missing `dim` dict in `sn_data` argument. The function `add_dimension!` must be called before `make_multinetwork`.")
     end
 
-    for sn in collect(keys(sub_nws)) # collect is needed to iterate while deleting keys
-        for n in collect(sub_nws[sn]) # collect is needed to iterate while deleting keys
-            delete!(sub_nws[sn], n)
-            push!(sub_nws[sn], n+nw_offset)
-        end
-        sub_nws["$(parse(Int,sn)+sub_nw_offset)"] = pop!(sub_nws, sn)
+    mn_data = Dict{String,Any}("nw"=>Dict{String,Any}())
+    _add_mn_global_values!(mn_data, sn_data, global_keys)
+    template_nw = _make_template_nw(sn_data, global_keys)
+    mn_data["nw"]["1"] = copy(template_nw)
+
+    return mn_data
+end
+
+"""
+    extend_multinetwork!(mn_data, sn_data, time_series; global_keys, nw_id_offset)
+
+Generate a multinetwork data structure from `sn_data` and `time_series` and merge into `mn_data`.
+
+# Arguments
+- `mn_data`: the multinetwork data structure to be extended.
+- `sn_data`: single-network data structure to be replicated.
+- `time_series`: data structure containing the timeseries.
+- `global_keys`: keys that are stored once per multinetwork (they are not repeated in each
+  `nw`).
+- `nw_id_offset`: optional value to be added to `time_series` ids to shift `nw` ids in
+  multinetwork data structure; the maximum nw idx in `mn_data` is adopted as default value.
+"""
+function extend_multinetwork!(
+        mn_data::Dict{String,Any},
+        sn_data::Dict{String,Any},
+        time_series::Dict{String,Any};
+        global_keys = ["dim","multinetwork","name","per_unit","source_type","source_version"],
+        nw_id_offset::Int = last(mn_data["dim"][:li])
+    )
+    if !_IM.ismultinetwork(mn_data)
+        Memento.error(_LOGGER, "`mn_data` argument must be a multinetwork.")
     end
-    return (sub_nw_offset, nw_offset)
+    mn_data2 = make_multinetwork(sn_data, time_series; global_keys, nw_id_offset)
+    merge_multinetworks(mn_data, mn_data_2)
 end
 
 """
@@ -137,27 +99,114 @@ Merge two multinetworks.
 otherwise). Other fields must be equal, except possibly for `name`.
 
 If `copy` is false (default), the merging operation is done in an efficient way by reusing
-most of original multinetwork objects; otherwise, a deep copy is performed to assure
+most of the original multinetwork objects; otherwise, a deep copy is performed to ensure
 independence from the original multinetworks.
 """
 function merge_multinetworks(mn_data_1::Dict{String,Any}, mn_data_2::Dict{String,Any}; copy::Bool = false)
     res = Dict{String,Any}()
-    keys_1 = keys(mn_data_1)
-    keys_2 = keys(mn_data_2)
-    for k in keys_1 ∩ keys_2
-        if k ∈ ("nw", "sub_nw")
-            if isempty(keys(mn_data_1[k]) ∩ keys(mn_data_2[k]))
-                res[k] = merge(mn_data_1[k], mn_data_2[k])
+    keys = keys(mn_data_1)
+    if keys(mn_data_2) != keys
+        Memento.error(_LOGGER, "The key \"$(first(symdiff(k1,k2)))\" must be present in both or none of the multinetworks.")
+    end
+    for k in keys
+        if k == "dim"
+            error("Merge of `dim` structures not yet implemented.")
+        elseif k == "nw"
+            if isempty(keys(mn_data_1["nw"]) ∩ keys(mn_data_2["nw"]))
+                res["nw"] = merge(mn_data_1["nw"], mn_data_2["nw"])
             else
-                Memento.error(_LOGGER, "Attempting to merge multinetworks having overlapping $k ids.")
+                Memento.error(_LOGGER, "Attempting to merge multinetworks having overlapping `nw` ids.")
             end
         elseif mn_data_1[k] == mn_data_2[k]
             res[k] = mn_data_1[k]
-        elseif k == "name"
-            res[k] = "Merged multinetwork"
+        elseif k == "name" # Applied only if names are different
+            res["name"] = "Merged multinetwork"
         else
-            Memento.error(_LOGGER, "Attempting to merge multinetworks that differ on key \"$k\".")
+            Memento.error(_LOGGER, "Attempting to merge multinetworks that differ on the value of \"$k\".")
         end
     end
     return copy ? deepcopy(res) : res
+end
+
+# Copy global values from sn_data to mn_data handling special cases
+function _add_mn_global_values!(mn_data, sn_data, global_keys)
+
+    # Insert global values into mn_data by copying from sn_data
+    for k in global_keys
+        if haskey(sn_data, k)
+            mn_data[k] = sn_data[k]
+        end
+    end
+
+    # Special cases are handled below
+
+    mn_data["multinetwork"] = true
+
+    if haskey(mn_data, "name")
+        mn_data["name"] *= ", " * get(sn_data, "name", "anonymous")
+    else
+        mn_data["name"] = "Multinetwork based on: " * get(sn_data, "name", "anonymous")
+    end
+
+    # If the multinetwork is intended to store data belonging to different physical networks, add or update sub_nw lookup dict
+    if haskey(sn_data, "td_coupling")
+        count = length(sn_data["dim"][:li]) # Number of networks to be created
+        sub_nw = sn_data["td_coupling"]["sub_nw"]
+        if !haskey(mn_data, "sub_nw")
+            mn_data["sub_nw"] = Dict{String,Set{Int}}()
+        end
+        if haskey(mn_data["sub_nw"], sub_nw)
+            Memento.error(_LOGGER, "Subnetwork $sub_nw already exists in multinetwork data.")
+        end
+        mn_data["sub_nw"]["$sub_nw"] = Set{Int}()
+        for idx in 1:count
+            push!(mn_data["sub_nw"]["$sub_nw"], idx + nw_id_offset) # Add nw idx to sub_nw lookup dict
+        end
+    end
+end
+
+# Make a deep copy of `data` and remove global keys
+function _make_template_nw(sn_data, global_keys)
+    template_nw = deepcopy(sn_data)
+    for k in global_keys
+        delete!(template_nw, k)
+    end
+    return template_nw
+end
+
+# Build multinetwork data structure: for each network, replicate the template and replace with data from time_series
+function _add_time_series!(mn_data, sn_data, global_keys, time_series, offset)
+    number_of_nws = length(sn_data["dim"][:li]) # Number of networks to be created
+    template_nw = _make_template_nw(sn_data, global_keys)
+    for time_series_idx in 1:number_of_nws
+        n = time_series_idx + offset
+        mn_data["nw"]["$n"] = _build_nw(template_nw, time_series, time_series_idx)
+    end
+end
+
+# Build the nw by shallow-copying the template and substituting data from time_series only if is different.
+function _build_nw(template_nw, time_series, idx)
+    nw = copy(template_nw)
+    for (key, element) in time_series
+        if haskey(nw, key)
+            nw[key] = copy(template_nw[key])
+            for (l, element) in time_series[key]
+                if haskey(nw[key], l)
+                    nw[key][l] = deepcopy(template_nw[key][l])
+                    for (m, property) in time_series[key][l]
+                        if haskey(nw[key][l], m)
+                            nw[key][l][m] = property[idx]
+                        else
+                            Memento.warn(_LOGGER, "Property $m for $key $l not found, will be ignored.")
+                        end
+                    end
+                else
+                    Memento.warn(_LOGGER, "Key $l not found, will be ignored.")
+                end
+            end
+        else
+            Memento.warn(_LOGGER, "Key $key not found, will be ignored.")
+        end
+    end
+    return nw
 end
