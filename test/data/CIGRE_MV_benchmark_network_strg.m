@@ -1,8 +1,8 @@
 function mpc = CIGRE_MV_benchmark_network_strg
 % CIGRE_MV_BENCHMARK_NETWORK_STRG Returns MATPOWER case for the CIGRE medium-voltage benchmark network with storage
-% 
+%
 % References:
-% [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed 
+% [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed
 % Energy Resources", CIGRE, Technical Brochure 575, 2014.
 %
 % EDITS:
@@ -140,7 +140,7 @@ mpc.storage_extra = [
 ];
 
 %% ne_storage data
-%column_names% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating    qmin   qmax    r    x p_loss q_loss status eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
+%column_names% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating    qmin   qmax    r    x p_loss q_loss status eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate lifetime
 mpc.ne_storage = [
-                        10  0.0  0.0    0.0         0.800         0.200            0.200               0.9                  0.9          0.200  -0.200  0.200  0.0  0.0    0.0    0.0      1     9.0       1.0      0.0                  1752                        0                         0                1e-4;
+                        10  0.0  0.0    0.0         0.800         0.200            0.200               0.9                  0.9          0.200  -0.200  0.200  0.0  0.0    0.0    0.0      1     9.0       1.0      0.0                  1752                        0                         0                1e-4       10;
 ];
