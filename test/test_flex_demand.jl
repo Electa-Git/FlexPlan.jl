@@ -26,6 +26,7 @@ loadprofile[mins[day-1]:mins[day]] *= 2.5
 
 data = _FP.parse_file(file) # Create FlexPlan data dictionary
 _FP.add_dimension!(data, :hour, number_of_hours)
+_FP.add_dimension!(data, :year, 1)
 
 extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
@@ -49,4 +50,4 @@ result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
         @test isapprox(result_test1["solution"]["nw"]["17"]["load"]["5"]["pflex"], 0.040889, atol = 1e-2)
         @test isapprox(result_test1["solution"]["nw"]["56"]["load"]["5"]["ence"], 9.29585, atol = 1e-2)
     end
-end
+end;

@@ -2,9 +2,11 @@
 
     @testset "CIGRE TNEP single-period" begin
         data = _FP.parse_file("../test/data/CIGRE_MV_benchmark_network_tnep.m")
-        result = _FP.flex_tnep(data, _FP.BFARadPowerModel, cbc)
+        _FP.add_dimension!(data, :hour, 1)
+        data = _FP.make_multinetwork(data)
+        result = _FP.flex_tnep(data, _FP.BFARadPowerModel, cbc; multinetwork=true)
         @test result["termination_status"] == _PM.OPTIMAL
-        @test isapprox(result["objective"], 4360.45, rtol = 1e-3) 
+        @test isapprox(result["objective"], 4360.45, rtol = 1e-3)
         @test isapprox(result["solution"]["branch"]["16"]["pf"], -result["solution"]["branch"]["16"]["pt"]; rtol = 1e-3) # Zero active power losses in OLTC branch
         @test isapprox(result["solution"]["branch"]["16"]["qf"], -result["solution"]["branch"]["16"]["qt"]; rtol = 1e-3) # Zero reactive power losses in OLTC branch
         @test isapprox(result["solution"]["branch"]["17"]["pf"], -result["solution"]["branch"]["17"]["pt"]; rtol = 1e-3) # Zero active power losses in frb branch
@@ -29,7 +31,7 @@
         result = _FP.flex_tnep(data, _FP.BFARadPowerModel, cbc)
         @test result["termination_status"] == _PM.OPTIMAL
         @test isapprox(result["objective"], 5764.48, rtol = 1e-3)
-        @test isapprox(result["solution"]["ne_branch"]["1"]["built"], 1.0, atol = 1e-1) # Replacement OLTC bne_ranch
+        @test isapprox(result["solution"]["ne_branch"]["1"]["built"], 1.0, atol = 1e-1) # Replacement OLTC ne_branch
         @test isapprox(result["solution"]["ne_branch"]["2"]["built"], 1.0, atol = 1e-1) # frb ne_branch added in parallel
         @test isapprox(result["solution"]["ne_branch"]["3"]["built"], 1.0, atol = 1e-1) # Replacement regular ne_branch
         @test isapprox(result["solution"]["ne_branch"]["4"]["built"], 0.0, atol = 1e-1) # Unused ne_branch

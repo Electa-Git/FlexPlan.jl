@@ -6,10 +6,9 @@ cd(dirname(@__FILE__)) # set working directory to file directory
 file = "./data/case6_strg.m"
 
 # Test 1: constant demand at all loads (base case)
-data = _PM.parse_file(file)
-_PMACDC.process_additional_data!(data)
-_FP.add_storage_data!(data)
+data = _FP.parse_file(file; flex_load=false)
 _FP.add_dimension!(data, :hour, dim)
+_FP.add_dimension!(data, :year, 1)
 
 loadprofile = ones(5, dim)
 
@@ -57,10 +56,9 @@ result_test1 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
 end
 
 # Test 2: variable demand at bus 5: [100, 100, 100 , 240] MW over time
-data = _PM.parse_file(file)
-_PMACDC.process_additional_data!(data)
-_FP.add_storage_data!(data)
+data = _FP.parse_file(file; flex_load=false)
 _FP.add_dimension!(data, :hour, dim)
+_FP.add_dimension!(data, :year, 1)
 loadprofile = ones(5, dim)
 loadprofile[end, :] = repeat([100 100 100 240] / 240, 1 , Int(dim /4))
 
@@ -114,10 +112,9 @@ result_test2 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
 end
 
 # Test 3: Existing storage is out of service ("status" = 0) to push the construction of a new storage asset
-data = _PM.parse_file(file)
-_PMACDC.process_additional_data!(data)
-_FP.add_storage_data!(data)
+data = _FP.parse_file(file; flex_load=false)
 _FP.add_dimension!(data, :hour, dim)
+_FP.add_dimension!(data, :year, 1)
 data["storage"]["1"]["status"] = 0 # take existing storage out of service
 loadprofile = ones(5, dim)
 loadprofile[end, :] = repeat([100 100 100 240] / 240, 1 , Int(dim /4))
@@ -171,10 +168,9 @@ end
 
 # Test 4: existing storage is still deaactivated, an additional storage investment candidate is added
 #         with a smaller energy rating and a lower cost
-data = _PM.parse_file(file)
-_PMACDC.process_additional_data!(data)
-_FP.add_storage_data!(data)
+data = _FP.parse_file(file; flex_load=false)
 _FP.add_dimension!(data, :hour, dim)
+_FP.add_dimension!(data, :year, 1)
 data["storage"]["1"]["status"] = 0 # take existing storage out of service
 data["ne_storage"]["2"] = copy(data["ne_storage"]["1"]) # create new candidate
 data["ne_storage"]["2"]["index"] = 2
