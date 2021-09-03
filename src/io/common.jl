@@ -12,7 +12,7 @@ Optional tables: `gencost`, `branch_oltc`, `storage`, `storage_extra`, `ne_stora
 Other tables can be added as well: they will be made available in the returned object.
 
 """
-function parse_file(file::String; flex_load=false, kwargs...)
+function parse_file(file::String; flex_load=true, kwargs...)
     data = _PM.parse_file(file; kwargs...)
     if !haskey(data, "ne_branch")
         data["ne_branch"] = Dict{String,Any}()
