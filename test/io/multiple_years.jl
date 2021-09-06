@@ -21,7 +21,7 @@ function create_multi_year_network_data(case, number_of_hours, number_of_scenari
             year = planning_years[idx]
             file = join([base_file,"$year",".m"])
             data = _FP.parse_file(file)
-            data = add_hours_and_scenarios!(data, case, number_of_hours, number_of_scenarios, year_scale_factor)
+            data = add_hours_and_scenarios!(data, case, number_of_hours, number_of_scenarios, number_of_years, idx, year_scale_factor)
             if idx == 1
                 _FP.add_dimension!(data, :year, number_of_years; metadata = Dict{String,Any}("scale_factor"=>year_scale_factor))
                 my_data = data
@@ -38,7 +38,7 @@ function create_multi_year_network_data(case, number_of_hours, number_of_scenari
             year = planning_years[idx]
             file = join([base_file,"$year",".m"])
             data = _FP.parse_file(file)
-            data = add_hours_and_scenarios!(data, case, number_of_hours, number_of_scenarios, year_scale_factor)
+            data = add_hours_and_scenarios!(data, case, number_of_hours, number_of_scenarios, number_of_years, idx, year_scale_factor)
             if idx == 1
                 _FP.add_dimension!(data, :year, number_of_years; metadata = Dict{String,Any}("scale_factor"=>year_scale_factor))
                 my_data = data
@@ -52,14 +52,14 @@ function create_multi_year_network_data(case, number_of_hours, number_of_scenari
     return my_data
 end
 
-function add_hours_and_scenarios!(data, case, number_of_hours, number_of_scenarios, year_scale_factor; kwargs...)
+function add_hours_and_scenarios!(data, case, number_of_hours, number_of_scenarios, number_of_years, year_idx, year_scale_factor; kwargs...)
     if case == "case6"
         _FP.add_dimension!(data, :hour, number_of_hours)
 
         scenario = Dict(s => Dict{String,Any}("probability"=>1/number_of_scenarios) for s in 1:number_of_scenarios)
         _FP.add_dimension!(data, :scenario, scenario, metadata = Dict{String,Any}("mc"=>get(kwargs, :mc, true)))
 
-        _FP.scale_data!(data; year_scale_factor)
+        _FP.scale_data!(data; year_idx, number_of_years, year_scale_factor)
         data, loadprofile, genprofile = create_profile_data_italy!(data)
         extradata = _FP.create_profile_data(number_of_hours*number_of_scenarios, data, loadprofile, genprofile)
         data = _FP.make_multinetwork(data, extradata)
@@ -76,7 +76,7 @@ function add_hours_and_scenarios!(data, case, number_of_hours, number_of_scenari
             scenario[s]["start"] = start[s]
         end
         _FP.add_dimension!(data, :scenario, scenario)
-        _FP.scale_data!(data; year_scale_factor)
+        _FP.scale_data!(data; year_idx, number_of_years, year_scale_factor)
         data, loadprofile, genprofile = create_profile_data_germany!(data)
         extradata = _FP.create_profile_data(number_of_hours*number_of_scenarios, data, loadprofile, genprofile)
         data = _FP.make_multinetwork(data, extradata)

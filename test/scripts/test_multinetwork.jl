@@ -30,14 +30,14 @@ if test_case == "case6" # 6-bus transmission network, max 8760 periods and 35 sc
     data = _FP.parse_file(file)
 
     model_type = _PM.DCPPowerModel
-    planning_horizon = 10
+    year_scale_factor = 10
 
     _FP.add_dimension!(data, :hour, number_of_hours)
 
     scenario = Dict(s => Dict{String,Any}("probability"=>1/number_of_scenarios) for s in 1:number_of_scenarios)
     _FP.add_dimension!(data, :scenario, scenario, metadata = Dict{String,Any}("mc"=>true))
 
-    _FP.scale_cost_data!(data, planning_horizon)
+    _FP.scale_data!(data; year_scale_factor)
     data, loadprofile, genprofile = create_profile_data_italy!(data)
     extradata = _FP.create_profile_data(number_of_hours*number_of_scenarios, data, loadprofile, genprofile)
     data = _FP.make_multinetwork(data, extradata)
@@ -50,7 +50,7 @@ elseif test_case == "cigre" # 15-bus distribution network, max 24 periods. CIGRE
     data = _FP.parse_file(file)
 
     model_type = _FP.BFARadPowerModel
-    planning_horizon = 10
+    year_scale_factor = 10
 
     _FP.add_dimension!(data, :hour, number_of_hours)
 
@@ -58,7 +58,7 @@ elseif test_case == "cigre" # 15-bus distribution network, max 24 periods. CIGRE
     scenario = Dict(s => Dict{String,Any}("probability"=>1/number_of_scenarios) for s in 1:number_of_scenarios)
     _FP.add_dimension!(data, :scenario, scenario)
 
-    _FP.scale_cost_data!(data, planning_horizon)
+    _FP.scale_data!(data; year_scale_factor)
     extradata = create_profile_data_cigre(data, number_of_hours; scale_load, scale_gen)
     data = _FP.make_multinetwork(data, extradata)
 
