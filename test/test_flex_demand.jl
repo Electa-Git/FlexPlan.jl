@@ -26,7 +26,8 @@ loadprofile[mins[day-1]:mins[day]] *= 2.5
 
 data = _FP.parse_file(file) # Create FlexPlan data dictionary
 _FP.add_dimension!(data, :hour, number_of_hours)
-_FP.add_dimension!(data, :year, 1)
+_FP.add_dimension!(data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>1))
+_FP.scale_data!(data)
 
 extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
@@ -42,12 +43,12 @@ result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true;
 
 @testset "Flexible TNEP" begin
     @testset "6-bus all candidates" begin
-        @test isapprox(result_test1["objective"], 1281.5, atol = 1e-1)
+        @test isapprox(result_test1["objective"], 25175.0, rtol = 1e-4)
         @test isapprox(result_test1["solution"]["nw"]["1"]["ne_storage"]["1"]["isbuilt"], 0, atol = 1e-1)
         @test isapprox(result_test1["solution"]["nw"]["1"]["ne_branch"]["1"]["built"], 0, atol = 1e-1)
         @test isapprox(result_test1["solution"]["nw"]["1"]["convdc_ne"]["6"]["isbuilt"], 1.0, atol = 1e-1)
-        @test isapprox(result_test1["solution"]["nw"]["96"]["load"]["5"]["pshift_up_tot"], 4.3, atol = 3e-1)
+        @test isapprox(result_test1["solution"]["nw"]["96"]["load"]["5"]["pshift_up_tot"], 3.1, atol = 1e-1)
         @test isapprox(result_test1["solution"]["nw"]["17"]["load"]["5"]["pflex"], 0.040889, atol = 1e-2)
-        @test isapprox(result_test1["solution"]["nw"]["56"]["load"]["5"]["ence"], 9.29585, atol = 1e-2)
+        @test isapprox(result_test1["solution"]["nw"]["56"]["load"]["5"]["ence"], 10.0, atol = 1e-2)
     end
 end;
