@@ -128,29 +128,28 @@ function add_generation_emission_data!(data)
 end
 
 """
-    scale_data!(data; year_idx=1, number_of_years=1, year_scale_factor=1)
+    scale_data!(data; year_idx=1)
 
 Scale lifetime and cost data.
 
 See `_scale_time_data!`, `_scale_operational_cost_data!` and `_scale_investment_cost_data!`.
-
-`year_scale_factor` is how many years a representative year should represent.
 """
-function scale_data!(data; year_idx::Int=1, number_of_years::Int=1, year_scale_factor::Int=1)
-    _scale_time_data!(data, year_scale_factor)
-    _scale_operational_cost_data!(data, year_scale_factor)
-    _scale_investment_cost_data!(data, year_idx, number_of_years) # Must be called after `_scale_time_data!`
+function scale_data!(data; year_idx::Int=1)
+    _scale_time_data!(data)
+    _scale_operational_cost_data!(data)
+    _scale_investment_cost_data!(data, year_idx) # Must be called after `_scale_time_data!`
 end
 
 """
-    _scale_time_data!(data, year_scale_factor)
+    _scale_time_data!(data)
 
-Scale lifetime data from years to periods of `year_scale_factor`.
+Scale lifetime data from years to periods of `dim_meta(data, :year, "scale_factor")`.
 
 After applying this function, the step between consecutive years takes the value 1: in this
 way it is easier to write the constraints that link variables belonging to different years.
 """
-function _scale_time_data!(data, year_scale_factor)
+function _scale_time_data!(data)
+    year_scale_factor = dim_meta(data, :year, "scale_factor")
     rescale = x -> x ÷ year_scale_factor
     for component in ("ne_branch", "branchdc_ne", "ne_storage", "convdc_ne", "load")
         for (key, val) in data[component]
@@ -170,18 +169,20 @@ function _scale_time_data!(data, year_scale_factor)
 end
 
 """
-    _scale_operational_cost_data!(data, planning_horizon_years)
+    _scale_operational_cost_data!(data)
 
 Scale hourly costs to the planning horizon.
 
-Scale hourly costs so that the sum of the costs over all optimization periods represents the
-cost over the entire planning horizon. In this way it is possible to perform the
-optimization using a reduced number of periods and still obtain a cost that approximates the
-cost that would be obtained if 8760 periods were used for each year.
+Scale hourly costs so that the sum of the costs over all optimization periods (hours)
+represents the cost over the entire planning horizon
+(`dim_meta(data, :year, "scale_factor")` years). In this way it is possible to perform the
+optimization using a reduced number of hours and still obtain a cost that approximates the
+cost that would be obtained if 8760 hours were used for each year.
 """
-function _scale_operational_cost_data!(data, planning_horizon_years)
+function _scale_operational_cost_data!(data)
     hours = dim_length(data, :hour)
-    rescale = x -> (8760*planning_horizon_years / hours) * x # scale hourly costs to the planning horizon
+    year_scale_factor = dim_meta(data, :year, "scale_factor")
+    rescale = x -> (8760*year_scale_factor / hours) * x # scale hourly costs to the planning horizon
     for (g, gen) in data["gen"]
         _PM._apply_func!(gen, "cost", rescale)
     end
@@ -195,7 +196,7 @@ function _scale_operational_cost_data!(data, planning_horizon_years)
 end
 
 """
-    _scale_investment_cost_data!(data, year_idx, number_of_years)
+    _scale_investment_cost_data!(data, year_idx)
 
 Correct investment costs considering the residual value at the end of the planning horizon.
 
@@ -203,9 +204,10 @@ Linear depreciation is assumed.
 
 This function _must_ be called after `_scale_time_data!`.
 """
-function _scale_investment_cost_data!(data, year_idx::Int, number_of_years::Int)
+function _scale_investment_cost_data!(data, year_idx::Int)
     # Assumption: the `lifetime` parameter of investment candidates has already been scaled
     # using `_scale_time_data!`.
+    number_of_years = dim_length(data, :year)
     remaining_years = number_of_years - year_idx + 1
     for (b, branch) in get(data, "ne_branch", Dict{String,Any}())
         rescale = x -> min(remaining_years/branch["lifetime"], 1.0) * x

@@ -61,7 +61,7 @@ _FP.add_td_coupling_data!(t_data, d_data_2; t_bus = 2, sub_nw = 2) # The second 
 
 t_mn_data = _FP.make_multinetwork(t_data, t_extradata)
 d_mn_data = _FP.make_multinetwork(d_data_1, d_extradata; nw_id_offset=t_extradata["dim"]) # For the first distribution network, nw_id_offset is needed to avoid reusing the same nw ids of transmission
-d_mn_data = _FP.extend_multinetwork(d_mn_data, d_data_2, d_extradata) # For subsequent distribution networks, simply extend the current multinetwork data structure: nw ids are computed automatically
+_FP.extend_multinetwork!(d_mn_data, d_data_2, d_extradata) # For subsequent distribution networks, simply extend the current multinetwork data structure: nw ids are computed automatically
 
 
 ## Solve problem

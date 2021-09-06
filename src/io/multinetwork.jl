@@ -1,5 +1,5 @@
 """
-    make_multinetwork(sn_data, time_series; global_keys, nw_id_offset)
+    make_multinetwork(sn_data, time_series; global_keys, number_of_nws, nw_id_offset)
 
 Generate a multinetwork data structure from a single network and a time series.
 
@@ -8,6 +8,7 @@ Generate a multinetwork data structure from a single network and a time series.
 - `time_series`: data structure containing the time series.
 - `global_keys`: keys that are stored once per multinetwork (they are not repeated in each
   `nw`).
+- `number_of_nws`: number of networks to be created.
 - `nw_id_offset`: optional value to be added to `time_series` ids to shift `nw` ids in
   multinetwork data structure.
 """
@@ -15,6 +16,7 @@ function make_multinetwork(
         sn_data::Dict{String,Any},
         time_series::Dict{String,Any};
         global_keys = ["dim","multinetwork","name","per_unit","source_type","source_version"],
+        number_of_nws::Int = length(sn_data["dim"][:li]),
         nw_id_offset::Int = 0
     )
 
@@ -27,7 +29,7 @@ function make_multinetwork(
 
     mn_data = Dict{String,Any}("nw"=>Dict{String,Any}())
     _add_mn_global_values!(mn_data, sn_data, global_keys)
-    _add_time_series!(mn_data, sn_data, global_keys, time_series, nw_id_offset)
+    _add_time_series!(mn_data, sn_data, global_keys, time_series, number_of_nws, nw_id_offset)
 
     return mn_data
 end
@@ -63,7 +65,7 @@ function make_multinetwork(
 end
 
 """
-    extend_multinetwork!(mn_data, sn_data, time_series; global_keys, nw_id_offset)
+    extend_multinetwork!(mn_data, sn_data, time_series; global_keys, number_of_nws, nw_id_offset)
 
 Generate a multinetwork data structure from `sn_data` and `time_series` and merge into `mn_data`.
 
@@ -73,6 +75,7 @@ Generate a multinetwork data structure from `sn_data` and `time_series` and merg
 - `time_series`: data structure containing the timeseries.
 - `global_keys`: keys that are stored once per multinetwork (they are not repeated in each
   `nw`).
+- `number_of_nws`: number of networks to be created from `sn_data` and `time_series`.
 - `nw_id_offset`: optional value to be added to `time_series` ids to shift `nw` ids in
   multinetwork data structure; the maximum nw idx in `mn_data` is adopted as default value.
 """
@@ -81,51 +84,43 @@ function extend_multinetwork!(
         sn_data::Dict{String,Any},
         time_series::Dict{String,Any};
         global_keys = ["dim","multinetwork","name","per_unit","source_type","source_version"],
+        number_of_nws::Int = length(sn_data["dim"][:li]),
         nw_id_offset::Int = last(mn_data["dim"][:li])
     )
-    if !_IM.ismultinetwork(mn_data)
-        Memento.error(_LOGGER, "`mn_data` argument must be a multinetwork.")
-    end
-    mn_data2 = make_multinetwork(sn_data, time_series; global_keys, nw_id_offset)
-    merge_multinetworks(mn_data, mn_data_2)
+    mn_data_2 = make_multinetwork(sn_data, time_series; global_keys, number_of_nws, nw_id_offset)
+    mn_data = merge_multinetworks!(mn_data, mn_data_2)
 end
 
 """
-    merge_multinetworks(mn_data_1, mn_data_2; copy = false)
+    merge_multinetworks!(mn_data_1, mn_data_2)
 
-Merge two multinetworks.
+Merge `mn_data_2` into `mn_data_1`.
 
-`nw` and `sub_nw` ids of the two multinetworks must not overlap (an error is raised
-otherwise). Other fields must be equal, except possibly for `name`.
-
-If `copy` is false (default), the merging operation is done in an efficient way by reusing
-most of the original multinetwork objects; otherwise, a deep copy is performed to ensure
-independence from the original multinetworks.
+`nw` ids of the two multinetworks must not overlap (an error is raised otherwise).
+Fields present in `mn_data_1` but not in `mn_data_2` are copied into `mn_data_1`.
+Fields present in both multinetworks must be equal, except for `nw` and possibly for `name`.
 """
-function merge_multinetworks(mn_data_1::Dict{String,Any}, mn_data_2::Dict{String,Any}; copy::Bool = false)
-    res = Dict{String,Any}()
-    keys = keys(mn_data_1)
-    if keys(mn_data_2) != keys
-        Memento.error(_LOGGER, "The key \"$(first(symdiff(k1,k2)))\" must be present in both or none of the multinetworks.")
-    end
-    for k in keys
-        if k == "dim"
-            error("Merge of `dim` structures not yet implemented.")
-        elseif k == "nw"
-            if isempty(keys(mn_data_1["nw"]) ∩ keys(mn_data_2["nw"]))
-                res["nw"] = merge(mn_data_1["nw"], mn_data_2["nw"])
-            else
+function merge_multinetworks!(mn_data_1::Dict{String,Any}, mn_data_2::Dict{String,Any})
+    keys1 = keys(mn_data_1)
+    keys2 = keys(mn_data_2)
+    for k in keys1 ∩ keys2
+        if k == "nw"
+            if !isempty(keys(mn_data_1["nw"]) ∩ keys(mn_data_2["nw"]))
                 Memento.error(_LOGGER, "Attempting to merge multinetworks having overlapping `nw` ids.")
             end
+            mn_data_1["nw"] = merge(mn_data_1["nw"], mn_data_2["nw"])
         elseif mn_data_1[k] == mn_data_2[k]
-            res[k] = mn_data_1[k]
+            continue
         elseif k == "name" # Applied only if names are different
-            res["name"] = "Merged multinetwork"
+            mn_data_1["name"] = "Merged multinetwork"
         else
             Memento.error(_LOGGER, "Attempting to merge multinetworks that differ on the value of \"$k\".")
         end
     end
-    return copy ? deepcopy(res) : res
+    for k in setdiff(keys2, keys1)
+        mn_data_1[k] = mn_data_2[k]
+    end
+    return mn_data_1
 end
 
 # Copy global values from sn_data to mn_data handling special cases
@@ -175,8 +170,7 @@ function _make_template_nw(sn_data, global_keys)
 end
 
 # Build multinetwork data structure: for each network, replicate the template and replace with data from time_series
-function _add_time_series!(mn_data, sn_data, global_keys, time_series, offset)
-    number_of_nws = length(sn_data["dim"][:li]) # Number of networks to be created
+function _add_time_series!(mn_data, sn_data, global_keys, time_series, number_of_nws, offset)
     template_nw = _make_template_nw(sn_data, global_keys)
     for time_series_idx in 1:number_of_nws
         n = time_series_idx + offset
