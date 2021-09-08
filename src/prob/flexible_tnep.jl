@@ -262,6 +262,7 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
 
         # new variables for TNEP problem
         variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
+        variable_ne_branch_investment(pm; nw = n)
         _PM.variable_ne_branch_power(pm; nw = n, bounded = false) # Bounds computed here would be too limiting in the case of ne_branches added in parallel
         variable_ne_branch_current(pm; nw = n)
         variable_oltc_ne_branch_transform(pm; nw = n)
@@ -316,74 +317,78 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
             constraint_storage_losses_ne(pm, i, nw = n)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
-    end
 
-    # Constraints that link multiple networks (grouped by subnetwork, if applicable)
-    if intertemporal_constraints
-        if haskey(pm.ref, :sub_nw)
-            sub_nws = pm.ref[:sub_nw]
-        else
-            sub_nws = Dict{String,Set{Int}}("0" => _PM.nw_ids(pm))
-        end
-
-        for (sub_nw, nw_ids) in sub_nws
-
-            network_ids = sort!(collect(nw_ids))
-            n_1 = network_ids[1]
-            n_last = network_ids[end]
-
-            # NW = 1
-            for i in _PM.ids(pm, :storage, nw = n_1)
-                constraint_storage_state(pm, i, nw = n_1)
-                constraint_maximum_absorption(pm, i, nw = n_1)
-            end
-
-            for i in _PM.ids(pm, :ne_storage, nw = n_1)
-                constraint_storage_state_ne(pm, i, nw = n_1)
-                constraint_maximum_absorption_ne(pm, i, nw = n_1)
-            end
-
-            for i in _PM.ids(pm, :load, nw = n_1)
-                if _PM.ref(pm, n_1, :load, i, "flex") == 1
-                    constraint_ence_state(pm, i, nw = n_1)
-                    constraint_shift_up_state(pm, i, nw = n_1)
-                    constraint_shift_down_state(pm, i, nw = n_1)
+        if intertemporal_constraints
+            if is_first_id(pm, n, :hour)
+                for i in _PM.ids(pm, :storage, nw = n)
+                    constraint_storage_state(pm, i, nw = n)
+                    constraint_maximum_absorption(pm, i, nw = n)
                 end
-            end
-            # NW = last
-            for i in _PM.ids(pm, :storage, nw = n_last)
-                constraint_storage_state_final(pm, i, nw = n_last)
-            end
 
-            for i in _PM.ids(pm, :ne_storage, nw = n_last)
-                constraint_storage_state_final_ne(pm, i, nw = n_last)
-            end
+                for i in _PM.ids(pm, :ne_storage, nw = n)
+                    constraint_storage_state_ne(pm, i, nw = n)
+                    constraint_maximum_absorption_ne(pm, i, nw = n)
+                end
 
-            for i in _PM.ids(pm, :load, nw = n_last)
-                if _PM.ref(pm, n_last, :load, i, "flex") == 1
-                    constraint_shift_state_final(pm, i, nw = n_last)
-                end
-            end
-
-            # NW = 2......last
-            for n_2 in network_ids[2:end]
-                for i in _PM.ids(pm, :storage, nw = n_2)
-                    constraint_storage_state(pm, i, n_1, n_2)
-                    constraint_maximum_absorption(pm, i, n_1, n_2)
-                end
-                for i in _PM.ids(pm, :ne_storage, nw = n_2)
-                    constraint_storage_state_ne(pm, i, n_1, n_2)
-                    constraint_maximum_absorption_ne(pm, i, n_1, n_2)
-                end
-                for i in _PM.ids(pm, :load, nw = n_2)
-                    if _PM.ref(pm, n_2, :load, i, "flex") == 1
-                        constraint_ence_state(pm, i, n_1, n_2)
-                        constraint_shift_up_state(pm, n_1, n_2, i)
-                        constraint_shift_down_state(pm, n_1, n_2, i)
-                        constraint_shift_duration(pm, network_ids[1], n_2, i)
+                for i in _PM.ids(pm, :load, nw = n)
+                    if _PM.ref(pm, n, :load, i, "flex") == 1
+                        constraint_ence_state(pm, i, nw = n)
+                        constraint_shift_up_state(pm, i, nw = n)
+                        constraint_shift_down_state(pm, i, nw = n)
                     end
                 end
-                n_1 = n_2
+            else
+                if is_last_id(pm, n, :hour)
+                    for i in _PM.ids(pm, :storage, nw = n)
+                        constraint_storage_state_final(pm, i, nw = n)
+                    end
+
+                    for i in _PM.ids(pm, :ne_storage, nw = n)
+                        constraint_storage_state_final_ne(pm, i, nw = n)
+                    end
+
+                    for i in _PM.ids(pm, :load, nw = n)
+                        if _PM.ref(pm, n, :load, i, "flex") == 1
+                            constraint_shift_state_final(pm, i, nw = n)
+                        end
+                    end
+                end
+
+                # From second hour to last hour
+                prev_n = prev_id(pm, n, :hour)
+                first_n = first_id(pm, n, :hour)
+                for i in _PM.ids(pm, :storage, nw = n)
+                    constraint_storage_state(pm, i, prev_n, n)
+                    constraint_maximum_absorption(pm, i, prev_n, n)
+                end
+                for i in _PM.ids(pm, :ne_storage, nw = n)
+                    constraint_storage_state_ne(pm, i, prev_n, n)
+                    constraint_maximum_absorption_ne(pm, i, prev_n, n)
+                end
+                for i in _PM.ids(pm, :load, nw = n)
+                    if _PM.ref(pm, n, :load, i, "flex") == 1
+                        constraint_ence_state(pm, i, prev_n, n)
+                        constraint_shift_up_state(pm, prev_n, n, i)
+                        constraint_shift_down_state(pm, prev_n, n, i)
+                        constraint_shift_duration(pm, first_n, n, i)
+                    end
+                end
+            end
+        end
+
+        # Inter-year constraints on investments
+        if is_first_id(pm, n, :hour)
+            prev_nws = prev_ids(pm, n, :year)
+            for i in _PM.ids(pm, :ne_branch; nw = n)
+                constraint_ne_branch_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :ne_storage; nw = n)
+                constraint_ne_storage_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :load; nw = n)
+                if _PM.ref(pm, n, :load, i, "flex") == 1
+                    constraint_flexible_demand_activation(pm, i, prev_nws, n)
+                end
             end
         end
     end
