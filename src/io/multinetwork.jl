@@ -146,22 +146,6 @@ function _add_mn_global_values!(mn_data, sn_data, global_keys)
     # Special cases are handled below
     mn_data["multinetwork"] = true
     get!(mn_data, "name", "multinetwork")
-
-    # If the multinetwork is intended to store data belonging to different physical networks, add or update sub_nw lookup dict
-    if haskey(sn_data, "td_coupling")
-        count = length(sn_data["dim"][:li]) # Number of networks to be created
-        sub_nw = sn_data["td_coupling"]["sub_nw"]
-        if !haskey(mn_data, "sub_nw")
-            mn_data["sub_nw"] = Dict{String,Set{Int}}()
-        end
-        if haskey(mn_data["sub_nw"], sub_nw)
-            Memento.error(_LOGGER, "Subnetwork $sub_nw already exists in multinetwork data.")
-        end
-        mn_data["sub_nw"]["$sub_nw"] = Set{Int}()
-        for idx in 1:count
-            push!(mn_data["sub_nw"]["$sub_nw"], idx + nw_id_offset) # Add nw idx to sub_nw lookup dict
-        end
-    end
 end
 
 # Make a deep copy of `data` and remove global keys

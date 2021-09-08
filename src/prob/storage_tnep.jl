@@ -224,7 +224,7 @@ function post_strg_tnep(pm::_PM.AbstractBFModel)
         _PM.constraint_model_current(pm; nw = n)
         constraint_ne_model_current(pm; nw = n)
 
-        if haskey(_PM.ref(pm, n), :td_coupling)
+        if haskey(dim_prop(pm), :sub_nw)
             constraint_td_coupling_power_reactive_bounds(pm; nw = n)
         end
 
