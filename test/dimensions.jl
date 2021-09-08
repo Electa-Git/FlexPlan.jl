@@ -50,9 +50,19 @@
     dt = Dict{String,Any}("dim"=>sn_data["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data)) # Fake a multinetwork data structure
     pm = _PM.instantiate_model(dt, _PM.ACPPowerModel, pm->nothing)
 
+    sn_data_shift = deepcopy(sn_data)
+    _FP.shift_ids!(sn_data_shift, 24)
+    dt_shift = Dict{String,Any}("dim"=>sn_data_shift["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data))
+    pm_shift = _PM.instantiate_model(dt_shift, _PM.ACPPowerModel, pm->nothing)
+
     @testset "add_dimension!" begin
         @test_throws ErrorException _FP.add_dimension!(sn_data, :hour, 4) # Trying to add a dimension having the same name of an existing one
         @test_throws ErrorException _FP.add_dimension!(sn_data, :newdim, Dict(s => Dict{String,Any}("prop"=>"val") for s in [1,2,4])) # Trying to add a dimension having a property Dict whose keys are not consecutive Ints starting at 1
+    end
+
+    @testset "shift_ids!" begin
+        @test _FP.nw_ids(pm_shift) == collect(25:48)
+        @test_throws ErrorException _FP.shift_ids!(dt, 1) # Trying to shift ids of a multinetwork
     end
 
     @testset "nw_ids" begin
@@ -65,6 +75,7 @@
         @test _FP.nw_ids(pm, hour=2:4, scenario=2)   == DataFrames.filter(r -> 2<=r.hour<=4 && r.scenario==2, benchmark).nw
         @test _FP.nw_ids(pm, hour=[2,4])             == DataFrames.filter(r -> r.hour∈(2,4), benchmark).nw
         @test _FP.nw_ids(pm, hour=[2,4], scenario=2) == DataFrames.filter(r -> r.hour∈(2,4) && r.scenario==2, benchmark).nw
+        @test _FP.nw_ids(pm_shift)                   == benchmark.nw .+ 24
     end
 
     @testset "similar_ids" begin
@@ -77,6 +88,7 @@
         @test _FP.similar_ids(pm, 7, scenario=1:3)             == [3,7,11]
         @test _FP.similar_ids(pm, 7, scenario=[1,3])           == [3,11]
         @test _FP.similar_ids(pm, 7, hour=[2,4], scenario=1:3) == [2,4,6,8,10,12]
+        @test _FP.similar_ids(pm_shift, 31)                    == [31]
     end
 
     @testset "similar_id" begin
@@ -84,9 +96,10 @@
         @test _FP.similar_id(pm, 7, hour=4)             == 8
         @test _FP.similar_id(pm, 7, scenario=1)         == 3
         @test _FP.similar_id(pm, 7, hour=4, scenario=1) == 4
+        @test _FP.similar_id(pm_shift, 31)              == 31
     end
 
-    @testset "first_nw" begin
+    @testset "first_id" begin
         @test _FP.first_id(pm, 17, :hour) == 17
         @test _FP.first_id(pm, 18, :hour) == 17
         @test _FP.first_id(pm, 19, :hour) == 17
@@ -98,9 +111,10 @@
         @test _FP.first_id(pm, 16, :hour, :scenario) == 13
         @test _FP.first_id(pm, 21, :hour, :scenario) == 13
         @test _FP.first_id(pm, 24, :hour, :scenario) == 13
+        @test _FP.first_id(pm_shift, 41, :hour) == 41
     end
 
-    @testset "last_nw" begin
+    @testset "last_id" begin
         @test _FP.last_id(pm,  8, :hour) ==  8
         @test _FP.last_id(pm,  7, :hour) ==  8
         @test _FP.last_id(pm,  6, :hour) ==  8
@@ -112,9 +126,10 @@
         @test _FP.last_id(pm,  9, :hour, :scenario) == 12
         @test _FP.last_id(pm,  4, :hour, :scenario) == 12
         @test _FP.last_id(pm,  1, :hour, :scenario) == 12
+        @test _FP.last_id(pm_shift, 32, :hour) == 32
     end
 
-    @testset "prev_nw" begin
+    @testset "prev_id" begin
         @test_throws BoundsError _FP.prev_id(pm, 17, :hour)
         @test _FP.prev_id(pm, 18, :hour) == 17
         @test _FP.prev_id(pm, 19, :hour) == 18
@@ -122,18 +137,20 @@
         @test_throws BoundsError _FP.prev_id(pm, 16, :scenario)
         @test _FP.prev_id(pm, 19, :scenario) == 15
         @test _FP.prev_id(pm, 22, :scenario) == 18
+        @test _FP.prev_id(pm_shift, 42, :hour) == 41
     end
 
-    @testset "prev_nws" begin
+    @testset "prev_ids" begin
         @test _FP.prev_ids(pm, 17, :hour) == []
         @test _FP.prev_ids(pm, 18, :hour) == [17]
         @test _FP.prev_ids(pm, 20, :hour) == [17,18,19]
         @test _FP.prev_ids(pm, 16, :scenario) == []
         @test _FP.prev_ids(pm, 19, :scenario) == [15]
         @test _FP.prev_ids(pm, 22, :scenario) == [14,18]
+        @test _FP.prev_ids(pm_shift, 42, :hour) == [41]
     end
 
-    @testset "next_nw" begin
+    @testset "next_id" begin
         @test _FP.next_id(pm, 5, :hour) ==  6
         @test _FP.next_id(pm, 6, :hour) ==  7
         @test _FP.next_id(pm, 7, :hour) ==  8
@@ -141,29 +158,43 @@
         @test_throws BoundsError _FP.next_id(pm, 9, :scenario)
         @test _FP.next_id(pm, 6, :scenario) == 10
         @test _FP.next_id(pm, 3, :scenario) ==  7
+        @test _FP.next_id(pm_shift, 29, :hour) == 30
     end
 
-    @testset "next_nws" begin
+    @testset "next_ids" begin
         @test _FP.next_ids(pm, 5, :hour) == [6,7,8]
         @test _FP.next_ids(pm, 7, :hour) == [8]
         @test _FP.next_ids(pm, 8, :hour) == []
         @test _FP.next_ids(pm, 9, :scenario) == []
         @test _FP.next_ids(pm, 6, :scenario) == [10]
         @test _FP.next_ids(pm, 3, :scenario) == [7,11]
+        @test _FP.next_ids(pm_shift, 29, :hour) == [30,31,32]
     end
 
-    @testset "is_first_nw" begin
+    @testset "coord" begin
+        @test _FP.coord(pm, 7, :hour) == 3
+        @test _FP.coord(pm, 7, :scenario) == 2
+        @test _FP.coord(pm_shift, 31, :hour) == 3
+        @test _FP.coord(pm_shift, 31, :scenario) == 2
+    end
+
+    @testset "is_first_id" begin
         @test _FP.is_first_id(pm, 14, :hour) == false
         @test _FP.is_first_id(pm, 14, :scenario) == true
         @test _FP.is_first_id(pm, 17, :hour) == true
         @test _FP.is_first_id(pm, 17, :scenario) == false
+        @test _FP.is_first_id(pm_shift, 38, :hour) == false
+        @test _FP.is_first_id(pm_shift, 38, :scenario) == true
     end
 
-    @testset "is_last_nw" begin
+    @testset "is_last_id" begin
         @test _FP.is_last_id(pm, 20, :hour) == true
         @test _FP.is_last_id(pm, 20, :scenario) == false
         @test _FP.is_last_id(pm, 21, :hour) == false
         @test _FP.is_last_id(pm, 21, :scenario) == true
+        @test _FP.is_last_id(pm, 20, :hour) == true
+        @test _FP.is_last_id(pm_shift, 44, :hour) == true
+        @test _FP.is_last_id(pm_shift, 44, :scenario) == false
     end
 
     @testset "dim_prop" begin
@@ -191,10 +222,14 @@
     end
 
     @testset "dim_length" begin
+        @test _FP.dim_length(dt) == 24
+        @test _FP.dim_length(pm) == 24
         @test _FP.dim_length(dt, :hour) == 4
         @test _FP.dim_length(pm, :hour) == 4
         @test _FP.dim_length(dt, :scenario) == 3
         @test _FP.dim_length(pm, :scenario) == 3
+        @test _FP.dim_length(dt_shift) == 24
+        @test _FP.dim_length(pm_shift) == 24
     end
 
     Memento.setlevel!(Memento.getlogger(FlexPlan), previous_FlexPlan_logger_level)
