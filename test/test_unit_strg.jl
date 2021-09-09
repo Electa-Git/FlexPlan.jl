@@ -2,8 +2,7 @@
 #cbc = JuMP.optimizer_with_attributes(Cbc.Optimizer, "logLevel" => 0)
 
 dim = 4 # Number of time points
-cd(dirname(@__FILE__)) # set working directory to file directory
-file = "./data/case6_strg.m"
+file = normpath(@__DIR__,"..","test","data","case6_strg.m")
 
 # Test 1: constant demand at all loads (base case)
 data = _FP.parse_file(file; flex_load=false)
