@@ -129,6 +129,22 @@ function merge_dim!(dim1::Dict{Symbol,Any}, dim2::Dict{Symbol,Any}, dimension::S
     return dim
 end
 
+"""
+    require_dim(data, dimensions...)
+
+Verify that the specified `dimensions` are present in `data`; if not, raise an error.
+"""
+function require_dim(data::Dict{String,Any}, dimensions::Symbol...)
+    if !haskey(data, "dim")
+        Memento.error(_LOGGER, "Missing `dim` dict in `data`. Use `add_dimension!` to fix.")
+    end
+    for d in dimensions
+        if !haskey(data["dim"][:prop], d)
+            Memento.error(_LOGGER, "Missing dimension \"$d\" in `data`. Use `add_dimension!` to fix.")
+        end
+    end
+end
+
 
 ## Access (subsets of) nw ids
 

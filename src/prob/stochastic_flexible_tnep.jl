@@ -2,6 +2,7 @@ export stoch_flex_tnep
 
 "Multi-scenario TNEP with flexible loads and storage, for transmission networks"
 function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
+    require_dim(data, :hour, :scenario, :year)
     return _PM.run_model(
         data, model_type, optimizer, post_stoch_flex_tnep;
         ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
@@ -11,6 +12,7 @@ end
 
 "Multi-scenario TNEP with flexible loads and storage, for distribution networks"
 function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
+    require_dim(data, :hour, :scenario, :year)
     return _PM.run_model(
         data, model_type, optimizer, post_stoch_flex_tnep;
         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],

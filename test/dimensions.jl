@@ -100,6 +100,11 @@
         @test _FP.merge_dim!(dt1["dim"], dt_shift["dim"], :sub_nw) == dt2["dim"]
     end
 
+    @testset "require_dim" begin
+        @test_throws ErrorException _FP.require_dim(Dict{String,Any}()) # Missing `dim` dict
+        @test_throws ErrorException _FP.require_dim(dt, :newdim) # Missing `newdim` dimension
+    end
+
     @testset "nw_ids" begin
         @test _FP.nw_ids(pm)                         == benchmark.nw
         @test _FP.nw_ids(pm, hour=4)                 == DataFrames.filter(r -> r.hour==4, benchmark).nw
