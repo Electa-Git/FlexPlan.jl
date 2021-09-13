@@ -72,9 +72,6 @@ function add_dimension!(data::Dict{String,Any}, name::Symbol, size::Int; metadat
     add_dimension!(data, name, properties; metadata)
 end
 
-
-## Shift nw ids
-
 """
     shift_ids!(data, offset)
 
@@ -90,6 +87,48 @@ function shift_ids!(data::Dict{String,Any}, offset::Int)
     dim[:offset] += offset
     dim[:li] .+= offset
 end
+
+"""
+    merge_dim!(dim1, dim2, dimension)
+
+Merge `dim1` and `dim2` structures along `dimension`.
+
+The ids of `dim2` must be contiguous to those of `dim1`.
+"""
+function merge_dim!(dim1::Dict{Symbol,Any}, dim2::Dict{Symbol,Any}, dimension::Symbol)
+    dim = Dict{Symbol,Any}()
+
+    if dim1[:pos] != dim2[:pos]
+        Memento.error(_LOGGER, "The dimensions to be merged have different names and/or order:\nfirst:  $(dim1[:pos])\nsecond: $(dim1[:pos])")
+    end
+    dim[:pos] = dim1[:pos]
+
+    if any(dim1[:prop][d] != dim2[:prop][d] for d in delete!(Set(keys(dim[:pos])), dimension))
+        diff = join(", $d" for d in delete!(Set(keys(dim[:pos])), dimension) if dim1[:prop][d] != dim2[:prop][d])[2:end]
+        Memento.error(_LOGGER, "Different properties found in the following dimension(s):$diff.")
+    end
+    dim[:prop] = dim1[:prop]
+    offset = length(dim1[:prop][dimension])
+    for (k,v) in dim2[:prop][dimension]
+        dim[:prop][dimension][k+offset] = deepcopy(v)
+    end
+
+    if dim1[:meta] != dim2[:meta]
+        diff = join(", $d" for d in keys(dim[:pos]) if dim1[:meta][d] != dim2[:meta][d])[2:end]
+        Memento.error(_LOGGER, "Different metadata found in the following dimension(s):$diff.")
+    end
+    dim[:meta] = dim1[:meta]
+
+    if dim2[:li][1] != dim1[:li][end]+1
+        Memento.error(_LOGGER, "Multinetworks to be merged must have contiguous ids.")
+    end
+    dim[:offset] = min(dim1[:offset], dim2[:offset])
+    dim[:li] = collect(LinearIndices(Tuple(1:length(dim[:prop][nm]) for nm in keys(dim[:pos]))).+dim[:offset])
+    dim[:ci] = CartesianIndices(dim[:li])
+
+    return dim
+end
+
 
 ## Access (subsets of) nw ids
 

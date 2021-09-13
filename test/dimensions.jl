@@ -65,6 +65,41 @@
         @test_throws ErrorException _FP.shift_ids!(dt, 1) # Trying to shift ids of a multinetwork
     end
 
+    @testset "merge_dim!" begin
+        dt1 = deepcopy(dt)
+        dt2 = deepcopy(dt)
+        delete!(dt2, "dim")
+        _FP.add_dimension!(dt2, :hour, 4)
+        _FP.add_dimension!(dt2, :sub_nw, 2; metadata = Dict{String,Any}("description"=>"sub_nws model different physical networks"))
+        _FP.add_dimension!(dt2, :scenario, Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3))
+        @test_throws ErrorException _FP.merge_dim!(dt1["dim"], dt2["dim"], :sub_nw) # Dimensions are not sorted in the same way
+        dt1 = deepcopy(dt)
+        dt2 = deepcopy(dt)
+        dt2["dim"][:prop][:scenario][1]["probability"] = 1/2
+        @test_throws ErrorException _FP.merge_dim!(dt1["dim"], dt2["dim"], :sub_nw) # Different property along a dimension that is not being merged
+        dt1 = deepcopy(dt)
+        dt2 = deepcopy(dt)
+        dt2["dim"][:meta][:sub_nw]["description"] = ""
+        @test_throws ErrorException _FP.merge_dim!(dt1["dim"], dt2["dim"], :sub_nw) # Different metadata
+        dt1 = deepcopy(dt)
+        sn_data_shift2 = deepcopy(sn_data)
+        _FP.shift_ids!(sn_data_shift2, 23)
+        dt2 = Dict{String,Any}("dim"=>sn_data_shift2["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data))
+        @test_throws ErrorException _FP.merge_dim!(dt1["dim"], dt2["dim"], :sub_nw) # Ids are not contiguous
+        dt1 = deepcopy(dt)
+        sn_data_shift2 = deepcopy(sn_data)
+        _FP.shift_ids!(sn_data_shift2, 25)
+        dt2 = Dict{String,Any}("dim"=>sn_data_shift2["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data))
+        @test_throws ErrorException _FP.merge_dim!(dt1["dim"], dt2["dim"], :sub_nw) # Ids are not contiguous
+        dt1 = deepcopy(dt)
+        dt2 = deepcopy(dt)
+        delete!(dt2, "dim")
+        _FP.add_dimension!(dt2, :hour, 4)
+        _FP.add_dimension!(dt2, :scenario, Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3))
+        _FP.add_dimension!(dt2, :sub_nw, 4; metadata = Dict{String,Any}("description"=>"sub_nws model different physical networks"))
+        @test _FP.merge_dim!(dt1["dim"], dt_shift["dim"], :sub_nw) == dt2["dim"]
+    end
+
     @testset "nw_ids" begin
         @test _FP.nw_ids(pm)                         == benchmark.nw
         @test _FP.nw_ids(pm, hour=4)                 == DataFrames.filter(r -> r.hour==4, benchmark).nw

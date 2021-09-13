@@ -8,16 +8,17 @@ Generate a multinetwork data structure from a single network and a time series.
 - `time_series`: data structure containing the time series.
 - `global_keys`: keys that are stored once per multinetwork (they are not repeated in each
   `nw`).
-- `number_of_nws`: number of networks to be created.
+- `number_of_nws`: number of networks to be created from `sn_data` and `time_series`;
+  default: read from `dim`.
 - `nw_id_offset`: optional value to be added to `time_series` ids to shift `nw` ids in
-  multinetwork data structure.
+  multinetwork data structure; default: read from `dim`.
 """
 function make_multinetwork(
         sn_data::Dict{String,Any},
         time_series::Dict{String,Any};
         global_keys = ["dim","multinetwork","name","per_unit","source_type","source_version"],
         number_of_nws::Int = length(sn_data["dim"][:li]),
-        nw_id_offset::Int = 0
+        nw_id_offset::Int = sn_data["dim"][:offset]
     )
 
     if _IM.ismultinetwork(sn_data)
@@ -45,8 +46,8 @@ Generate a multinetwork data structure - having only one `nw` - from a single ne
   `nw`).
 """
 function make_multinetwork(
-        sn_data::Dict{String,Any},
-        global_keys = ["dim","source_type","source_version","per_unit"],
+        sn_data::Dict{String,Any};
+        global_keys = ["dim","name","per_unit","source_type","source_version"],
     )
 
     if _IM.ismultinetwork(sn_data)
@@ -65,51 +66,60 @@ function make_multinetwork(
 end
 
 """
-    extend_multinetwork!(mn_data, sn_data, time_series; global_keys, number_of_nws, nw_id_offset)
+    import_nws!(mn_data, others...)
 
-Generate a multinetwork data structure from `sn_data` and `time_series` and merge into `mn_data`.
+Import into `mn_data["nw"]` the `nw`s contained in `others`.
 
-# Arguments
-- `mn_data`: the multinetwork data structure to be extended.
-- `sn_data`: single-network data structure to be replicated.
-- `time_series`: data structure containing the timeseries.
-- `global_keys`: keys that are stored once per multinetwork (they are not repeated in each
-  `nw`).
-- `number_of_nws`: number of networks to be created from `sn_data` and `time_series`.
-- `nw_id_offset`: optional value to be added to `time_series` ids to shift `nw` ids in
-  multinetwork data structure; the maximum nw idx in `mn_data` is adopted as default value.
+`nw` ids of the two multinetworks must be contiguous (an error is raised otherwise).
+
+See also: `merge_multinetworks!`.
 """
-function extend_multinetwork!(
-        mn_data::Dict{String,Any},
-        sn_data::Dict{String,Any},
-        time_series::Dict{String,Any};
-        global_keys = ["dim","multinetwork","name","per_unit","source_type","source_version"],
-        number_of_nws::Int = length(sn_data["dim"][:li]),
-        nw_id_offset::Int = last(mn_data["dim"][:li])
-    )
-    mn_data_2 = make_multinetwork(sn_data, time_series; global_keys, number_of_nws, nw_id_offset)
-    mn_data = merge_multinetworks!(mn_data, mn_data_2)
+function import_nws!(mn_data::Dict{String,Any}, others::Dict{String,Any}...)
+    if !_IM.ismultinetwork(mn_data)
+        Memento.error(_LOGGER, "`import_nws!` can only be applied to multinetwork data dictionaries.")
+    end
+    for other in others
+        if !isempty(keys(mn_data["nw"]) ∩ keys(other["nw"]))
+            Memento.error(_LOGGER, "Attempting to import multinetworks having overlapping `nw` ids.")
+        end
+        merge!(mn_data["nw"], other["nw"])
+    end
+    first_id, last_id = extrema(parse.(Int,keys(mn_data["nw"])))
+    if length(mn_data["nw"]) != last_id - first_id + 1
+        Memento.error(_LOGGER, "The ids of the imported `nw`s must be contiguous.")
+    end
+    return mn_data
 end
 
 """
-    merge_multinetworks!(mn_data_1, mn_data_2)
+    merge_multinetworks!(mn_data_1, mn_data_2, dimension)
 
-Merge `mn_data_2` into `mn_data_1`.
+Merge `mn_data_2` into `mn_data_1` along `dimension`.
 
-`nw` ids of the two multinetworks must not overlap (an error is raised otherwise).
-Fields present in `mn_data_1` but not in `mn_data_2` are copied into `mn_data_1`.
-Fields present in both multinetworks must be equal, except for `nw` and possibly for `name`.
+`nw` ids of the two multinetworks must be contiguous (an error is raised otherwise).
+Fields present in `mn_data_1` but not in `mn_data_2` are shallow-copied into `mn_data_1`.
+Fields present in both multinetworks must be equal, except for `dim`, `nw` and possibly for
+`name`.
+
+See also: `import_nws!`.
 """
-function merge_multinetworks!(mn_data_1::Dict{String,Any}, mn_data_2::Dict{String,Any})
-    keys1 = keys(mn_data_1)
-    keys2 = keys(mn_data_2)
-    for k in keys1 ∩ keys2
-        if k == "nw"
-            if !isempty(keys(mn_data_1["nw"]) ∩ keys(mn_data_2["nw"]))
-                Memento.error(_LOGGER, "Attempting to merge multinetworks having overlapping `nw` ids.")
+function merge_multinetworks!(mn_data_1::Dict{String,Any}, mn_data_2::Dict{String,Any}, dimension::Symbol)
+    for k in ("dim", "nw")
+        for data in (mn_data_1, mn_data_2)
+            if k ∉ keys(data)
+                Memento.error(_LOGGER, "Missing field $k from input data dictionary.")
             end
-            mn_data_1["nw"] = merge(mn_data_1["nw"], mn_data_2["nw"])
-        elseif mn_data_1[k] == mn_data_2[k]
+        end
+    end
+
+    mn_data_1["dim"] = merge_dim!(mn_data_1["dim"], mn_data_2["dim"], dimension)
+
+    import_nws!(mn_data_1, mn_data_2)
+
+    keys1 = setdiff(keys(mn_data_1), ("dim", "nw"))
+    keys2 = setdiff(keys(mn_data_1), ("dim", "nw"))
+    for k in keys1 ∩ keys2
+        if mn_data_1[k] == mn_data_2[k]
             continue
         elseif k == "name" # Applied only if names are different
             mn_data_1["name"] = "Merged multinetwork"
@@ -134,14 +144,8 @@ function _add_mn_global_values!(mn_data, sn_data, global_keys)
     end
 
     # Special cases are handled below
-
     mn_data["multinetwork"] = true
-
-    if haskey(mn_data, "name")
-        mn_data["name"] *= ", " * get(sn_data, "name", "anonymous")
-    else
-        mn_data["name"] = "Multinetwork based on: " * get(sn_data, "name", "anonymous")
-    end
+    get!(mn_data, "name", "multinetwork")
 
     # If the multinetwork is intended to store data belonging to different physical networks, add or update sub_nw lookup dict
     if haskey(sn_data, "td_coupling")

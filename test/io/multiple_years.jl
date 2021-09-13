@@ -12,11 +12,11 @@
 
 """
 function create_multi_year_network_data(case, number_of_hours, number_of_scenarios, number_of_years; kwargs...)
+    my_data = Dict{String, Any}("multinetwork"=>true, "name"=>case, "nw"=>Dict{String,Any}(), "per_unit"=>true)
     if case == "case6"
         base_file = "./test/data/multiple_years/case6/t_case6_"
         planning_years = [2030, 2040, 2050]
 
-        my_data = Dict{String, Any}()
         _FP.add_dimension!(my_data, :hour, number_of_hours)
         scenario = Dict(s => Dict{String,Any}("probability"=>1/number_of_scenarios) for s in 1:number_of_scenarios)
         _FP.add_dimension!(my_data, :scenario, scenario, metadata = Dict{String,Any}("mc"=>get(kwargs, :mc, true)))
@@ -25,7 +25,6 @@ function create_multi_year_network_data(case, number_of_hours, number_of_scenari
         base_file = "./test/data/multiple_years/case67/case67_tnep_"
         planning_years = [2030, 2040, 2050]
 
-        my_data = Dict{String, Any}()
         _FP.add_dimension!(my_data, :hour, number_of_hours)
         data_years = [2017, 2018, 2019]
         start = [1483228800000, 1514764800000, 1546300800000]
@@ -62,7 +61,8 @@ function add_one_year!(my_data, case, data, year_idx)
     else
         error("Case \"$(case)\" not (yet) supported.")
     end
-    extradata = _FP.create_profile_data(number_of_nws, data, loadprofile, genprofile)
-    _FP.extend_multinetwork!(my_data, data, extradata; number_of_nws, nw_id_offset)
+    time_series = _FP.create_profile_data(number_of_nws, data, loadprofile, genprofile)
+    mn_data = _FP.make_multinetwork(data, time_series; number_of_nws, nw_id_offset)
+    _FP.import_nws!(my_data, mn_data)
     return my_data
 end

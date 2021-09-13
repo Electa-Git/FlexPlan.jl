@@ -49,3 +49,5 @@ pm = _PM.instantiate_model(data, model_type, _FP.post_stoch_flex_tnep; ref_exten
 result = _PM.optimize_model!(pm; optimizer)
 
 @assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
+
+println("Test completed")
