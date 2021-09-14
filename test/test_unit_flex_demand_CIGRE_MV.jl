@@ -49,7 +49,7 @@ mn_data = _FP.make_multinetwork(data, extradata)
 
 # Build optimisation model, solve it and write solution dictionary:
 s = Dict("output" => Dict("branch_flows" => true))
-result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc, multinetwork=true; setting = s)
+result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc; setting = s)
 #@assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
 
 #_PM.print_summary(result["solution"]["nw"]["68"])

@@ -109,9 +109,9 @@ end
 
 # Build optimisation model, solve it and write solution dictionary:
 if use_DC
-      result = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
+      result = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s)
 else
-      result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc, multinetwork=true; setting = s)
+      result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc; setting = s)
 end
 
 # Printing to screen the branch investment decisions in the solution

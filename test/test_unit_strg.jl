@@ -16,7 +16,7 @@ mn_data = _FP.make_multinetwork(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 
-result_test1 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
+result_test1 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s)
 
 # Test 1: several DC lines should be built to meet the constant demand at loads, no storage
 @testset "Storage first test (TNEP with constant demand at loads)" begin
@@ -66,7 +66,7 @@ mn_data = _FP.make_multinetwork(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 
-result_test2 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
+result_test2 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s)
 
 # Test 2: existing storage at bus 5 should be used to charge in 3 time steps and then discharge at step 4,
 #         less line investments need to be performed
@@ -122,7 +122,7 @@ extradata = _FP.create_profile_data(dim, data, loadprofile)
 mn_data = _FP.make_multinetwork(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
-result_test3 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
+result_test3 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s)
 
 # Test 3: the results should stay the same than in Test 2 except that a new storage is built at bus 5 to replace
 #         the deactivted storage asset
@@ -184,7 +184,7 @@ mn_data = _FP.make_multinetwork(data, extradata)
 
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
 
-result_test4 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
+result_test4 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s)
 
 # Test 4: results should stay the same than in Test 3 except that a the smaller and cheaper storage
 #         is built

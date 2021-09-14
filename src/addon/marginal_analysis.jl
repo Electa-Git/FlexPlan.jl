@@ -8,7 +8,7 @@ function run_model(data, extradata, _PM, solver)
     # Build optimisation model, solve it and write solution dictionary:
     # This is the "problem file" which needs to be constructed individually depending on application
     # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-    res = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, solver, multinetwork=true; setting = s)
+    res = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, solver; setting = s)
     return res
 end
 
@@ -32,7 +32,7 @@ function marginal_analysis(marginal_param, data, extradata, _PM, solver)
         for i in units
             original_value[i] = data[utype][i][param]
         end
-        # Run model for all values in magringal anaysis 
+        # Run model for all values in marginal anaysis
         for value in values
             for i in units
                 data[utype][i][param] = value
@@ -44,5 +44,5 @@ function marginal_analysis(marginal_param, data, extradata, _PM, solver)
             data[utype][i][param] = original_value[i]
         end
     end
-    return marginal_res 
+    return marginal_res
 end

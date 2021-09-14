@@ -6,6 +6,7 @@ function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kw
     return _PM.run_model(
         data, model_type, optimizer, post_stoch_flex_tnep;
         ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        multinetwork = true,
         kwargs...
     )
 end
@@ -17,6 +18,7 @@ function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.Abstract
         data, model_type, optimizer, post_stoch_flex_tnep;
         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
         solution_processors = [_PM.sol_data_model!],
+        multinetwork = true,
         kwargs...
     )
 end

@@ -115,9 +115,9 @@ for i_load_scaling_factor = 1:n_load_scaling_factor
 
             # Build optimisation model, solve it and write solution dictionary:
             if use_DC
-                results = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting=s)
+                results = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc; setting=s)
             else
-                results = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc, multinetwork=true; setting=s)
+                results = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc; setting=s)
             end
 
             # Finding number of branches that are built
