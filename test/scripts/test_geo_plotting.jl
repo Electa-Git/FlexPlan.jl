@@ -109,7 +109,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 
-result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, gurobi; setting = s)
 
 
 plot_settings = Dict("add_nodes" => true, "plot_solution_only" => true)

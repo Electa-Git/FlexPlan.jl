@@ -66,7 +66,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-result = _FP.stoch_flex_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+result = _FP.stoch_flex_tnep(mn_data, _PM.DCPPowerModel, gurobi; setting = s)
 # Plot final topology
 plot_settings = Dict("add_nodes" => true, "plot_solution_only" => true)
 plot_filename = "./test/data/output_files/stoch.kml"

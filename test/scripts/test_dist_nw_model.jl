@@ -35,21 +35,24 @@ result_file = "test/data/output_files/test_dist_nw_model_result.txt"
 data_file = "test/data/CIGRE_MV_benchmark_network_tnep.m"
 data = _PM.parse_file(data_file)
 data["ne_storage"] = Dict{String,Any}() # ne_storage is not added automatically by parse_file, but is required by strg_tnep()
+_FP.add_dimension!(data, :hour, 1)
+_FP.add_dimension!(data, :year, 1)
+data = _FP.make_multinetwork(data)
 
 
 ## Apply changes for testing purpose
 
-branch = data["branch"]
-bus    = data["bus"]
-gen    = data["gen"]
-load   = data["load"]
+branch = data["nw"]["1"]["branch"]
+bus    = data["nw"]["1"]["bus"]
+gen    = data["nw"]["1"]["gen"]
+load   = data["nw"]["1"]["load"]
 if bus_1_voltage_fixed
     bus["1"]["vmin"] = 1.0
     bus["1"]["vmax"] = 1.0
 end
 if gen_7_power_reactive_fixed
-    gen["7"]["qmin"] = 0.0 
-    gen["7"]["qmax"] = 0.0 
+    gen["7"]["qmin"] = 0.0
+    gen["7"]["qmax"] = 0.0
 end
 if branch_1_impedance_zeroed
     branch["1"]["br_r"] = 0.0
@@ -90,16 +93,16 @@ result = _FP.strg_tnep(data, _FP.BFARadPowerModel, optimizer)
 
 ## Write result
 
-_PM.print_summary(result["solution"])
+_PM.print_summary(result["solution"]["nw"]["1"])
 mkpath(dirname(result_file))
 open(result_file, "w") do io
-    _PM.summary(io, result["solution"])
+    _PM.summary(io, result["solution"]["nw"]["1"])
 end
 
 
 ## Perform other unit tests
 
-gen = result["solution"]["gen"]
+gen = result["solution"]["nw"]["1"]["gen"]
 
 pg = sum(g["pg"] for g in values(gen))
 pd = sum(l["pd"] for l in values(load))

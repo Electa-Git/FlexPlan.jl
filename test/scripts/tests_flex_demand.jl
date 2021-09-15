@@ -75,7 +75,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s)
+result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s)
 
 # Plot branch flows to bus 5
 p_flow_1 = plot_branch_flow(result_test1,1,data,"branchdc")

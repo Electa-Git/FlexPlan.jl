@@ -1,9 +1,12 @@
 export reliability_tnep
 
 ""
-function reliability_tnep(data::Dict{String,Any}, model_type::Type, solver; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
-    s = setting
-    return _PM.run_model(data, model_type, solver, post_reliability_tnep; ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting = s, kwargs...)
+function reliability_tnep(data::Dict{String,Any}, model_type::Type, solver; kwargs...)
+    return _PM.run_model(
+        data, model_type, solver, post_reliability_tnep;
+        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        kwargs...
+    )
 end
 
 # Here the problem is defined, which is then sent to the solver.
@@ -11,9 +14,9 @@ end
 
 ""
 function post_reliability_tnep(pm::_PM.AbstractPowerModel)
-# VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl    
+# VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl
     base_nw = [parse(Int, i) for i in keys(pm.ref[:contingency]["0"])] # reliability specific - networks (times) in base scenario without contingencies
-    for n in _PM.nw_ids(pm)
+    for n in nw_ids(pm)
         _PM.variable_bus_voltage(pm; nw = n)
         _PM.variable_gen_power(pm; nw = n)
         _PM.variable_branch_power(pm; nw = n)
@@ -31,20 +34,22 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             variable_demand_interruption(pm; nw = n) # reliability specific
         end
         # new variables for TNEP problem
-        _PM.variable_ne_branch_indicator(pm; nw = n)
+        variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
+        variable_ne_branch_investment(pm; nw = n)
         _PM.variable_ne_branch_power(pm; nw = n)
         _PM.variable_ne_branch_voltage(pm; nw = n)
         variable_storage_power_ne(pm; nw = n)
         _PMACDC.variable_active_dcbranch_flow_ne(pm; nw = n)
-        _PMACDC.variable_branch_ne(pm; nw = n)
-        _PMACDC.variable_dc_converter_ne(pm; nw = n)
+        variable_ne_branchdc_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PMACDC.variable_branch_ne().
+        variable_ne_branchdc_investment(pm; nw = n)
+        variable_dc_converter_ne(pm; nw = n) # FlexPlan version: replaces _PMACDC.variable_dc_converter_ne().
         _PMACDC.variable_dcbranch_current_ne(pm; nw = n)
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
     end
 #OBJECTIVE see objective.jl
     objective_reliability(pm) # reliability specific
-#CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: flexible_demand.jl   
-    for n in _PM.nw_ids(pm)
+#CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: flexible_demand.jl
+    for n in nw_ids(pm)
         _PM.constraint_model_voltage(pm; nw = n)
         _PM.constraint_ne_model_voltage(pm; nw = n)
         _PMACDC.constraint_voltage_dc(pm; nw = n)
@@ -68,7 +73,7 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
                 constraint_thermal_limit_from_repl(pm, i; nw = n)
                 constraint_thermal_limit_to_repl(pm, i; nw = n)
             end
-        else    
+        else
             for i in _PM.ids(pm, n, :branch)
                 _PM.constraint_ohms_yt_from(pm, i; nw = n)
                 _PM.constraint_ohms_yt_to(pm, i; nw = n)
@@ -83,9 +88,6 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             _PM.constraint_ne_voltage_angle_difference(pm, i; nw = n)
             _PM.constraint_ne_thermal_limit_from(pm, i; nw = n)
             _PM.constraint_ne_thermal_limit_to(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_acbranches_mp(pm, n, i)
-            end
         end
 
         for i in _PM.ids(pm, n, :busdc)
@@ -101,9 +103,6 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
         for i in _PM.ids(pm, n, :branchdc_ne)
             _PMACDC.constraint_ohms_dc_branch_ne(pm, i; nw = n)
             _PMACDC.constraint_branch_limit_on_off(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_dcbranches_mp(pm, n, i)
-            end
         end
 
         for i in _PM.ids(pm, n, :convdc)
@@ -120,9 +119,6 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             _PMACDC.constraint_converter_losses_ne(pm, i; nw = n)
             _PMACDC.constraint_converter_current_ne(pm, i; nw = n)
             _PMACDC.constraint_converter_limit_on_off(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_converters_mp(pm, n, i)
-            end
             _PMACDC.constraint_conv_transformer_ne(pm, i; nw = n)
             _PMACDC.constraint_conv_reactor_ne(pm, i; nw = n)
             _PMACDC.constraint_conv_filter_ne(pm, i; nw = n)
@@ -152,7 +148,7 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
     end
-    
+
     for (s, contingency) in pm.ref[:contingency]
         network_ids = sort(collect(n for (sc, n) in contingency))
         n_1 = network_ids[1]
@@ -205,7 +201,7 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
                     constraint_ence_state(pm, i, n_1, n_2)
                     constraint_shift_up_state(pm, n_1, n_2, i)
                     constraint_shift_down_state(pm, n_1, n_2, i)
-                    constraint_shift_duration(pm, n_2, i)
+                    constraint_shift_duration(pm, network_ids[1], n_2, i)
                 end
             end
             n_1 = n_2
@@ -220,16 +216,5 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             end
         end
         #
-    end
-    network_ids = sort(collect(_PM.nw_ids(pm)))
-    n_1 = network_ids[1]
-    for n_2 in network_ids[2:end]
-        for i in _PM.ids(pm, :load, nw = n_2)
-            constraint_flex_investment(pm, n_1, n_2, i)
-        end
-        for i in _PM.ids(pm, :ne_storage, nw = n_2)
-            constraint_storage_investment(pm, n_1, n_2, i)
-        end
-        n_1 = n_2
     end
 end

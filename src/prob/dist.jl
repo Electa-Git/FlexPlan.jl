@@ -6,11 +6,13 @@ export opf_rad, tnep_rad
 ## Optimal power flow
 
 "Optimal power flow problem for radial networks"
-function opf_rad(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
-    return _PM.run_model(data, model_type, optimizer, build_opf_rad;
-                         ref_extensions = [ref_add_frb_branch!, ref_add_oltc_branch!],
-                         solution_processors = [_PM.sol_data_model!],
-                         kwargs...)
+function opf_rad(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
+    return _PM.run_model(
+        data, model_type, optimizer, build_opf_rad;
+        ref_extensions = [ref_add_frb_branch!, ref_add_oltc_branch!],
+        solution_processors = [_PM.sol_data_model!],
+        kwargs...
+    )
 end
 
 function build_opf_rad(pm::_PM.AbstractBFModel)
@@ -56,11 +58,13 @@ end
 # (TNEP acronym is maintained for consistency with transmission networks.)
 
 "Single-period network expansion planning problem for radial networks"
-function tnep_rad(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
-    return _PM.run_model(data, model_type, optimizer, build_tnep_rad;
-                         ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
-                         solution_processors = [_PM.sol_data_model!],
-                         kwargs...)
+function tnep_rad(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
+    return _PM.run_model(
+        data, model_type, optimizer, build_tnep_rad;
+        ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+        solution_processors = [_PM.sol_data_model!],
+        kwargs...
+    )
 end
 
 function build_tnep_rad(pm::_PM.AbstractBFModel)
