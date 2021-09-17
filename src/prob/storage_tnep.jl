@@ -180,8 +180,9 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
             end
         end
 
-        # Inter-year constraints on investments
+        # Constraints on investments
         if is_first_id(pm, n, :hour)
+            # Inter-year constraints
             prev_nws = prev_ids(pm, n, :year)
             for i in _PM.ids(pm, :ne_branch; nw = n)
                 constraint_ne_branch_activation(pm, i, prev_nws, n)
@@ -293,8 +294,15 @@ function post_strg_tnep(pm::_PM.AbstractBFModel)
             end
         end
 
-        # Inter-year constraints on investments
+        # Constraints on investments
         if is_first_id(pm, n, :hour)
+            for i in _PM.ids(pm, n, :branch)
+                if !isempty(ne_branch_ids(pm, i; nw = n))
+                    constraint_branch_complementarity(pm, i; nw = n)
+                end
+            end
+
+            # Inter-year constraints
             prev_nws = prev_ids(pm, n, :year)
             for i in _PM.ids(pm, :ne_branch; nw = n)
                 constraint_ne_branch_activation(pm, i, prev_nws, n)
