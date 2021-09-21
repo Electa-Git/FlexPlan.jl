@@ -2,7 +2,7 @@
 #### DEFINITION OF NEW VARIABLES FOR FLEXIBLE DEMAND ACCORDING TO FlexPlan MODEL
 ##################################################################################
 
-function variable_flexible_demand(pm::_PM.AbstractPowerModel; kwargs...)
+function variable_flexible_demand(pm::_PM.AbstractPowerModel; investment::Bool=true, kwargs...)
     variable_total_flex_demand(pm; kwargs...)
     variable_demand_reduction(pm; kwargs...)
     variable_energy_not_consumed(pm; kwargs...)
@@ -12,7 +12,7 @@ function variable_flexible_demand(pm::_PM.AbstractPowerModel; kwargs...)
     variable_total_demand_shifting_downwards(pm; kwargs...)
     variable_demand_curtailment(pm; kwargs...)
     variable_flexible_demand_indicator(pm; kwargs..., relax=true)
-    variable_flexible_demand_investment(pm; kwargs...)
+    investment && variable_flexible_demand_investment(pm; kwargs...)
 end
 #
 function variable_total_flex_demand(pm::_PM.AbstractPowerModel; kwargs...)

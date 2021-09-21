@@ -253,7 +253,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
 end
 
 "Builds distribution model."
-function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, benders::Bool=false, intertemporal_constraints::Bool=true)
+function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemporal_constraints::Bool=true)
 
     for n in nw_ids(pm)
         _PM.variable_bus_voltage(pm; nw = n)
@@ -426,67 +426,4 @@ function post_flex_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
     # Objective function of the combined model
     objective_min_cost_flex(t_pm, d_pm)
 
-end
-
-"Main problem model in Benders decomposition, for transmission networks."
-function post_flex_tnep_benders_main(pm::_PM.AbstractPowerModel; objective::Bool=true)
-    for n in sort!(collect(_PM.nw_ids(pm)))
-        if haskey(_PM.ref(pm, n), :ne_branch)
-            variable_ne_branch_indicator(pm; nw = n) # FlexPlan version: replaces that of PowerModels.
-        end
-        if haskey(_PM.ref(pm, n), :branchdc_ne)
-            variable_branch_ne(pm; nw = n) # FlexPlan version: replaces that of PowerModelsACDC.
-        end
-        if haskey(_PM.ref(pm, n), :convdc_ne)
-            variable_converter_ne(pm; nw = n) # FlexPlan version: replaces that of PowerModelsACDC.
-        end
-        if haskey(_PM.ref(pm, n), :ne_storage)
-            variable_storage_investment(pm; nw = n)
-        end
-        variable_flexible_demand_investment(pm; nw = n)
-    end
-
-    if objective
-        objective_min_cost_flex_benders_main(pm)
-    end
-end
-
-"Main problem model in Benders decomposition, for distribution networks."
-function post_flex_tnep_benders_main(pm::_PM.AbstractBFModel; objective::Bool=true)
-    for n in sort!(collect(_PM.nw_ids(pm)))
-        if haskey(_PM.ref(pm, n), :ne_branch)
-            variable_ne_branch_indicator(pm; nw = n) # FlexPlan version: replaces that of PowerModels.
-        end
-        if haskey(_PM.ref(pm, n), :branchdc_ne)
-            variable_branch_ne(pm; nw = n) # FlexPlan version: replaces that of PowerModelsACDC.
-        end
-        if haskey(_PM.ref(pm, n), :convdc_ne)
-            variable_converter_ne(pm; nw = n) # FlexPlan version: replaces that of PowerModelsACDC.
-        end
-        if haskey(_PM.ref(pm, n), :ne_storage)
-            variable_storage_investment(pm; nw = n)
-        end
-        variable_flexible_demand_investment(pm; nw = n)
-    end
-
-    if objective
-        objective_min_cost_flex_benders_main(pm)
-    end
-
-    for n in _PM.nw_ids(pm)
-        if _PM.ref(pm, n, :benders, "first_nw") == n # Avoids redundant constraints
-            for i in _PM.ids(pm, n, :branch)
-                if !isempty(ne_branch_ids(pm, i; nw = n))
-                    constraint_branch_complementarity(pm, i; nw = n) # Needed irrespective of the value of `replace` input parameter
-                end
-            end
-        end
-    end
-end
-
-"Secondary problem model in Benders decomposition - suitable for both transmission and distribution."
-function post_flex_tnep_benders_secondary(pm::_PM.AbstractPowerModel)
-    post_flex_tnep(pm; objective = false, benders = true)
-
-    objective_min_cost_flex_benders_secondary(pm)
 end

@@ -22,21 +22,26 @@ end
 ##################### Objective with candidate storage and flexible demand
 ##################################################################
 
-function objective_min_cost_flex(pm::_PM.AbstractPowerModel)
-    investment = sum(
-        calc_convdc_ne_cost(pm, n)
-        + calc_ne_branch_cost(pm, n)
-        + calc_branchdc_ne_cost(pm, n)
-        + calc_ne_storage_cost(pm, n)
-        + calc_load_investment_cost(pm, n)
-        for n in nw_ids(pm; hour=1)
-    )
-    operation = sum(
-        calc_gen_cost(pm, n)
-        + calc_load_operational_cost(pm, n)
-        for n in nw_ids(pm)
-    )
-    JuMP.@objective(pm.model, Min, investment + operation)
+function objective_min_cost_flex(pm::_PM.AbstractPowerModel; investment=true, operation=true)
+    cost = 0.0
+    if investment
+        cost += sum(
+            calc_convdc_ne_cost(pm, n)
+            + calc_ne_branch_cost(pm, n)
+            + calc_branchdc_ne_cost(pm, n)
+            + calc_ne_storage_cost(pm, n)
+            + calc_load_investment_cost(pm, n)
+            for n in nw_ids(pm; hour=1)
+        )
+    end
+    if operation
+        cost += sum(
+            calc_gen_cost(pm, n)
+            + calc_load_operational_cost(pm, n)
+            for n in nw_ids(pm)
+        )
+    end
+    JuMP.@objective(pm.model, Min, cost)
 end
 
 function objective_min_cost_flex(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractPowerModel)
@@ -67,67 +72,34 @@ function objective_min_cost_flex(t_pm::_PM.AbstractPowerModel, d_pm::_PM.Abstrac
     JuMP.@objective(t_pm.model, Min, t_investment + t_operation + d_investment + d_operation) # Note: t_pm.model == d_pm.model
 end
 
-function objective_min_cost_flex_benders_main(pm::_PM.AbstractPowerModel)
-    add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
-    decision_cost =
-        sum(
-            calc_convdc_ne_cost(pm, n, add_co2_cost)
-            + calc_ne_branch_cost(pm, n, add_co2_cost)
-            + calc_branchdc_ne_cost(pm, n, add_co2_cost)
-            + calc_ne_storage_cost(pm, n, add_co2_cost)
-            + calc_load_investment_cost(pm, n, add_co2_cost)
-        for n in _PM.nw_ids(pm))
-    return JuMP.@objective(pm.model, Min, decision_cost)
-end
-
-function objective_min_cost_flex_benders_secondary(pm::_PM.AbstractPowerModel)
-    add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
-    return JuMP.@objective(pm.model, Min,
-        sum(
-            calc_gen_cost(pm, n, add_co2_cost)
-            + calc_load_operational_cost(pm, n)
-        for n in _PM.nw_ids(pm))
-    )
-end
-
 
 ##########################################################################
 ##################### Stochastic objective with storage & flex candidates
 ##########################################################################
 
-function objective_stoch_flex(pm::_PM.AbstractPowerModel)
-    investment = sum(
-        calc_convdc_ne_cost(pm, n)
-        + calc_ne_branch_cost(pm, n)
-        + calc_branchdc_ne_cost(pm, n)
-        + calc_ne_storage_cost(pm, n)
-        + calc_load_investment_cost(pm, n)
-        for n in nw_ids(pm; hour=1, scenario=1)
-    )
-    operation = sum(scenario["probability"] *
-        sum(
-            calc_gen_cost(pm, n)
-            + calc_load_operational_cost(pm, n)
-            for n in nw_ids(pm; scenario=s)
+function objective_stoch_flex(pm::_PM.AbstractPowerModel; investment=true, operation=true)
+    cost = 0.0
+    if investment
+        cost += sum(
+            calc_convdc_ne_cost(pm, n)
+            + calc_ne_branch_cost(pm, n)
+            + calc_branchdc_ne_cost(pm, n)
+            + calc_ne_storage_cost(pm, n)
+            + calc_load_investment_cost(pm, n)
+            for n in nw_ids(pm; hour=1, scenario=1)
         )
-        for (s, scenario) in dim_prop(pm, :scenario)
-    )
-    JuMP.@objective(pm.model, Min, investment + operation)
-end
-
-function objective_stoch_flex_benders_main(pm::_PM.AbstractPowerModel)
-    add_co2_cost = haskey(pm.setting, "add_co2_cost") && pm.setting["add_co2_cost"]
-    decision_cost =
-        sum(pm.ref[:scenario_prob][s] *
+    end
+    if operation
+        cost += sum(scenario["probability"] *
             sum(
-                calc_convdc_ne_cost(pm, n, add_co2_cost)
-                + calc_ne_branch_cost(pm, n, add_co2_cost)
-                + calc_branchdc_ne_cost(pm, n, add_co2_cost)
-                + calc_ne_storage_cost(pm, n, add_co2_cost)
-                + calc_load_investment_cost(pm, n, add_co2_cost)
-            for (sc, n) in scenario)
-        for (s, scenario) in pm.ref[:scenario])
-    return JuMP.@objective(pm.model, Min, decision_cost)
+                calc_gen_cost(pm, n)
+                + calc_load_operational_cost(pm, n)
+                for n in nw_ids(pm; scenario=s)
+            )
+            for (s, scenario) in dim_prop(pm, :scenario)
+        )
+    end
+    JuMP.@objective(pm.model, Min, cost)
 end
 
 
