@@ -39,12 +39,13 @@ function create_multi_year_network_data(case, number_of_hours, number_of_scenari
         error("Case \"$(case)\" not (yet) supported.")
     end
 
+    cost_scale_factor = get(kwargs, :cost_scale_factor, 1.0)
     for year_idx = 1 : number_of_years
         year = planning_years[year_idx]
         file = base_file * "$year" * ".m"
         data = _FP.parse_file(file)
         data["dim"] = my_data["dim"]
-        _FP.scale_data!(data; year_idx)
+        _FP.scale_data!(data; year_idx, cost_scale_factor)
         add_one_year!(my_data, case, data, year_idx)
     end
 
