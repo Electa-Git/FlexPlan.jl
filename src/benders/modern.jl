@@ -74,7 +74,7 @@ function run_benders_decomposition(
 
         time_sec_start = time()
         Threads.@threads for pm in pm_sec
-            fix_var_values!(pm, main_var_values)
+            fix_sec_var_values!(pm, main_var_values)
             JuMP.optimize!(pm.model)
             check_solution_secondary(pm, iter)
         end
@@ -178,7 +178,7 @@ function run_benders_decomposition(
     else
         Threads.@threads for s in 1:num_scenarios
             pm = pm_sec[s]
-            fix_var_values!(pm, best_main_var_values)
+            fix_sec_var_values!(pm, best_main_var_values)
             JuMP.optimize!(pm.model)
             if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
                 Memento.error(_LOGGER, "Secondary problem, scenario $(first(keys(pm.ref[:scenario]))): $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")

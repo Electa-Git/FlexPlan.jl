@@ -45,7 +45,47 @@ The objective function in `main_bm` must contain only the investment-related ter
 function run_benders_decomposition end
 
 
+## Utility functions
+
+function combine_sol_dict!(d::AbstractDict, other::AbstractDict, atol=1e-6, path="")
+    for (k,v) in other
+        if haskey(d, k)
+            combine_sol_dict!(d[k], other[k], atol, "$path : $k")
+        else
+            d[k] = v
+        end
+    end
+    return d
+end
+
+function combine_sol_dict!(d::Number, other::Number, atol=1e-6, path="")
+    if isapprox(d, other; atol)
+        return d
+    else
+        Memento.error(_LOGGER, "Different values found while combining dicts at path \"$(path[4:end])\": $d, $other.")
+    end
+end
+
+function combine_sol_dict!(d, other, atol=1e-6, path="")
+    if d == other
+        return d
+    else
+        Memento.error(_LOGGER, "Different values found while combining dicts at path \"$(path[4:end])\": $d, $other.")
+    end
+end
+
+
 ## Common auxiliary functions
+
+function add_benders_mp_sp_nw_lookup!(one_pm_sec, pm_main)
+    mp_sp_nw_lookup = one_pm_sec.ref[:slice]["benders_mp_sp_nw_lookup"] = Dict{Int,Int}()
+    slice_orig_nw_lookup = one_pm_sec.ref[:slice]["slice_orig_nw_lookup"]
+    for n in _FP.nw_ids(one_pm_sec; hour=1)
+        orig_n = slice_orig_nw_lookup[n]
+        int_var_n = _FP.first_id(pm_main, orig_n, :scenario)
+        mp_sp_nw_lookup[int_var_n] = n
+    end
+end
 
 function check_solution_main(pm, iter)
     if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
@@ -55,17 +95,29 @@ end
 
 function check_solution_secondary(pm, iter)
     if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
-        Memento.error(_LOGGER, "Iteration $iter, secondary problem, scenario $(first(keys(pm.ref[:scenario]))): $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
+        Memento.error(_LOGGER, "Iteration $iter, secondary problem, scenario $(_FP.dim_meta(pm,:scenario,"orig_id")), year $(_FP.dim_meta(pm,:year,"orig_id")): $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
     end
 end
 
-function fix_var_values!(pm, values)
-    lookup = pm.ref[:benders]["scenario_sub_nw_lookup"]
-    for (n, key_vars) in values
-        for (key, var) in key_vars
+function fix_main_var_values!(pm, main_var_values)
+    for (n, key_var) in main_var_values
+        for (key, var) in key_var
             for (idx, value) in var
-                z_sec = _PM.var(pm, lookup[n], key, idx)
-                JuMP.fix(z_sec, value; force=true)
+                z_main = _PM.var(pm, n, key, idx)
+                JuMP.fix(z_main, value; force=true)
+            end
+        end
+    end
+end
+
+function fix_sec_var_values!(pm, main_var_values)
+    for (main_nw_id, sec_nw_id) in pm.ref[:slice]["benders_mp_sp_nw_lookup"]
+        for (key, var) in main_var_values[main_nw_id]
+            if haskey(_PM.var(pm, sec_nw_id), key)
+                for (idx, value) in var
+                    z_sec = _PM.var(pm, sec_nw_id, key, idx)
+                    JuMP.fix(z_sec, value; force=true)
+                end
             end
         end
     end
@@ -102,58 +154,30 @@ function record_statistics!(stat, algo, iter, iter_cuts, inv_cost, op_cost, sol_
     log_statistics(algo, stat[iter])
 end
 
-function add_benders_nw_data!(data::Dict{String,Any})
-    if _IM.ismultinetwork(data)
-        if haskey(data, "sub_nw")
-            for sub in values(data["sub_nw"])
-                benders_data = Dict{String,Any}("first_nw" => minimum(sub))
-                for n in sub
-                    data["nw"][n]["benders"] = benders_data # All nws in the same sub_nw refer to the same Dict
-                end
-            end
-        else
-            benders_data = Dict{String,Any}("first_nw" => minimum(parse.(Int,keys(data["nw"]))))
-            for nw in values(data["nw"])
-                nw["benders"] = benders_data # All nws refer to the same Dict
-            end
-        end
-    else
-        data["benders"] = Dict{String,Any}("first_nw" => 0)
-    end
-end
-
-function add_benders_data!(data::Dict{String,Any})
-    lookup = Dict{Int,Int}()
-    if _IM.ismultinetwork(data)
-        if haskey(data, "sub_nw")
-            # TODO: implement this case
-            @assert false "Not yet implemented"
-            #for sub in values(data["sub_nw"])
-            #    ...
-            #end
-        else
-            lookup[1] = minimum(parse.(Int,keys(data["nw"])))
-        end
-    else
-        # TODO: implement this case
-        @assert false "Not yet implemented"
-    end
-    data["benders"] = Dict{String,Any}("scenario_sub_nw_lookup" => lookup)
-end
-
 function calc_optimality_cut(pm_main, one_pm_sec, main_var_values)
-    lookup = one_pm_sec.ref[:benders]["scenario_sub_nw_lookup"]
+    scen_id = _FP.dim_meta(one_pm_sec, :scenario, "orig_id")
+    year_id = _FP.dim_meta(one_pm_sec, :year, "orig_id")
     optimality_cut_expr = JuMP.AffExpr(JuMP.objective_value(one_pm_sec.model))
-    for (n, key_vars) in main_var_values
-        for (key, var) in key_vars
-            for (idx, value) in var
-                z_main = _PM.var(pm_main, n, key, idx)
-                z_sec = _PM.var(one_pm_sec, lookup[n], key, idx)
-                lam = JuMP.reduced_cost(z_sec)
-                JuMP.add_to_expression!(optimality_cut_expr, lam*(z_main-value))
-                Memento.trace(_LOGGER, @sprintf("Optimality cut term for nw = %4i: %15.1f * (%18s - %3.1f)", lookup[n], lam, z_main, value))
+    for (main_nw_id, sec_nw_id) in one_pm_sec.ref[:slice]["benders_mp_sp_nw_lookup"]
+        for (key, var) in main_var_values[main_nw_id]
+            if haskey(_PM.var(one_pm_sec, sec_nw_id), key)
+                for (idx, value) in var
+                    z_main = _PM.var(pm_main, main_nw_id, key, idx)
+                    z_sec = _PM.var(one_pm_sec, sec_nw_id, key, idx)
+                    lam = JuMP.reduced_cost(z_sec)
+                    JuMP.add_to_expression!(optimality_cut_expr, lam*(z_main-value))
+                    Memento.trace(_LOGGER, @sprintf("Optimality cut term for (scenario%4i, year%2i): %15.1f * (%18s - %3.1f)", scen_id, year_id, lam, z_main, value))
+                end
             end
         end
     end
     return optimality_cut_expr
+end
+
+function build_sec_solution(one_pm_sec, solution_processors)
+    sol = _IM.build_solution(one_pm_sec; post_processors=solution_processors)
+    lookup = one_pm_sec.ref[:slice]["slice_orig_nw_lookup"]
+    nw_orig = Dict{String,Any}("$(lookup[parse(Int,n_slice)])"=>nw for (n_slice,nw) in sol["nw"])
+    sol["nw"] = nw_orig
+    return sol
 end

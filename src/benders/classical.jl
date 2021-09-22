@@ -51,11 +51,9 @@ function run_benders_decomposition(
 
     time_procedure_start = time()
     Memento.debug(_LOGGER, "Classical Benders decomposition started. Available threads: $(Threads.nthreads()).")
-    if !haskey(data, "scenario")
-        Memento.error(_LOGGER, "Missing \"scenario\" key in data.")
-    end
-    num_scenarios = length(data["scenario"])
-    add_benders_nw_data!(data)
+    _FP.require_dim(data, :scenario, :year)
+    scen_year_ids = [(s,y) for y in 1:_FP.dim_length(data, :year) for s in 1:_FP.dim_length(data, :scenario)]
+    num_sp = length(scen_year_ids) # Number of secondary problems
     ub = Inf
     lb = -Inf
     iter = 0
@@ -68,21 +66,15 @@ function run_benders_decomposition(
     if algo.silent
         JuMP.set_silent(pm_main.model)
     end
-    sp_weights = [data["scenario_prob"]["$s"] for s in 1:num_scenarios]
-    sp_obj_lb_var = JuMP.@variable(pm_main.model, [s=1:num_scenarios], lower_bound=algo.sp_obj_lb_min)
-    JuMP.@objective(pm_main.model, Min, JuMP.objective_function(pm_main.model) + sum(prob * sp_obj_lb_var[s] for (s, prob) in enumerate(sp_weights)))
+    sp_obj_lb_var = JuMP.@variable(pm_main.model, [p=1:num_sp], lower_bound=algo.sp_obj_lb_min)
+    JuMP.@objective(pm_main.model, Min, JuMP.objective_function(pm_main.model) + sum(sp_obj_lb_var))
 
-    pm_sec = Vector{model_type}(undef, num_scenarios)
-    Threads.@threads for s in 1:num_scenarios
-        ss = "$s"
-        scen = data["scenario"][ss]
-        scen_data = copy(data)
-        scen_data["scenario"] = Dict{String,Any}(ss => scen)
-        scen_data["scenario_prob"] = Dict{String,Any}(ss => sp_weights[s])
-        scen_data["nw"] = Dict{String,Any}("$n" => data["nw"]["$n"] for n in values(scen))
-        add_benders_nw_data!(scen_data)
-        add_benders_data!(scen_data)
-        pm = pm_sec[s] = _PM.instantiate_model(scen_data, model_type, sec_bm; ref_extensions, kwargs...)
+    pm_sec = Vector{model_type}(undef, num_sp)
+    Threads.@threads for i in 1:num_sp
+        s, y = scen_year_ids[i]
+        scen_data = _FP.slice_multinetwork(data; scenario=s, year=y)
+        pm = pm_sec[i] = _PM.instantiate_model(scen_data, model_type, sec_bm; ref_extensions, kwargs...)
+        add_benders_mp_sp_nw_lookup!(pm, pm_main)
         JuMP.relax_integrality(pm.model)
         JuMP.set_optimizer(pm.model, sec_opt)
         if algo.silent
@@ -107,7 +99,7 @@ function run_benders_decomposition(
 
         time_sec_start = time()
         Threads.@threads for pm in pm_sec
-            fix_var_values!(pm, main_var_values)
+            fix_sec_var_values!(pm, main_var_values)
             JuMP.optimize!(pm.model)
             check_solution_secondary(pm, iter)
         end
@@ -122,7 +114,7 @@ function run_benders_decomposition(
             Memento.info(_LOGGER, "┠─────────────┼────────────────────────────────────┼────────────────────────────────────┨")
         end
 
-        inv_cost, op_cost, sol_value, rel_tightening, lb = calc_iter_result(algo, pm_main, pm_sec, sp_obj_lb_var, sp_weights)
+        inv_cost, op_cost, sol_value, rel_tightening, lb = calc_iter_result(algo, pm_main, pm_sec, sp_obj_lb_var)
         if sol_value < ub
             ub = sol_value
             current_best = true
@@ -132,52 +124,55 @@ function run_benders_decomposition(
         end
         rel_gap = (ub-lb)/abs(ub)
         iter_cuts = 0
-        for s in 1:num_scenarios
-            if rel_tightening[s] > algo.tightening_rtol
-                iter_cuts += 1
-                optimality_cut_expr = calc_optimality_cut(pm_main, pm_sec[s], main_var_values)
-                JuMP.@constraint(pm_main.model, sp_obj_lb_var[s] >= optimality_cut_expr)
+        stop = rel_gap <= algo.obj_rtol || iter == algo.max_iter
+        if !stop
+            for p in 1:num_sp
+                if rel_tightening[p] > algo.tightening_rtol
+                    iter_cuts += 1
+                    optimality_cut_expr = calc_optimality_cut(pm_main, pm_sec[p], main_var_values)
+                    JuMP.@constraint(pm_main.model, sp_obj_lb_var[p] >= optimality_cut_expr)
+                end
             end
         end
         time_iteration = time() - time_iteration_start # Time spent after this line is not measured
         record_statistics!(stat, algo, iter, iter_cuts, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, main_var_values, pm_main, pm_sec, time_main, time_sec, time_iteration)
 
-        if rel_gap <= algo.obj_rtol
-            Memento.info(_LOGGER, "┠─────────────┴────────────────────────────────────┴────────────────────────────────────┨")
-            Memento.info(_LOGGER, "┃                          Stopping: optimal within tolerance                     ▴     ┃")
-            Memento.info(_LOGGER, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
-            break
-        end
-        if iter == algo.max_iter
-            Memento.info(_LOGGER, "┠─────────────┴────────────────────────────────────┴────────────────────────────────────┨")
-            Memento.info(_LOGGER, "┃   ▴                       Stopping: iteration limit reached                           ┃")
-            Memento.info(_LOGGER, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
+        if stop
+            if rel_gap <= algo.obj_rtol
+                Memento.info(_LOGGER, "┠─────────────┴────────────────────────────────────┴────────────────────────────────────┨")
+                Memento.info(_LOGGER, "┃                          Stopping: optimal within tolerance                     ▴     ┃")
+                Memento.info(_LOGGER, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
+            elseif iter == algo.max_iter
+                Memento.info(_LOGGER, "┠─────────────┴────────────────────────────────────┴────────────────────────────────────┨")
+                Memento.info(_LOGGER, "┃   ▴                       Stopping: iteration limit reached                           ┃")
+                Memento.info(_LOGGER, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛")
+            end
             break
         end
     end
 
-    sol = Vector{Dict{String,Any}}(undef, num_scenarios)
+    sol = Vector{Dict{String,Any}}(undef, num_sp)
     if current_best
-        Threads.@threads for s in 1:num_scenarios
-            sol[s] = _IM.build_solution(pm_sec[s]; post_processors=solution_processors)
+        Threads.@threads for p in 1:num_sp
+            sol[p] = build_sec_solution(pm_sec[p], solution_processors)
         end
     else
-        Threads.@threads for s in 1:num_scenarios
-            pm = pm_sec[s]
-            fix_var_values!(pm, best_main_var_values)
+        fix_main_var_values!(pm_main, best_main_var_values)
+        JuMP.optimize!(pm_main.model)
+        Threads.@threads for p in 1:num_sp
+            pm = pm_sec[p]
+            fix_sec_var_values!(pm, best_main_var_values)
             JuMP.optimize!(pm.model)
             if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
-                Memento.error(_LOGGER, "Secondary problem, scenario $(first(keys(pm.ref[:scenario]))): $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
+                Memento.error(_LOGGER, "Secondary problem, scenario $(_FP.dim_meta(pm,:scenario,"orig_id")), year $(_FP.dim_meta(pm,:year,"orig_id")): $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
             end
-            sol[s] = _IM.build_solution(pm; post_processors=solution_processors)
+            sol[p] = build_sec_solution(pm, solution_processors)
         end
     end
-    (solution, sol_rest) = Iterators.peel(sol)
-    for sol in sol_rest
-        for nw in sol["nw"]
-            push!(solution["nw"], nw)
-        end
-    end
+    solution_sec = Dict{String,Any}(k=>v for (k,v) in sol[1] if k != "nw")
+    solution_sec["nw"] = merge([s["nw"] for s in sol]...)
+    solution_main = _IM.build_solution(pm_main; post_processors=solution_processors)
+    solution = combine_sol_dict!(solution_sec, solution_main) # It is good that `solution_sec` is the first because 1) it has most of the data and 2) its integer values are rounded.
 
     result = Dict{String,Any}()
     result["objective"]    = ub
@@ -205,25 +200,23 @@ end
 
 function get_var_values(algo::Classical, pm)
     values = Dict{Int,Any}()
-    for (n,nw) in _PM.nws(pm)
-        if n == nw[:benders]["first_nw"] # TODO: improve by looping over an adequate data structure instead of checking equality for each nw
-            values_n = values[n] = Dict{Symbol,Any}()
-            for (key, var_array) in _PM.var(pm, n)
-                # idx is a JuMP.Containers.DenseAxisArrayKey{Tuple{Int64}}. idx[1] is an Int
-                values_n[key] = Dict{Int,Int}((idx[1],round(Int,JuMP.value(var_array[idx]))) for idx in keys(var_array))
-            end
+    for n in _FP.nw_ids(pm, hour=1, scenario=1)
+        values_n = values[n] = Dict{Symbol,Any}()
+        for (key, var_array) in _PM.var(pm, n)
+            # idx is a JuMP.Containers.DenseAxisArrayKey{Tuple{Int64}}. idx[1] is an Int
+            values_n[key] = Dict{Int,Int}((idx[1],round(Int,JuMP.value(var_array[idx]))) for idx in keys(var_array))
         end
     end
     return values
 end
 
-function calc_iter_result(algo::Classical, pm_main, pm_sec, sp_obj_lb_var, sp_weights)
+function calc_iter_result(algo::Classical, pm_main, pm_sec, sp_obj_lb_var)
     mp_obj = JuMP.objective_value(pm_main.model)
     sp_obj = [JuMP.objective_value(pm.model) for pm in pm_sec]
     sp_obj_lb = [JuMP.value(lb) for lb in sp_obj_lb_var]
     rel_tightening = (sp_obj .- sp_obj_lb) ./ abs.(sp_obj)
-    inv_cost = mp_obj - sum(sp_weights .* sp_obj_lb)
-    op_cost = sum(sp_weights .* sp_obj)
+    inv_cost = mp_obj - sum(sp_obj_lb)
+    op_cost = sum(sp_obj)
     sol_value = inv_cost + op_cost
     lb = mp_obj
     return inv_cost, op_cost, sol_value, rel_tightening, lb

@@ -31,7 +31,7 @@ mpc.branch = [
 
 mpc.time_elapsed = 1.0
 
-%column_names% load_id e_nce_max p_red_max p_shift_up_max p_shift_down_max p_shift_down_tot_max t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost
+%column_names% load_id e_nce_max p_red_max p_shift_up_max p_shift_down_max p_shift_down_tot_max t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost lifetime
 mpc.load_extra = [
-                     1    1000.0       1.0            0.0              0.0                  0.0          0            0           10.0           0.0             1.0     100.0       10    1      0.0;
+                     1    1000.0       1.0            0.0              0.0                  0.0          0            0           10.0           0.0             1.0     100.0       10    1      0.0       10;
 ];
