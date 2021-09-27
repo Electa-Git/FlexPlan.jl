@@ -133,6 +133,39 @@ function merge_multinetworks!(mn_data_1::Dict{String,Any}, mn_data_2::Dict{Strin
     return mn_data_1
 end
 
+"""
+    slice = slice_multinetwork(data::Dict{String,Any}; kwargs...)
+
+Slice a multinetwork keeping the networks that have the coordinates specified by `kwargs`.
+
+`kwargs` must be of the form `name = <value>`, where `name` is the name of a dimension of
+`dim` and `<value>` is an `Int` coordinate of that dimension.
+
+Return a sliced multinetwork that shares its data with `data`.
+The coordinates of the dimensions at which the original multinetwork is sliced are
+accessible with `dim_meta(slice, <name>, "orig_id")` where `<name>` is the name of one of
+those dimensions.
+Forward and backward lookup dicts containing the network ids of `data` and `slice` are
+accessible with `slice["slice"]["slice_orig_nw_lookup"]` and
+`slice["slice"]["orig_slice_nw_lookup"]`.
+"""
+function slice_multinetwork(data::Dict{String,Any}; kwargs...)
+    slice = Dict{String,Any}()
+    for k in setdiff(keys(data), ("dim", "nw"))
+        slice[k] = data[k]
+    end
+    dim, ids = slice_dim(data["dim"]; kwargs...)
+    slice["dim"] = dim
+    slice["nw"] = Dict{String,Any}()
+    for (new_id, old_id) in enumerate(ids)
+        slice["nw"]["$new_id"] = data["nw"]["$old_id"]
+    end
+    slice["slice"] = Dict{String,Any}()
+    slice["slice"]["slice_orig_nw_lookup"] = Dict(enumerate(ids))
+    slice["slice"]["orig_slice_nw_lookup"] = Dict((o,s) for (s,o) in slice["slice"]["slice_orig_nw_lookup"])
+    return slice
+end
+
 # Copy global values from sn_data to mn_data handling special cases
 function _add_mn_global_values!(mn_data, sn_data, global_keys)
 
