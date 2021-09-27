@@ -51,7 +51,7 @@ function add_dimension!(data::Dict{String,Any}, name::Symbol, properties::Dict{I
     dim[:pos] = (; dim[:pos]..., name => length(dim[:pos])+1)
     dim[:prop][name] = properties
     dim[:meta][name] = metadata
-    dim[:li] = collect(LinearIndices(Tuple(1:length(dim[:prop][nm]) for nm in keys(dim[:pos]))).+dim[:offset])
+    dim[:li] = LinearIndices(Tuple(1:length(dim[:prop][nm]) for nm in keys(dim[:pos]))).+dim[:offset]
     dim[:ci] = CartesianIndices(dim[:li])
 
     return dim
@@ -73,19 +73,28 @@ function add_dimension!(data::Dict{String,Any}, name::Symbol, size::Int; metadat
 end
 
 """
-    shift_ids!(data, offset)
+    shift_ids!(dim::Dict{Symbol,Any}, offset)
+    shift_ids!(data::Dict{String,Any}, offset)
 
-Shift by `offset` the nw ids in the `dim` structure of a single-network `data` dictionary.
+Shift by `offset` the network ids in `dim` or `data`.
 
 The `offset` argument is added to the existing offset.
+Return a vector containing the shifted network ids.
+`data` must be a single-network `data` dictionary.
 """
+function shift_ids! end
+
+function shift_ids!(dim::Dict{Symbol,Any}, offset::Int)
+    dim[:offset] += offset
+    dim[:li] .+= offset
+    return vec(dim[:li])
+end
+
 function shift_ids!(data::Dict{String,Any}, offset::Int)
     if _IM.ismultinetwork(data)
         Memento.error(_LOGGER, "`shift_ids!` can only be applied to single-network data dictionaries.")
     end
-    dim = data["dim"]
-    dim[:offset] += offset
-    dim[:li] .+= offset
+    shift_ids!(data["dim"], offset)
 end
 
 """
@@ -123,7 +132,7 @@ function merge_dim!(dim1::Dict{Symbol,Any}, dim2::Dict{Symbol,Any}, dimension::S
         Memento.error(_LOGGER, "Multinetworks to be merged must have contiguous ids.")
     end
     dim[:offset] = min(dim1[:offset], dim2[:offset])
-    dim[:li] = collect(LinearIndices(Tuple(1:length(dim[:prop][nm]) for nm in keys(dim[:pos]))).+dim[:offset])
+    dim[:li] = LinearIndices(Tuple(1:length(dim[:prop][nm]) for nm in keys(dim[:pos]))).+dim[:offset]
     dim[:ci] = CartesianIndices(dim[:li])
 
     return dim
@@ -195,8 +204,10 @@ end
 
 """
     nw_ids(pm::PowerModels.AbstractPowerModel; kwargs...)
+    nw_ids(data::Dict{String,Any}; kwargs...)
+    nw_ids(dim::Dict{Symbol,Any}; kwargs...)
 
-Sorted vector containing nw ids of `pm`, optionally filtered by the value of one or more dimensions.
+Sorted vector containing nw ids of `pm`, `data`, or `dim`, optionally filtered by the coordinates of one or more dimensions.
 
 `kwargs` must be of the form `name = <value>` or `name = <interval>` or `name = <subset>`,
 where `name` is the name of a dimension of `pm`.
@@ -210,15 +221,21 @@ julia> nw_ids(pm; hour = [6,12,18,24])
 julia> nw_ids(pm; hour = 24, scenario = 3)
 ```
 """
-function nw_ids(pm::_PM.AbstractPowerModel; kwargs...)::Vector{Int}
-    if !haskey(pm.ref, :dim)
-        return [0]
-    end
-    dim = pm.ref[:dim]
+function nw_ids end
+
+function nw_ids(dim::Dict{Symbol,Any}; kwargs...)::Vector{Int}
     names = keys(dim[:pos])
     li = dim[:li]
     nws = li[ntuple(i -> get(kwargs, names[i], axes(li, i)), ndims(li))...]
     ndims(nws) >= 1 ? vec(nws) : [nws]
+end
+
+function nw_ids(data::Dict{String,Any}; kwargs...)::Vector{Int}
+    haskey(data, "dim") ? nw_ids(data["dim"]; kwargs...) : [0]
+end
+
+function nw_ids(pm::_PM.AbstractPowerModel; kwargs...)::Vector{Int}
+    haskey(pm.ref, :dim) ? nw_ids(pm.ref[:dim]; kwargs...) : [0]
 end
 
 
@@ -403,32 +420,44 @@ end
 
 ## Access data relating to dimensions
 
-dim_prop(data::Dict{String,Any}) = data["dim"][:prop]
-dim_prop(data::Dict{String,Any}, name::Symbol) = data["dim"][:prop][name]
-dim_prop(data::Dict{String,Any}, name::Symbol, id::Int) = data["dim"][:prop][name][id]
-dim_prop(data::Dict{String,Any}, name::Symbol, id::Int, key::String) = data["dim"][:prop][name][id][key]
+"""
+    dim_prop(dim::dict{Symbol,Any}[, dimension[, id[, key]]])
+    dim_prop(data::dict{String,Any}[, dimension[, id[, key]]])
+    dim_prop(pm::PowerModels.AbstractPowerModel[, dimension[, id[, key]]])
 
-dim_prop(pm::_PM.AbstractPowerModel) = pm.ref[:dim][:prop]
-dim_prop(pm::_PM.AbstractPowerModel, name::Symbol) = pm.ref[:dim][:prop][name]
-dim_prop(pm::_PM.AbstractPowerModel, name::Symbol, id::Int) = pm.ref[:dim][:prop][name][id]
-dim_prop(pm::_PM.AbstractPowerModel, name::Symbol, id::Int, key::String) = pm.ref[:dim][:prop][name][id][key]
+Properties associated to the `id`s of `dimension`.
+"""
+function dim_prop end
+dim_prop(dim::Dict{Symbol,Any}) = dim[:prop]
+dim_prop(dim::Dict{Symbol,Any}, dimension::Symbol) = dim[:prop][dimension]
+dim_prop(dim::Dict{Symbol,Any}, dimension::Symbol, id::Int) = dim[:prop][dimension][id]
+dim_prop(dim::Dict{Symbol,Any}, dimension::Symbol, id::Int, key::String) = dim[:prop][dimension][id][key]
+dim_prop(data::Dict{String,Any}, args...) = dim_prop(data["dim"], args...)
+dim_prop(pm::_PM.AbstractPowerModel, args...) = dim_prop(pm.ref[:dim], args...)
 
-dim_meta(data::Dict{String,Any}) = data["dim"][:meta]
-dim_meta(data::Dict{String,Any}, name::Symbol) = data["dim"][:meta][name]
-dim_meta(data::Dict{String,Any}, name::Symbol, key::String) = data["dim"][:meta][name][key]
+"""
+    dim_meta(dim::dict{Symbol,Any}[, dimension[, key]])
+    dim_meta(data::dict{String,Any}[, dimension[, key]])
+    dim_meta(pm::PowerModels.AbstractPowerModel[, dimension[, key]])
 
-dim_meta(pm::_PM.AbstractPowerModel) = pm.ref[:dim][:meta]
-dim_meta(pm::_PM.AbstractPowerModel, name::Symbol) = pm.ref[:dim][:meta][name]
-dim_meta(pm::_PM.AbstractPowerModel, name::Symbol, key::String) = pm.ref[:dim][:meta][name][key]
+Metadata associated to `dimension`.
+"""
+function dim_meta end
+dim_meta(dim::Dict{Symbol,Any}) = dim[:meta]
+dim_meta(dim::Dict{Symbol,Any}, dimension::Symbol) = dim[:meta][dimension]
+dim_meta(dim::Dict{Symbol,Any}, dimension::Symbol, key::String) = dim[:meta][dimension][key]
+dim_meta(data::Dict{String,Any}, args...) = dim_meta(data["dim"], args...)
+dim_meta(pm::_PM.AbstractPowerModel, args...) = dim_meta(pm.ref[:dim], args...)
 
-dim_length(data::Dict{String,Any}) = length(data["dim"][:li])
-function dim_length(data::Dict{String,Any}, name::Symbol)
-    dim = data["dim"]
-    size(dim[:li], dim[:pos][name])
-end
+"""
+    dim_length(dim::dict{Symbol,Any}[, dimension])
+    dim_length(data::dict{String,Any}[, dimension])
+    dim_length(pm::PowerModels.AbstractPowerModel[, dimension])
 
-dim_length(pm::_PM.AbstractPowerModel) = length(pm.ref[:dim][:li])
-function dim_length(pm::_PM.AbstractPowerModel, name::Symbol)
-    dim = pm.ref[:dim]
-    size(dim[:li], dim[:pos][name])
-end
+Return the number of networks or, if `dimension` is specified, return its size.
+"""
+function dim_length end
+dim_length(dim::Dict{Symbol,Any}) = length(dim[:li])
+dim_length(dim::Dict{Symbol,Any}, dimension::Symbol) = size(dim[:li], dim[:pos][dimension])
+dim_length(data::Dict{String,Any}, args...) = dim_length(data["dim"], args...)
+dim_length(pm::_PM.AbstractPowerModel, args...) = dim_length(pm.ref[:dim], args...)

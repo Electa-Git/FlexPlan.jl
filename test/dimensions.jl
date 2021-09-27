@@ -5,14 +5,13 @@
     previous_FlexPlan_logger_level = Memento.getlevel(Memento.getlogger(FlexPlan))
     Memento.setlevel!(Memento.getlogger(FlexPlan), "alert")
 
-    benchmark = DataFrames.DataFrame(
-        nw = 1:24,
-        hour = repeat(1:4; outer=6),
-        scenario = repeat(1:3; inner=4, outer=2),
-        sub_nw = repeat(1:2; inner=12)
-    )
     #=
-    julia> display(benchmark)
+    julia> DataFrames.DataFrame(
+               nw = 1:24,
+               hour = repeat(1:4; outer=6),
+               scenario = repeat(1:3; inner=4, outer=2),
+               sub_nw = repeat(1:2; inner=12)
+           )
     24×4 DataFrame
      Row │ nw     hour   scenario  sub_nw
          │ Int64  Int64  Int64     Int64
@@ -49,10 +48,11 @@
     _FP.add_dimension!(sn_data, :sub_nw, 2; metadata = Dict{String,Any}("description"=>"sub_nws model different physical networks"))
     dt = Dict{String,Any}("dim"=>sn_data["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data)) # Fake a multinetwork data structure
     pm = _PM.instantiate_model(dt, _PM.ACPPowerModel, pm->nothing)
+    dim = pm.ref[:dim]
 
-    sn_data_shift = deepcopy(sn_data)
-    _FP.shift_ids!(sn_data_shift, 24)
-    dt_shift = Dict{String,Any}("dim"=>sn_data_shift["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data))
+    dim_shift = deepcopy(dim)
+    _FP.shift_ids!(dim_shift, 24)
+    dt_shift = Dict{String,Any}("dim"=>dim_shift, "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data))
     pm_shift = _PM.instantiate_model(dt_shift, _PM.ACPPowerModel, pm->nothing)
 
     @testset "add_dimension!" begin
@@ -61,7 +61,8 @@
     end
 
     @testset "shift_ids!" begin
-        @test _FP.nw_ids(pm_shift) == collect(25:48)
+        @test _FP.nw_ids(dim_shift) == collect(25:48)
+        @test _FP.shift_ids!(deepcopy(sn_data), 24) == collect(25:48)
         @test_throws ErrorException _FP.shift_ids!(dt, 1) # Trying to shift ids of a multinetwork
     end
 
@@ -75,21 +76,21 @@
         @test_throws ErrorException _FP.merge_dim!(dt1["dim"], dt2["dim"], :sub_nw) # Dimensions are not sorted in the same way
         dt1 = deepcopy(dt)
         dt2 = deepcopy(dt)
-        dt2["dim"][:prop][:scenario][1]["probability"] = 1/2
+        _FP.dim_prop(dt2, :scenario, 1)["probability"] = 1/2
         @test_throws ErrorException _FP.merge_dim!(dt1["dim"], dt2["dim"], :sub_nw) # Different property along a dimension that is not being merged
         dt1 = deepcopy(dt)
         dt2 = deepcopy(dt)
-        dt2["dim"][:meta][:sub_nw]["description"] = ""
+        _FP.dim_meta(dt2, :sub_nw)["description"] = ""
         @test_throws ErrorException _FP.merge_dim!(dt1["dim"], dt2["dim"], :sub_nw) # Different metadata
         dt1 = deepcopy(dt)
-        sn_data_shift2 = deepcopy(sn_data)
-        _FP.shift_ids!(sn_data_shift2, 23)
-        dt2 = Dict{String,Any}("dim"=>sn_data_shift2["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data))
+        sn_data_shift = deepcopy(sn_data)
+        _FP.shift_ids!(sn_data_shift, 23)
+        dt2 = Dict{String,Any}("dim"=>sn_data_shift["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data))
         @test_throws ErrorException _FP.merge_dim!(dt1["dim"], dt2["dim"], :sub_nw) # Ids are not contiguous
         dt1 = deepcopy(dt)
-        sn_data_shift2 = deepcopy(sn_data)
-        _FP.shift_ids!(sn_data_shift2, 25)
-        dt2 = Dict{String,Any}("dim"=>sn_data_shift2["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data))
+        sn_data_shift = deepcopy(sn_data)
+        _FP.shift_ids!(sn_data_shift, 25)
+        dt2 = Dict{String,Any}("dim"=>sn_data_shift["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data))
         @test_throws ErrorException _FP.merge_dim!(dt1["dim"], dt2["dim"], :sub_nw) # Ids are not contiguous
         dt1 = deepcopy(dt)
         dt2 = deepcopy(dt)
@@ -102,19 +103,19 @@
 
     @testset "slice_dim" begin
         slice, ids = _FP.slice_dim(dim, hour=2)
-        @test length(slice[:li]) == 6
-        @test length(slice[:prop][:hour]) == 1
-        @test length(slice[:prop][:scenario]) == 3
-        @test length(slice[:prop][:sub_nw]) == 2
-        @test slice[:meta][:hour]["orig_id"] == 2
+        @test _FP.dim_length(slice) == 6
+        @test _FP.dim_length(slice, :hour) == 1
+        @test _FP.dim_length(slice, :scenario) == 3
+        @test _FP.dim_length(slice, :sub_nw) == 2
+        @test _FP.dim_meta(slice, :hour, "orig_id") == 2
         @test ids == [2,6,10,14,18,22]
         slice, ids = _FP.slice_dim(dim, hour=2, scenario=3)
-        @test length(slice[:li]) == 2
-        @test length(slice[:prop][:hour]) == 1
-        @test length(slice[:prop][:scenario]) == 1
-        @test length(slice[:prop][:sub_nw]) == 2
-        @test slice[:meta][:hour]["orig_id"] == 2
-        @test slice[:meta][:scenario]["orig_id"] == 3
+        @test _FP.dim_length(slice) == 2
+        @test _FP.dim_length(slice, :hour) == 1
+        @test _FP.dim_length(slice, :scenario) == 1
+        @test _FP.dim_length(slice, :sub_nw) == 2
+        @test _FP.dim_meta(slice, :hour, "orig_id") == 2
+        @test _FP.dim_meta(slice, :scenario, "orig_id") == 3
         @test ids == [10,22]
     end
 
@@ -124,16 +125,18 @@
     end
 
     @testset "nw_ids" begin
-        @test _FP.nw_ids(pm)                         == benchmark.nw
-        @test _FP.nw_ids(pm, hour=4)                 == DataFrames.filter(r -> r.hour==4, benchmark).nw
-        @test _FP.nw_ids(pm, scenario=2)             == DataFrames.filter(r -> r.scenario==2, benchmark).nw
-        @test _FP.nw_ids(pm, sub_nw=1)               == DataFrames.filter(r -> r.sub_nw==1, benchmark).nw
-        @test _FP.nw_ids(pm, hour=4, scenario=2)     == DataFrames.filter(r -> r.hour==4 && r.scenario==2, benchmark).nw
-        @test _FP.nw_ids(pm, hour=2:4)               == DataFrames.filter(r -> 2<=r.hour<=4, benchmark).nw
-        @test _FP.nw_ids(pm, hour=2:4, scenario=2)   == DataFrames.filter(r -> 2<=r.hour<=4 && r.scenario==2, benchmark).nw
-        @test _FP.nw_ids(pm, hour=[2,4])             == DataFrames.filter(r -> r.hour∈(2,4), benchmark).nw
-        @test _FP.nw_ids(pm, hour=[2,4], scenario=2) == DataFrames.filter(r -> r.hour∈(2,4) && r.scenario==2, benchmark).nw
-        @test _FP.nw_ids(pm_shift)                   == benchmark.nw .+ 24
+        @test _FP.nw_ids(dim)                         == collect(1:24)
+        @test _FP.nw_ids(dim, hour=4)                 == [4,8,12,16,20,24]
+        @test _FP.nw_ids(dim, scenario=2)             == [5,6,7,8,17,18,19,20]
+        @test _FP.nw_ids(dim, sub_nw=1)               == [1,2,3,4,5,6,7,8,9,10,11,12]
+        @test _FP.nw_ids(dim, hour=4, scenario=2)     == [8,20]
+        @test _FP.nw_ids(dim, hour=2:4)               == [2,3,4,6,7,8,10,11,12,14,15,16,18,19,20,22,23,24]
+        @test _FP.nw_ids(dim, hour=2:4, scenario=2)   == [6,7,8,18,19,20]
+        @test _FP.nw_ids(dim, hour=[2,4])             == [2,4,6,8,10,12,14,16,18,20,22,24]
+        @test _FP.nw_ids(dim, hour=[2,4], scenario=2) == [6,8,18,20]
+        @test _FP.nw_ids(dim_shift)                   == collect(25:48)
+        @test _FP.nw_ids(dt)                          == _FP.nw_ids(dim)
+        @test _FP.nw_ids(pm)                          == _FP.nw_ids(dim)
     end
 
     @testset "similar_ids" begin
@@ -256,38 +259,31 @@
     end
 
     @testset "dim_prop" begin
-        @test Set(keys(_FP.dim_prop(dt))) == Set((:hour, :scenario, :sub_nw))
-        @test Set(keys(_FP.dim_prop(pm))) == Set((:hour, :scenario, :sub_nw))
-        @test _FP.dim_prop(dt, :hour) == Dict(h => Dict{String,Any}() for h in 1:4)
-        @test _FP.dim_prop(pm, :hour) == Dict(h => Dict{String,Any}() for h in 1:4)
-        @test _FP.dim_prop(dt, :scenario) == Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3)
-        @test _FP.dim_prop(pm, :scenario) == Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3)
-        @test _FP.dim_prop(dt, :scenario, 1) == Dict{String,Any}("probability"=>1/3)
-        @test _FP.dim_prop(pm, :scenario, 1) == Dict{String,Any}("probability"=>1/3)
-        @test _FP.dim_prop(dt, :scenario, 1, "probability") == 1/3
-        @test _FP.dim_prop(pm, :scenario, 1, "probability") == 1/3
+        @test Set(keys(_FP.dim_prop(dim))) == Set((:hour, :scenario, :sub_nw))
+        @test _FP.dim_prop(dim, :hour) == Dict(h => Dict{String,Any}() for h in 1:4)
+        @test _FP.dim_prop(dim, :scenario) == Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3)
+        @test _FP.dim_prop(dim, :scenario, 1) == Dict{String,Any}("probability"=>1/3)
+        @test _FP.dim_prop(dim, :scenario, 1, "probability") == 1/3
+        @test _FP.dim_prop(dt) == _FP.dim_prop(dim)
+        @test _FP.dim_prop(pm) == _FP.dim_prop(dim)
     end
 
     @testset "dim_meta" begin
-        @test Set(keys(_FP.dim_meta(dt))) == Set((:hour, :scenario, :sub_nw))
-        @test Set(keys(_FP.dim_meta(pm))) == Set((:hour, :scenario, :sub_nw))
-        @test _FP.dim_meta(dt, :hour) == Dict{String,Any}()
-        @test _FP.dim_meta(pm, :hour) == Dict{String,Any}()
-        @test _FP.dim_meta(dt, :sub_nw) == Dict{String,Any}("description" => "sub_nws model different physical networks")
-        @test _FP.dim_meta(pm, :sub_nw) == Dict{String,Any}("description" => "sub_nws model different physical networks")
-        @test _FP.dim_meta(dt, :sub_nw, "description") == "sub_nws model different physical networks"
-        @test _FP.dim_meta(pm, :sub_nw, "description") == "sub_nws model different physical networks"
+        @test Set(keys(_FP.dim_meta(dim))) == Set((:hour, :scenario, :sub_nw))
+        @test _FP.dim_meta(dim, :hour) == Dict{String,Any}()
+        @test _FP.dim_meta(dim, :sub_nw) == Dict{String,Any}("description" => "sub_nws model different physical networks")
+        @test _FP.dim_meta(dim, :sub_nw, "description") == "sub_nws model different physical networks"
+        @test _FP.dim_meta(dt) == _FP.dim_meta(dim)
+        @test _FP.dim_meta(pm) == _FP.dim_meta(dim)
     end
 
     @testset "dim_length" begin
-        @test _FP.dim_length(dt) == 24
-        @test _FP.dim_length(pm) == 24
-        @test _FP.dim_length(dt, :hour) == 4
-        @test _FP.dim_length(pm, :hour) == 4
-        @test _FP.dim_length(dt, :scenario) == 3
-        @test _FP.dim_length(pm, :scenario) == 3
-        @test _FP.dim_length(dt_shift) == 24
-        @test _FP.dim_length(pm_shift) == 24
+        @test _FP.dim_length(dim) == 24
+        @test _FP.dim_length(dim, :hour) == 4
+        @test _FP.dim_length(dim, :scenario) == 3
+        @test _FP.dim_length(dim_shift) == 24
+        @test _FP.dim_length(dt) == _FP.dim_length(dim)
+        @test _FP.dim_length(pm) == _FP.dim_length(dim)
     end
 
     Memento.setlevel!(Memento.getlogger(FlexPlan), previous_FlexPlan_logger_level)
