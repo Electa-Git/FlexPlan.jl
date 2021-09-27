@@ -130,6 +130,51 @@ function merge_dim!(dim1::Dict{Symbol,Any}, dim2::Dict{Symbol,Any}, dimension::S
 end
 
 """
+    slice, ids = slice_dim(dim::Dict{Symbol,Any}; kwargs...)
+
+Slice `dim` structure keeping the networks that have the coordinates specified by `kwargs`.
+
+`kwargs` must be of the form `name = <value>`, where `name` is the name of a dimension of
+`dim` and `<value>` is an `Int` coordinate of that dimension.
+
+Return `slice`, a sliced `dim` structure whose networks have ids starting at 1, and `ids`, a
+vector containing the ids that the networks making up `slice` have in `dim`.
+The coordinates of the dimensions at which `dim` is sliced are accessible with
+`dim_meta(slice, <name>, "orig_id")`, where `<name>` is the name of one of those dimensions.
+
+# Examples
+```julia-repl
+julia> slice_dim(dim; hour = 24)
+julia> slice_dim(dim; hour = 24, scenario = 3)
+```
+"""
+function slice_dim(dim::Dict{Symbol,Any}; kwargs...)
+    slice = Dict{Symbol,Any}()
+    slice[:pos] = dim[:pos]
+    slice[:prop] = Dict{Symbol,Dict{Int,Dict{String,Any}}}()
+    for d in keys(dim[:pos])
+        if d ∈ keys(kwargs)
+            slice[:prop][d] = Dict{Int,Dict{String,Any}}(1 => deepcopy(dim[:prop][d][kwargs[d]]))
+        else
+            slice[:prop][d] = deepcopy(dim[:prop][d])
+        end
+    end
+    slice[:meta] = deepcopy(dim[:meta])
+    for (d, i) in kwargs
+        slice[:meta][d]["orig_id"] = i
+    end
+    slice[:offset] = 0
+    slice[:li] = collect(LinearIndices(Tuple(1:length(slice[:prop][nm]) for nm in keys(slice[:pos]))))
+    slice[:ci] = CartesianIndices(slice[:li])
+
+    names = keys(dim[:pos])
+    li = dim[:li]
+    ids = vec(li[ntuple(i -> get(kwargs, names[i], axes(li,i)), ndims(li))...])
+
+    return slice, ids
+end
+
+"""
     require_dim(data, dimensions...)
 
 Verify that the specified `dimensions` are present in `data`; if not, raise an error.

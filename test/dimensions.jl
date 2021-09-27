@@ -100,6 +100,24 @@
         @test _FP.merge_dim!(dt1["dim"], dt_shift["dim"], :sub_nw) == dt2["dim"]
     end
 
+    @testset "slice_dim" begin
+        slice, ids = _FP.slice_dim(dim, hour=2)
+        @test length(slice[:li]) == 6
+        @test length(slice[:prop][:hour]) == 1
+        @test length(slice[:prop][:scenario]) == 3
+        @test length(slice[:prop][:sub_nw]) == 2
+        @test slice[:meta][:hour]["orig_id"] == 2
+        @test ids == [2,6,10,14,18,22]
+        slice, ids = _FP.slice_dim(dim, hour=2, scenario=3)
+        @test length(slice[:li]) == 2
+        @test length(slice[:prop][:hour]) == 1
+        @test length(slice[:prop][:scenario]) == 1
+        @test length(slice[:prop][:sub_nw]) == 2
+        @test slice[:meta][:hour]["orig_id"] == 2
+        @test slice[:meta][:scenario]["orig_id"] == 3
+        @test ids == [10,22]
+    end
+
     @testset "require_dim" begin
         @test_throws ErrorException _FP.require_dim(Dict{String,Any}()) # Missing `dim` dict
         @test_throws ErrorException _FP.require_dim(dt, :newdim) # Missing `newdim` dimension
