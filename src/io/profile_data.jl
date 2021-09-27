@@ -35,40 +35,6 @@ function add_storage_data!(data)
     return data
 end
 
-function scale_cost_data!(data, scenario)
-    rescale_hourly = x -> (8760*scenario["planning_horizon"] / scenario["hours"]) * x # scale hourly costs to the planning horizon
-    rescale_total  = x -> (                                1 / scenario["hours"]) * x # scale total costs to the planning horizon
-    for (g, gen) in data["gen"]
-        _PM._apply_func!(gen, "cost", rescale_hourly)
-    end
-    for (b, branch) in get(data, "ne_branch", Dict{String,Any}())
-        _PM._apply_func!(branch, "construction_cost", rescale_total)
-        _PM._apply_func!(branch, "co2_cost", rescale_total)
-    end
-    for (b, branch) in get(data, "branchdc_ne", Dict{String,Any}())
-        _PM._apply_func!(branch, "cost", rescale_total)
-        _PM._apply_func!(branch, "co2_cost", rescale_total)
-    end
-    for (c, conv) in get(data, "convdc_ne", Dict{String,Any}())
-        _PM._apply_func!(conv, "cost", rescale_total)
-        _PM._apply_func!(conv, "co2_cost", rescale_total)
-    end
-    for (s, strg) in get(data, "ne_storage", Dict{String,Any}())
-        _PM._apply_func!(strg, "eq_cost", rescale_total)
-        _PM._apply_func!(strg, "inst_cost", rescale_total)
-        _PM._apply_func!(strg, "co2_cost", rescale_total)
-    end
-    for (l, load) in data["load"]
-        _PM._apply_func!(load, "cost_shift_up", rescale_hourly)     # Compensation for demand shifting
-        _PM._apply_func!(load, "cost_shift_down", rescale_hourly)   # Compensation for demand shifting
-        _PM._apply_func!(load, "cost_curtailment", rescale_hourly)  # Compensation for load curtailment (i.e. involuntary demand reduction)
-        _PM._apply_func!(load, "cost_reduction", rescale_hourly)    # Compensation for consuming less (i.e. voluntary demand reduction)
-        _PM._apply_func!(load, "cost_investment", rescale_total)    # Investment costs for enabling flexible demand
-        _PM._apply_func!(load, "co2_cost", rescale_total)           # CO2 costs for enabling flexible demand
-    end
-    _PM._apply_func!(data, "co2_emission_cost", rescale_hourly)
-end
-
 function add_flexible_demand_data!(data)
     for (le, load_extra) in data["load_extra"]
 
@@ -116,6 +82,9 @@ function add_flexible_demand_data!(data)
         # Maximum energy not consumed (accumulated voluntary load reduction) (MWh)
         data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
 
+        # Expected lifetime of flexibility-enabling equipment (years)
+        data["load"]["$idx"]["lifetime"] = load_extra["lifetime"]
+
         # Value of Lost Load (VOLL), i.e. costs for load curtailment due to contingencies (€/MWh)
         if haskey(load_extra, "cost_voll")
             data["load"]["$idx"]["cost_voll"] = load_extra["cost_voll"]
@@ -158,24 +127,144 @@ function add_generation_emission_data!(data)
     return data
 end
 
-function create_profile_data(number_of_hours, data, loadprofile = ones(length(data["load"]), number_of_hours), genprofile = ones(length(data["gen"]), number_of_hours))
+"""
+    scale_data!(data; <keyword arguments>)
+
+Scale lifetime and cost data.
+
+See `_scale_time_data!`, `_scale_operational_cost_data!` and `_scale_investment_cost_data!`.
+
+# Arguments
+- `data`: a single-network data dictionary.
+- `number_of_hours`: number of optimization periods (default: read from `dim`).
+- `year_scale_factor = dim_meta(data, :year, "scale_factor")`: how may years a representative year should represent (default: read from `dim`).
+- `number_of_years = dim_length(data, :year)`: number o representative years (default: read from `dim`).
+- `year_idx = 1`: id of the representative year (default: 1).
+"""
+function scale_data!(
+        data::Dict{String,Any};
+        number_of_hours::Int = haskey(data, "dim") ? dim_length(data, :hour) : 1,
+        year_scale_factor::Int = haskey(data, "dim") ? dim_meta(data, :year, "scale_factor") : 1,
+        number_of_years::Int = haskey(data, "dim") ? dim_length(data, :year) : 1,
+        year_idx::Int = 1
+    )
+    if _IM.ismultinetwork(data)
+        Memento.error(_LOGGER, "`scale_data!` can only be applied to single-network data dictionaries.")
+    end
+    _scale_time_data!(data, year_scale_factor)
+    _scale_operational_cost_data!(data, number_of_hours, year_scale_factor)
+    _scale_investment_cost_data!(data, number_of_years, year_idx) # Must be called after `_scale_time_data!`
+end
+
+"""
+    _scale_time_data!(data, year_scale_factor)
+
+Scale lifetime data from years to periods of `year_scale_factor` years.
+
+After applying this function, the step between consecutive years takes the value 1: in this
+way it is easier to write the constraints that link variables belonging to different years.
+"""
+function _scale_time_data!(data, year_scale_factor)
+    rescale = x -> x ÷ year_scale_factor
+    for component in ("ne_branch", "branchdc_ne", "ne_storage", "convdc_ne", "load")
+        for (key, val) in get(data, component, Dict{String,Any}())
+            if !haskey(val, "lifetime")
+                if component == "load" && !Bool(get(val, "flex", 0))
+                    continue # "lifetime" field might not be used in cases where the load is not flexible
+                else
+                    Memento.error(_LOGGER, "Missing `lifetime` key in `$component` $key.")
+                end
+            end
+            if val["lifetime"] % year_scale_factor != 0
+                Memento.error(_LOGGER, "Lifetime of $component $key ($(val["lifetime"])) must be a multiple of the year scale factor ($year_scale_factor).")
+            end
+            _PM._apply_func!(val, "lifetime", rescale)
+        end
+    end
+end
+
+"""
+    _scale_operational_cost_data!(data, number_of_hours, year_scale_factor)
+
+Scale hourly costs to the planning horizon.
+
+Scale hourly costs so that the sum of the costs over all optimization periods
+(`number_of_hours` hours) represents the cost over the entire planning horizon
+(`year_scale_factor` years). In this way it is possible to perform the optimization using a
+reduced number of hours and still obtain a cost that approximates the cost that would be
+obtained if 8760 hours were used for each year.
+"""
+function _scale_operational_cost_data!(data, number_of_hours, year_scale_factor)
+    rescale = x -> (8760*year_scale_factor / number_of_hours) * x # scale hourly costs to the planning horizon
+    for (g, gen) in data["gen"]
+        _PM._apply_func!(gen, "cost", rescale)
+    end
+    for (l, load) in data["load"]
+        _PM._apply_func!(load, "cost_shift_up", rescale)     # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_shift_down", rescale)   # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_curtailment", rescale)  # Compensation for load curtailment (i.e. involuntary demand reduction)
+        _PM._apply_func!(load, "cost_reduction", rescale)    # Compensation for consuming less (i.e. voluntary demand reduction)
+    end
+    _PM._apply_func!(data, "co2_emission_cost", rescale)
+end
+
+"""
+    _scale_investment_cost_data!(data, number_of_years, year_idx)
+
+Correct investment costs considering the residual value at the end of the planning horizon.
+
+Linear depreciation is assumed.
+
+This function _must_ be called after `_scale_time_data!`.
+"""
+function _scale_investment_cost_data!(data, number_of_years, year_idx)
+    # Assumption: the `lifetime` parameter of investment candidates has already been scaled
+    # using `_scale_time_data!`.
+    remaining_years = number_of_years - year_idx + 1
+    for (b, branch) in get(data, "ne_branch", Dict{String,Any}())
+        rescale = x -> min(remaining_years/branch["lifetime"], 1.0) * x
+        _PM._apply_func!(branch, "construction_cost", rescale)
+        _PM._apply_func!(branch, "co2_cost", rescale)
+    end
+    for (b, branch) in get(data, "branchdc_ne", Dict{String,Any}())
+        rescale = x -> min(remaining_years/branch["lifetime"], 1.0) * x
+        _PM._apply_func!(branch, "cost", rescale)
+        _PM._apply_func!(branch, "co2_cost", rescale)
+    end
+    for (c, conv) in get(data, "convdc_ne", Dict{String,Any}())
+        rescale = x -> min(remaining_years/conv["lifetime"], 1.0) * x
+        _PM._apply_func!(conv, "cost", rescale)
+        _PM._apply_func!(conv, "co2_cost", rescale)
+    end
+    for (s, strg) in get(data, "ne_storage", Dict{String,Any}())
+        rescale = x -> min(remaining_years/strg["lifetime"], 1.0) * x
+        _PM._apply_func!(strg, "eq_cost", rescale)
+        _PM._apply_func!(strg, "inst_cost", rescale)
+        _PM._apply_func!(strg, "co2_cost", rescale)
+    end
+    for (l, load) in data["load"]
+        rescale = x -> min(remaining_years/load["lifetime"], 1.0) * x
+        _PM._apply_func!(load, "cost_investment", rescale)
+        _PM._apply_func!(load, "co2_cost", rescale)
+    end
+end
+
+function create_profile_data(number_of_periods, data, loadprofile = ones(length(data["load"]), number_of_periods), genprofile = ones(length(data["gen"]), number_of_periods))
     extradata = Dict{String,Any}()
-    extradata["dim"] = Dict{String,Any}()
-    extradata["dim"] = number_of_hours
     extradata["load"] = Dict{String,Any}()
     extradata["gen"] = Dict{String,Any}()
     for (l, load) in data["load"]
         extradata["load"][l] = Dict{String,Any}()
-        extradata["load"][l]["pd"] = Array{Float64,2}(undef, 1, number_of_hours)
-        for d in 1:number_of_hours
+        extradata["load"][l]["pd"] = Array{Float64,2}(undef, 1, number_of_periods)
+        for d in 1:number_of_periods
             extradata["load"][l]["pd"][1, d] = data["load"][l]["pd"] * loadprofile[parse(Int, l), d]
         end
     end
 
     for (g, gen) in data["gen"]
         extradata["gen"][g] = Dict{String,Any}()
-        extradata["gen"][g]["pmax"] = Array{Float64,2}(undef, 1, number_of_hours)
-        for d in 1:number_of_hours
+        extradata["gen"][g]["pmax"] = Array{Float64,2}(undef, 1, number_of_periods)
+        for d in 1:number_of_periods
             extradata["gen"][g]["pmax"][1, d] = data["gen"][g]["pmax"] * genprofile[parse(Int, g), d]
         end
     end
@@ -232,4 +321,3 @@ function create_contingency_data(number_of_hours, data, contingency_profiles=Dic
     end
     return extradata
 end
-
