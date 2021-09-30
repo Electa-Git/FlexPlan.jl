@@ -94,7 +94,7 @@ function run_benders_decomposition(
         time_main_start = time()
         JuMP.optimize!(pm_main.model)
         check_solution_main(pm_main, iter)
-        main_var_values = get_var_values(algo, pm_main)
+        main_var_values = get_var_values(pm_main)
         time_main = time() - time_main_start
 
         time_sec_start = time()
@@ -196,18 +196,6 @@ function run_benders_decomposition(
         100 * time_proc["other"] / time_proc["total"]
     ))
     return result
-end
-
-function get_var_values(algo::Classical, pm)
-    values = Dict{Int,Any}()
-    for n in _FP.nw_ids(pm, hour=1, scenario=1)
-        values_n = values[n] = Dict{Symbol,Any}()
-        for (key, var_array) in _PM.var(pm, n)
-            # idx is a JuMP.Containers.DenseAxisArrayKey{Tuple{Int64}}. idx[1] is an Int
-            values_n[key] = Dict{Int,Int}((idx[1],round(Int,JuMP.value(var_array[idx]))) for idx in keys(var_array))
-        end
-    end
-    return values
 end
 
 function calc_iter_result(algo::Classical, pm_main, pm_sec, sp_obj_lb_var)

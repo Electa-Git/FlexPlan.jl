@@ -20,16 +20,16 @@ include("../io/multiple_years.jl")
 
 # Test case
 test_case = "case6" # Available test cases (see below): "case6", "case67", "cigre", "cigre_ext", "case2"
-number_of_hours = 4 # Number of hourly optimization periods
-number_of_scenarios = 8 # Number of scenarios (different generation/load profiles)
+number_of_hours = 8 # Number of hourly optimization periods
+number_of_scenarios = 4 # Number of scenarios (different generation/load profiles)
 number_of_years = 3 # Number of years (different investments)
 scale_cost = 1e-9 # Cost scale factor (to test the numerical tractability of the problem)
 
 # Procedure
-algorithm = _FP.Benders.Classical # `_FP.Benders.Classical` or `_FP.Benders.Modern`
+algorithm = _FP.Benders.Modern # `_FP.Benders.Classical` or `_FP.Benders.Modern`
 obj_rtol = 1e-6 # Relative tolerance for stopping
 max_iter = 1000 # Iteration limit
-tightening_rtol = 1e-6 # Relative tolerance for adding optimality cuts
+tightening_rtol = 1e-9 # Relative tolerance for adding optimality cuts
 silent = true # Suppress solvers output, taking precedence over any other solver attribute
 
 # Solvers

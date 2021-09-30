@@ -99,6 +99,18 @@ function check_solution_secondary(pm, iter)
     end
 end
 
+function get_var_values(pm)
+    values = Dict{Int,Any}()
+    for n in _FP.nw_ids(pm, hour=1, scenario=1)
+        values_n = values[n] = Dict{Symbol,Any}()
+        for (key, var_array) in _PM.var(pm, n)
+            # idx is a JuMP.Containers.DenseAxisArrayKey{Tuple{Int64}}. idx[1] is an Int
+            values_n[key] = Dict{Int,Int}((idx[1],round(Int,JuMP.value(var_array[idx]))) for idx in keys(var_array))
+        end
+    end
+    return values
+end
+
 function fix_main_var_values!(pm, main_var_values)
     for (n, key_var) in main_var_values
         for (key, var) in key_var
