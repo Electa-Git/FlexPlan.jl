@@ -77,6 +77,39 @@ end
 
 ## Common auxiliary functions
 
+function instantiate_model(algo, data, model_type, main_opt, sec_opt, main_bm, sec_bm; ref_extensions, kwargs...)
+    _FP.require_dim(data, :scenario, :year)
+    scen_year_ids = [(s,y) for y in 1:_FP.dim_length(data, :year) for s in 1:_FP.dim_length(data, :scenario)]
+    num_sp = length(scen_year_ids) # Number of secondary problems
+
+    pm_main = _PM.instantiate_model(data, model_type, main_bm; ref_extensions, kwargs...)
+    JuMP.set_optimizer(pm_main.model, main_opt)
+    if algo.silent
+        JuMP.set_silent(pm_main.model)
+    end
+    sp_obj_lb_var = JuMP.@variable(pm_main.model, [p=1:num_sp], lower_bound=algo.sp_obj_lb_min)
+    JuMP.@objective(pm_main.model, Min, JuMP.objective_function(pm_main.model) + sum(sp_obj_lb_var))
+
+    pm_sec = Vector{model_type}(undef, num_sp)
+    Threads.@threads for i in 1:num_sp
+        s, y = scen_year_ids[i]
+        scen_data = _FP.slice_multinetwork(data; scenario=s, year=y)
+        pm = pm_sec[i] = _PM.instantiate_model(scen_data, model_type, sec_bm; ref_extensions, kwargs...)
+        add_benders_mp_sp_nw_lookup!(pm, pm_main)
+        JuMP.relax_integrality(pm.model)
+        JuMP.set_optimizer(pm.model, sec_opt)
+        if algo.silent
+            JuMP.set_silent(pm.model)
+        end
+    end
+
+    Memento.debug(_LOGGER, "Main model has $(JuMP.num_variables(pm_main.model)) variables and $(sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])) constraints initially.")
+    Memento.debug(_LOGGER, "The first secondary model has $(JuMP.num_variables(first(pm_sec).model)) variables and $(sum([JuMP.num_constraints(first(pm_sec).model, f, s) for (f,s) in JuMP.list_of_constraint_types(first(pm_sec).model)])) constraints initially.")
+
+    return pm_main, pm_sec, num_sp, sp_obj_lb_var
+end
+
+
 function add_benders_mp_sp_nw_lookup!(one_pm_sec, pm_main)
     mp_sp_nw_lookup = one_pm_sec.ref[:slice]["benders_mp_sp_nw_lookup"] = Dict{Int,Int}()
     slice_orig_nw_lookup = one_pm_sec.ref[:slice]["slice_orig_nw_lookup"]
@@ -87,15 +120,23 @@ function add_benders_mp_sp_nw_lookup!(one_pm_sec, pm_main)
     end
 end
 
-function check_solution_main(pm, iter)
-    if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
-        Memento.error(_LOGGER, "Iteration $iter, main problem: $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
+function fix_and_optimize_secondary!(pm_sec, main_var_values)
+    Threads.@threads for pm in pm_sec
+        fix_sec_var_values!(pm, main_var_values)
+        JuMP.optimize!(pm.model)
+        check_solution_secondary(pm)
     end
 end
 
-function check_solution_secondary(pm, iter)
+function check_solution_main(pm)
     if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
-        Memento.error(_LOGGER, "Iteration $iter, secondary problem, scenario $(_FP.dim_meta(pm,:scenario,"orig_id")), year $(_FP.dim_meta(pm,:year,"orig_id")): $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
+        Memento.error(_LOGGER, "Main problem: $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
+    end
+end
+
+function check_solution_secondary(pm)
+    if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
+        Memento.error(_LOGGER, "Secondary problem, scenario $(_FP.dim_meta(pm,:scenario,"orig_id")), year $(_FP.dim_meta(pm,:year,"orig_id")): $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
     end
 end
 
@@ -186,10 +227,42 @@ function calc_optimality_cut(pm_main, one_pm_sec, main_var_values)
     return optimality_cut_expr
 end
 
-function build_sec_solution(one_pm_sec, solution_processors)
-    sol = _IM.build_solution(one_pm_sec; post_processors=solution_processors)
-    lookup = one_pm_sec.ref[:slice]["slice_orig_nw_lookup"]
-    nw_orig = Dict{String,Any}("$(lookup[parse(Int,n_slice)])"=>nw for (n_slice,nw) in sol["nw"])
-    sol["nw"] = nw_orig
-    return sol
+function build_solution(pm_main, pm_sec, solution_processors)
+    solution_main = _IM.build_solution(pm_main; post_processors=solution_processors)
+    num_sp = length(pm_sec)
+    sol = Vector{Dict{String,Any}}(undef, num_sp)
+    Threads.@threads for p in 1:num_sp
+        sol[p] = _IM.build_solution(pm_sec[p]; post_processors=solution_processors)
+        lookup = pm_sec[p].ref[:slice]["slice_orig_nw_lookup"]
+        nw_orig = Dict{String,Any}("$(lookup[parse(Int,n_slice)])"=>nw for (n_slice,nw) in sol[p]["nw"])
+        sol[p]["nw"] = nw_orig
+    end
+    solution_sec = Dict{String,Any}(k=>v for (k,v) in sol[1] if k != "nw")
+    solution_sec["nw"] = merge([s["nw"] for s in sol]...)
+    combine_sol_dict!(solution_sec, solution_main) # It is good that `solution_sec` is the first because 1) it has most of the data and 2) its integer values are rounded.
+end
+
+function build_result(ub, lb, solution, stat, time_procedure_start, time_build)
+    result = Dict{String,Any}()
+    result["objective"]    = ub
+    result["objective_lb"] = lb
+    result["solution"]     = solution
+    result["stat"]         = stat
+    result["solve_time"]   = time() - time_procedure_start # Time spent after this line is not measured
+    time_proc = Dict{String,Any}()
+    time_proc["total"] = result["solve_time"]
+    time_proc["build"] = time_build
+    time_proc["main"] = sum(s["time"]["main"] for s in values(stat))
+    time_proc["secondary"] = sum(s["time"]["secondary"] for s in values(stat))
+    time_proc["other"] = time_proc["total"] - (time_proc["build"] + time_proc["main"] + time_proc["secondary"])
+    result["time"] = time_proc
+
+    Memento.debug(_LOGGER, @sprintf("Benders decomposition time: %.1f s (%.0f%% building models, %.0f%% main prob, %.0f%% secondary probs, %.0f%% other)",
+        time_proc["total"],
+        100 * time_proc["build"] / time_proc["total"],
+        100 * time_proc["main"] / time_proc["total"],
+        100 * time_proc["secondary"] / time_proc["total"],
+        100 * time_proc["other"] / time_proc["total"]
+    ))
+    return result
 end

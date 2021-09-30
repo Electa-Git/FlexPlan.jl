@@ -4,11 +4,17 @@
     Classical <: BendersAlgorithm
 
 Parameters for classical implementation of Benders decomposition:
-- `obj_rtol`: stop when `(ub-lb)/abs(ub) < obj_rtol`, where `ub` and `lb` are the upper and lower bounds of the optimal solution value. Default: `sqrt(eps())`.
+- `obj_rtol`: stop when `(ub-lb)/abs(ub) < obj_rtol`, where `ub` and `lb` are the upper and
+  lower bounds of the optimal solution value. Default: `sqrt(eps())`.
 - `max_iter`: maximum number of iterations before stopping. Default: 1000.
-- `tightening_rtol`: add an optimality cut only if `(sp_obj-sp_obj_lb)/abs(sp_obj) > tightening_rtol`, where `sp_obj` is the objective function value of the secondary problem and and `sp_obj_lb` is the value of the corresponding surrogate function. Default: `sqrt(eps())`.
-- `sp_obj_lb_min`: constant term of the initial optimality cut, which prevents the main problem from being unbounded at the beginning. Default: `-1e12`."
-- `silent`: require the solvers to produce no output; take precedence over any other attribute controlling verbosity. Default: `true`.
+- `tightening_rtol`: add an optimality cut only if
+  `(sp_obj-sp_obj_lb)/abs(sp_obj) > tightening_rtol`, where `sp_obj` is the objective
+  function value of the secondary problem and and `sp_obj_lb` is the value of the
+  corresponding surrogate function. Default: `sqrt(eps())`.
+- `sp_obj_lb_min`: constant term of the initial optimality cut, which prevents the main
+  problem from being unbounded at the beginning. Default: `-1e12`."
+- `silent`: require the solvers to produce no output; take precedence over any other
+  attribute controlling verbosity. Default: `true`.
 """
 struct Classical <: BendersAlgorithm
     @benders_fields
@@ -51,40 +57,15 @@ function run_benders_decomposition(
 
     time_procedure_start = time()
     Memento.debug(_LOGGER, "Classical Benders decomposition started. Available threads: $(Threads.nthreads()).")
-    _FP.require_dim(data, :scenario, :year)
-    scen_year_ids = [(s,y) for y in 1:_FP.dim_length(data, :year) for s in 1:_FP.dim_length(data, :scenario)]
-    num_sp = length(scen_year_ids) # Number of secondary problems
+
+    pm_main, pm_sec, num_sp, sp_obj_lb_var = instantiate_model(algo, data, model_type, main_opt, sec_opt, main_bm, sec_bm; ref_extensions, kwargs...)
+
     ub = Inf
     lb = -Inf
     iter = 0
     current_best = true
     best_main_var_values = nothing
     stat = Dict{Int,Any}()
-
-    pm_main = _PM.instantiate_model(data, model_type, main_bm; ref_extensions, kwargs...)
-    JuMP.set_optimizer(pm_main.model, main_opt)
-    if algo.silent
-        JuMP.set_silent(pm_main.model)
-    end
-    sp_obj_lb_var = JuMP.@variable(pm_main.model, [p=1:num_sp], lower_bound=algo.sp_obj_lb_min)
-    JuMP.@objective(pm_main.model, Min, JuMP.objective_function(pm_main.model) + sum(sp_obj_lb_var))
-
-    pm_sec = Vector{model_type}(undef, num_sp)
-    Threads.@threads for i in 1:num_sp
-        s, y = scen_year_ids[i]
-        scen_data = _FP.slice_multinetwork(data; scenario=s, year=y)
-        pm = pm_sec[i] = _PM.instantiate_model(scen_data, model_type, sec_bm; ref_extensions, kwargs...)
-        add_benders_mp_sp_nw_lookup!(pm, pm_main)
-        JuMP.relax_integrality(pm.model)
-        JuMP.set_optimizer(pm.model, sec_opt)
-        if algo.silent
-            JuMP.set_silent(pm.model)
-        end
-    end
-
-    Memento.debug(_LOGGER, "Main model has $(JuMP.num_variables(pm_main.model)) variables and $(sum([JuMP.num_constraints(pm_main.model, f, s) for (f,s) in JuMP.list_of_constraint_types(pm_main.model)])) constraints initially.")
-    Memento.debug(_LOGGER, "Each secondary model has $(JuMP.num_variables(first(pm_sec).model)) variables and $(sum([JuMP.num_constraints(first(pm_sec).model, f, s) for (f,s) in JuMP.list_of_constraint_types(first(pm_sec).model)])) constraints initially.")
-
     time_build = time() - time_procedure_start
 
     while true
@@ -93,16 +74,12 @@ function run_benders_decomposition(
 
         time_main_start = time()
         JuMP.optimize!(pm_main.model)
-        check_solution_main(pm_main, iter)
+        check_solution_main(pm_main)
         main_var_values = get_var_values(pm_main)
         time_main = time() - time_main_start
 
         time_sec_start = time()
-        Threads.@threads for pm in pm_sec
-            fix_sec_var_values!(pm, main_var_values)
-            JuMP.optimize!(pm.model)
-            check_solution_secondary(pm, iter)
-        end
+        fix_and_optimize_secondary!(pm_sec, main_var_values)
         time_sec = time() - time_sec_start
 
         if iter == 1
@@ -123,16 +100,11 @@ function run_benders_decomposition(
             current_best = false
         end
         rel_gap = (ub-lb)/abs(ub)
-        iter_cuts = 0
         stop = rel_gap <= algo.obj_rtol || iter == algo.max_iter
-        if !stop
-            for p in 1:num_sp
-                if rel_tightening[p] > algo.tightening_rtol
-                    iter_cuts += 1
-                    optimality_cut_expr = calc_optimality_cut(pm_main, pm_sec[p], main_var_values)
-                    JuMP.@constraint(pm_main.model, sp_obj_lb_var[p] >= optimality_cut_expr)
-                end
-            end
+        if stop
+            iter_cuts = 0
+        else
+            iter_cuts = add_optimality_cuts!(pm_main, pm_sec, algo, num_sp, sp_obj_lb_var, main_var_values, rel_tightening)
         end
         time_iteration = time() - time_iteration_start # Time spent after this line is not measured
         record_statistics!(stat, algo, iter, iter_cuts, inv_cost, op_cost, sol_value, ub, lb, rel_gap, current_best, main_var_values, pm_main, pm_sec, time_main, time_sec, time_iteration)
@@ -151,51 +123,14 @@ function run_benders_decomposition(
         end
     end
 
-    sol = Vector{Dict{String,Any}}(undef, num_sp)
-    if current_best
-        Threads.@threads for p in 1:num_sp
-            sol[p] = build_sec_solution(pm_sec[p], solution_processors)
-        end
-    else
+    if !current_best
         fix_main_var_values!(pm_main, best_main_var_values)
         JuMP.optimize!(pm_main.model)
-        Threads.@threads for p in 1:num_sp
-            pm = pm_sec[p]
-            fix_sec_var_values!(pm, best_main_var_values)
-            JuMP.optimize!(pm.model)
-            if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
-                Memento.error(_LOGGER, "Secondary problem, scenario $(_FP.dim_meta(pm,:scenario,"orig_id")), year $(_FP.dim_meta(pm,:year,"orig_id")): $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
-            end
-            sol[p] = build_sec_solution(pm, solution_processors)
-        end
+        check_solution_main(pm_main)
+        fix_and_optimize_secondary!(pm_sec, best_main_var_values)
     end
-    solution_sec = Dict{String,Any}(k=>v for (k,v) in sol[1] if k != "nw")
-    solution_sec["nw"] = merge([s["nw"] for s in sol]...)
-    solution_main = _IM.build_solution(pm_main; post_processors=solution_processors)
-    solution = combine_sol_dict!(solution_sec, solution_main) # It is good that `solution_sec` is the first because 1) it has most of the data and 2) its integer values are rounded.
-
-    result = Dict{String,Any}()
-    result["objective"]    = ub
-    result["objective_lb"] = lb
-    result["solution"]     = solution
-    result["stat"]         = stat
-    result["solve_time"]   = time() - time_procedure_start # Time spent after this line is not measured
-    time_proc = Dict{String,Any}()
-    time_proc["total"] = result["solve_time"]
-    time_proc["build"] = time_build
-    time_proc["main"] = sum(s["time"]["main"] for s in values(stat))
-    time_proc["secondary"] = sum(s["time"]["secondary"] for s in values(stat))
-    time_proc["other"] = time_proc["total"] - (time_proc["build"] + time_proc["main"] + time_proc["secondary"])
-    result["time"] = time_proc
-
-    Memento.debug(_LOGGER, @sprintf("Benders decomposition time: %.1f s (%.0f%% building models, %.0f%% main prob, %.0f%% secondary probs, %.0f%% other)",
-        time_proc["total"],
-        100 * time_proc["build"] / time_proc["total"],
-        100 * time_proc["main"] / time_proc["total"],
-        100 * time_proc["secondary"] / time_proc["total"],
-        100 * time_proc["other"] / time_proc["total"]
-    ))
-    return result
+    solution = build_solution(pm_main, pm_sec, solution_processors)
+    build_result(ub, lb, solution, stat, time_procedure_start, time_build)
 end
 
 function calc_iter_result(algo::Classical, pm_main, pm_sec, sp_obj_lb_var)
@@ -208,6 +143,18 @@ function calc_iter_result(algo::Classical, pm_main, pm_sec, sp_obj_lb_var)
     sol_value = inv_cost + op_cost
     lb = mp_obj
     return inv_cost, op_cost, sol_value, rel_tightening, lb
+end
+
+function add_optimality_cuts!(pm_main, pm_sec, algo::Classical, num_sp, sp_obj_lb_var, main_var_values, rel_tightening)
+    iter_cuts = 0
+    for p in 1:num_sp
+        if rel_tightening[p] > algo.tightening_rtol
+            iter_cuts += 1
+            optimality_cut_expr = calc_optimality_cut(pm_main, pm_sec[p], main_var_values)
+            JuMP.@constraint(pm_main.model, sp_obj_lb_var[p] >= optimality_cut_expr)
+        end
+    end
+    return iter_cuts
 end
 
 function log_statistics(algo::Classical, st)
