@@ -34,7 +34,7 @@ solution of the main problem, secondary problems are feasible.
 - `ref_extensions::Vector{<:Function} = Function[]`: reference extensions, used to
   instantiate both main and secondary problems.
 - `solution_processors::Vector{<:Function} = Function[]`: solution processors, applied to
-  solutions of both main and secondary problems.
+  solutions of secondary problems.
 - `kwargs...`: passed to `PowerModels.instantiate_model()` when building main and secondary
   problems.
 
@@ -228,7 +228,7 @@ function calc_optimality_cut(pm_main, one_pm_sec, main_var_values)
 end
 
 function build_solution(pm_main, pm_sec, solution_processors)
-    solution_main = _IM.build_solution(pm_main; post_processors=solution_processors)
+    solution_main = _IM.build_solution(pm_main)
     num_sp = length(pm_sec)
     sol = Vector{Dict{String,Any}}(undef, num_sp)
     Threads.@threads for p in 1:num_sp
