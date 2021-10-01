@@ -457,12 +457,6 @@ function post_stoch_flex_tnep_benders_main(pm::_PM.AbstractBFModel)
         for i in _PM.ids(pm, :ne_branch; nw = n)
             constraint_ne_branch_activation(pm, i, prev_nws, n)
         end
-        for i in _PM.ids(pm, :branchdc_ne; nw = n)
-            constraint_ne_branchdc_activation(pm, i, prev_nws, n)
-        end
-        for i in _PM.ids(pm, :convdc_ne; nw = n)
-            constraint_ne_converter_activation(pm, i, prev_nws, n)
-        end
         for i in _PM.ids(pm, :ne_storage; nw = n)
             constraint_ne_storage_activation(pm, i, prev_nws, n)
         end
