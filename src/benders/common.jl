@@ -248,9 +248,8 @@ function build_result(ub, lb, solution, stat, time_procedure_start, time_build)
     result["objective_lb"] = lb
     result["solution"]     = solution
     result["stat"]         = stat
-    result["solve_time"]   = time() - time_procedure_start # Time spent after this line is not measured
     time_proc = Dict{String,Any}()
-    time_proc["total"] = result["solve_time"]
+    time_proc["total"] = time() - time_procedure_start # Time spent after this line is not measured
     time_proc["build"] = time_build
     time_proc["main"] = sum(s["time"]["main"] for s in values(stat))
     time_proc["secondary"] = sum(s["time"]["secondary"] for s in values(stat))

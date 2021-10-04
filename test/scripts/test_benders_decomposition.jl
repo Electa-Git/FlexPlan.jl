@@ -290,9 +290,9 @@ if compare_to_benchmark
     time_benchmark_start = time()
     result_benchmark = _FP.stoch_flex_tnep(data, model_type, optimizer_benchmark; setting=Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false))
     @assert result_benchmark["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result_benchmark["optimizer"]) termination status: $(result_benchmark["termination_status"])"
-    time_benchmark = time() - time_benchmark_start
-    info(script_logger, @sprintf("MILP time: %.1f s", time_benchmark)) # result_benchmark["solve_time"] does not include model build time
-    info(script_logger, @sprintf("Benders/MILP solve time ratio: %.3f", result_benders["solve_time"]/time_benchmark))
+    result_benchmark["time"] = Dict{String,Any}("total" => time()-time_benchmark_start)
+    info(script_logger, @sprintf("MILP time: %.1f s", result_benchmark["time"]["total"])) # result_benchmark["solve_time"] does not include model build time
+    info(script_logger, @sprintf("Benders/MILP solve time ratio: %.3f", result_benders["time"]["total"]/result_benchmark["time"]["total"]))
 
     # Test solution correctness
 
