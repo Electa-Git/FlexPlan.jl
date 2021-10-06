@@ -9,10 +9,10 @@ import FlexPlan; const _FP = FlexPlan
 using Dates
 using Memento
 using Printf
+import CPLEX
 include("../benders/test_case.jl")
 include("../benders/compare.jl")
 include("../benders/plots.jl")
-# Solvers are imported later
 
 
 ## Input parameters
@@ -38,9 +38,6 @@ max_iter = 1000 # Iteration limit
 tightening_rtol = 1e-9 # Relative tolerance for adding optimality cuts
 silent = true # Suppress solvers output, taking precedence over any other solver attribute
 
-# Solvers
-use_opensource_solvers = false # More options below
-
 # Analysis and output
 out_dir = "test/data/output_files"
 make_plots = true # Make the following plots: solution value vs. iterations, decision variables vs. iterations, iteration times
@@ -48,50 +45,37 @@ display_plots = true
 compare_to_benchmark = true # Solve the problem as MILP, check whether solutions are identical and compare solve times
 
 
-## Import and set solvers
+## Set CPLEX
 
-if use_opensource_solvers
-    import Cbc
-    optimizer_MILP = _FP.optimizer_with_attributes(Cbc.Optimizer,
-        "logLevel" => 0, # ∈ {0,1}, default: 0
-    ) # Solver options: <https://github.com/jump-dev/Cbc.jl#using-with-jump>
-    import Clp
-    optimizer_LP = _FP.optimizer_with_attributes(Clp.Optimizer,
-        "LogLevel" => 0, # ∈ {0,...,4}, default: 1
-        "SolveType" => 5, # dual simplex: 0, primal simplex: 1, sprint: 2, barrier with crossover: 3, barrier without crossover: 4, automatic: 5; default: 5
-    ) # Solver options: <https://github.com/jump-dev/Clp.jl#solver-options>
-    optimizer_benchmark = optimizer_MILP
-else
-    import CPLEX
-    function CPLEX_optimizer_with_logger(log_name::String) # Return a function
-        function CPLEX_opt_w_log() # Like CPLEX.Optimizer, but dumps to the specified log file
-            model = CPLEX.Optimizer()
-            CPLEX.CPXsetlogfilename(model.env, normpath(out_dir,"$log_name.log"), "w+")
-            return model
-        end
+function CPLEX_optimizer_with_logger(log_name::String) # Return a function
+    function CPLEX_opt_w_log() # Like CPLEX.Optimizer, but dumps to the specified log file
+        model = CPLEX.Optimizer()
+        CPLEX.CPXsetlogfilename(model.env, normpath(out_dir,"$log_name.log"), "w+")
+        return model
     end
-    optimizer_MILP = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger("milp"),
-        "CPXPARAM_MIP_Tolerances_MIPGap" => obj_rtol, # ∈ [0,1], default: 1e-4
-        "CPXPARAM_ScreenOutput" => 0, # ∈ {0,1}, default: 0
-        "CPXPARAM_Output_CloneLog" => -1, # ∈ {-1,0,1}, default: 0
-        "CPXPARAM_MIP_Display" => 2, # ∈ {0,...,5}, default: 2
-    ) # Solver options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
-    optimizer_LP = _FP.optimizer_with_attributes(CPLEX.Optimizer, # Log file would be interleaved in case of multiple secondary problems. To enable logging, substitute `CPLEX.Optimizer` with: `CPLEX_optimizer_with_logger("lp")`
-        "CPXPARAM_LPMethod" => 2, # ∈ {0,...,6}, default: 0, <https://www.ibm.com/docs/en/icos/latest?topic=parameters-algorithm-continuous-linear-problems>
-        "CPXPARAM_Simplex_Tolerances_Feasibility" => 1e-6, # ∈ [1e-9,1e-1], default: 1e-6
-        "CPXPARAM_Read_Scale" => 1, # ∈ {-1,0,1}, default: 0
-        "CPXPARAM_ScreenOutput" => 0, # ∈ {0,1}, default: 0
-        "CPXPARAM_Output_CloneLog" => -1, # ∈ {-1,0,1}, default: 0
-        "CPXPARAM_Simplex_Display" => 1, # ∈ {0,1,2}, default: 1
-        "CPXPARAM_Barrier_Display" => 1, # ∈ {0,1,2}, default: 1
-    ) # Solver options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
-    optimizer_benchmark = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger("benchmark"),
-        "CPXPARAM_MIP_Tolerances_MIPGap" => obj_rtol, # ∈ [0,1], default: 1e-4
-        "CPXPARAM_ScreenOutput" => 0, # ∈ {0,1}, default: 0
-        "CPXPARAM_Output_CloneLog" => -1, # ∈ {-1,0,1}, default: 0
-        "CPXPARAM_MIP_Display" => 2, # ∈ {0,...,5}, default: 2
-    ) # Solver options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
 end
+optimizer_MILP = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger("milp"), # Options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
+                                                         # range     default  link
+    "CPXPARAM_MIP_Tolerances_MIPGap" => obj_rtol,        # [ 0,     1]  1e-4  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-relative-mip-gap-tolerance>
+    "CPXPARAM_ScreenOutput" => 0,                        # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
+    "CPXPARAM_MIP_Display" => 2,                         # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>
+    "CPXPARAM_Output_CloneLog" => -1,                    # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-clone-log-in-parallel-optimization>
+)
+optimizer_LP = _FP.optimizer_with_attributes(CPLEX.Optimizer, # Log file would be interleaved in case of multiple secondary problems. To enable logging, substitute `CPLEX.Optimizer` with: `CPLEX_optimizer_with_logger("lp")`
+                                                         # range     default  link
+    "CPXPARAM_Read_Scale" => 0,                          # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-scale-parameter>
+    "CPXPARAM_LPMethod" => 2,                            # { 0,..., 6}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-algorithm-continuous-linear-problems>
+    "CPXPARAM_ScreenOutput" => 0,                        # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
+    "CPXPARAM_MIP_Display" => 2,                         # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>
+)
+optimizer_benchmark = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger("benchmark"), # Options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
+                                                         # range     default  link
+    "CPXPARAM_Read_Scale" => 0,                          # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-scale-parameter>
+    "CPXPARAM_MIP_Tolerances_MIPGap" => obj_rtol,        # [ 0,     1]  1e-4  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-relative-mip-gap-tolerance>
+    "CPXPARAM_ScreenOutput" => 0,                        # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
+    "CPXPARAM_MIP_Display" => 2,                         # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>
+    "CPXPARAM_Output_CloneLog" => -1,                    # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-clone-log-in-parallel-optimization>
+)
 
 
 ## Process script parameters, set up logging
