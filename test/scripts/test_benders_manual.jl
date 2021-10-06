@@ -80,20 +80,20 @@ optimizer_benchmark = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger(
 
 ## Process script parameters, set up logging
 
-algorithm_name = last(split(string(algorithm),'.'))
-optimizer_MILP_name = string(optimizer_MILP.optimizer_constructor)[1:end-10]
-optimizer_LP_name = string(optimizer_LP.optimizer_constructor)[1:end-10]
-param_string = @sprintf("%s_%04i_%02i_%1i_%s_%s_%s_%.0e", test_case, number_of_hours, number_of_scenarios, number_of_years, algorithm_name, optimizer_MILP_name, optimizer_LP_name, scale_cost)
-out_dir = normpath(out_dir, "benders_" * param_string)
+algorithm_name = lowercase(last(split(string(algorithm),'.')))
+test_case_string = @sprintf("%s_%04i_%02i_%1i_%.0e", test_case, number_of_hours, number_of_scenarios, number_of_years, scale_cost)
+algorithm_string = @sprintf("manual_%s", algorithm_name)
+out_dir = normpath(out_dir, "benders", test_case_string, algorithm_string)
 mkpath(out_dir)
-main_log_file = joinpath(out_dir,"decomposition.log")
+main_log_file = joinpath(out_dir,"script.log")
 rm(main_log_file, force = true)
 filter!(handler -> first(handler)=="console", gethandlers(getlogger())) # Remove from root logger possible previously added handlers
 push!(getlogger(), DefaultHandler(main_log_file)) # Tell root logger to write to our log file as well
 setlevel!.(Memento.getpath(getlogger(FlexPlan)), "debug") # FlexPlan logger verbosity level. Useful values: "info", "debug", "trace"
 script_logger = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script. Name is filename without `.jl` extension, level is "info" by default.
-info(script_logger, "Script parameter string: \"$param_string\"")
-info(script_logger, "Now is $(now(UTC)) (UTC)")
+info(script_logger, "Test case string: \"$test_case_string\"")
+info(script_logger, "Algorithm string: \"$algorithm_string\"")
+info(script_logger, "          Now is: $(now(UTC)) (UTC)")
 
 
 ## Load test case
