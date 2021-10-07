@@ -53,6 +53,7 @@ include("core/constraint.jl")
 include("core/line_replacement.jl")
 include("core/distribution.jl")
 include("core/t-d_coupling.jl")
+include("core/solution.jl")
 
 include("form/bf.jl")
 include("form/bfarad.jl")
