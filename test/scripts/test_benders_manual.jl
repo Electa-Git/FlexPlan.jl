@@ -11,7 +11,9 @@ using Memento
 using Printf
 import CPLEX
 include("../benders/test_case.jl")
+include("../benders/cplex.jl")
 include("../benders/compare.jl")
+include("../benders/perf.jl")
 include("../benders/plots.jl")
 
 
@@ -47,14 +49,7 @@ compare_to_benchmark = true # Solve the problem as MILP, check whether solutions
 
 ## Set CPLEX
 
-function CPLEX_optimizer_with_logger(log_name::String) # Return a function
-    function CPLEX_opt_w_log() # Like CPLEX.Optimizer, but dumps to the specified log file
-        model = CPLEX.Optimizer()
-        CPLEX.CPXsetlogfilename(model.env, normpath(out_dir,"$log_name.log"), "w+")
-        return model
-    end
-end
-optimizer_MILP = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger("milp"), # Options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
+optimizer_MILP = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger(normpath(out_dir,"milp.log")), # Options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
                                                          # range     default  link
     "CPXPARAM_MIP_Tolerances_MIPGap" => obj_rtol,        # [ 0,     1]  1e-4  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-relative-mip-gap-tolerance>
     "CPXPARAM_ScreenOutput" => 0,                        # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
@@ -68,7 +63,7 @@ optimizer_LP = _FP.optimizer_with_attributes(CPLEX.Optimizer, # Log file would b
     "CPXPARAM_ScreenOutput" => 0,                        # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
     "CPXPARAM_MIP_Display" => 2,                         # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>
 )
-optimizer_benchmark = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger("benchmark"), # Options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
+optimizer_benchmark = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger(normpath(out_dir,"benchmark.log")), # Options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
                                                          # range     default  link
     "CPXPARAM_Read_Scale" => 0,                          # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-scale-parameter>
     "CPXPARAM_MIP_Tolerances_MIPGap" => obj_rtol,        # [ 0,     1]  1e-4  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-relative-mip-gap-tolerance>
@@ -86,7 +81,7 @@ algorithm_string = @sprintf("manual_%s", algorithm_name)
 out_dir = normpath(out_dir, "benders", test_case_string, algorithm_string)
 mkpath(out_dir)
 main_log_file = joinpath(out_dir,"script.log")
-rm(main_log_file, force = true)
+rm(main_log_file; force=true)
 filter!(handler -> first(handler)=="console", gethandlers(getlogger())) # Remove from root logger possible previously added handlers
 push!(getlogger(), DefaultHandler(main_log_file)) # Tell root logger to write to our log file as well
 setlevel!.(Memento.getpath(getlogger(FlexPlan)), "debug") # FlexPlan logger verbosity level. Useful values: "info", "debug", "trace"

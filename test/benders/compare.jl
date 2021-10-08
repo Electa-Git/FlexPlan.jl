@@ -1,20 +1,5 @@
 # Utilities to compare decomposition solutions with benchmark solutions
 
-function run_and_time(
-        data::Dict{String,<:Any},
-        model_type::Type,
-        optimizer::Union{_FP._MOI.AbstractOptimizer, _FP._MOI.OptimizerWithAttributes},
-        build_method::Function;
-        kwargs...
-    )
-
-    time_start = time()
-    result = build_method(data, model_type, optimizer; kwargs...)
-    @assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
-    result["time"] = Dict{String,Any}("total" => time()-time_start)
-    return result
-end
-
 function check_solution_correctness(benders_result, benchmark_result, obj_rtol, logger)
     benders_opt = benders_result["objective"]
     benchmark_opt = benchmark_result["objective"]

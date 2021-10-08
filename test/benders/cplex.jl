@@ -1,6 +1,16 @@
 # Functions to interact with CPLEX.Optimizer
 
+import CPLEX
 import JuMP
+
+# To be used instead of `CPLEX.Optimizer()` to set up a log file for the CPLEX optimizer
+function CPLEX_optimizer_with_logger(log_file::String)
+    function CPLEX_opt_w_log() # Like CPLEX.Optimizer, but dumps to the specified log file
+        model = CPLEX.Optimizer()
+        CPLEX.CPXsetlogfilename(model.env, log_file, "w+")
+        return model
+    end
+end
 
 function get_cplex_optimizer(pm::_PM.AbstractPowerModel)
     m1 = pm.model # JuMP.model
