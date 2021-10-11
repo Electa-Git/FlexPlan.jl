@@ -4,15 +4,15 @@ import JSON
 
 function create_profile_data_italy!(data)
 
-    hours = length(data["dim"][:hour])
-    scenarios = length(data["dim"][:scenario])
+    hours = _FP.dim_length(data, :hour)
+    scenarios = _FP.dim_length(data, :scenario)
 
     genprofile = ones(length(data["gen"]), hours*scenarios)
     loadprofile = ones(length(data["load"]), hours*scenarios)
 
-    monte_carlo = get(data["dim"][:meta][:scenario], "mc", false)
+    monte_carlo = get(_FP.dim_meta(data, :scenario), "mc", false)
 
-    for (s, scnr) in data["dim"][:scenario]
+    for (s, scnr) in _FP.dim_prop(data, :scenario)
         pv_sicily, pv_south_central, wind_sicily = read_res_data(s-1; mc = monte_carlo)
         demand_center_north_pu, demand_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu = read_demand_data(s-1; mc = monte_carlo)
 
@@ -45,15 +45,15 @@ end
 
 function create_profile_data_germany!(data)
 
-    hours = length(data["dim"][:hour])
-    scenarios = length(data["dim"][:scenario])
+    hours = _FP.dim_length(data, :hour)
+    scenarios = _FP.dim_length(data, :scenario)
 
     genprofile = ones(length(data["gen"]), hours*scenarios)
     loadprofile = ones(length(data["load"]), hours*scenarios)
 
-    monte_carlo = get(data["dim"][:meta][:scenario], "mc", false)
+    monte_carlo = get(_FP.dim_meta(data, :scenario), "mc", false)
 
-    for (s, scnr) in data["dim"][:scenario]
+    for (s, scnr) in _FP.dim_prop(data, :scenario)
         wind_profile = read_res_data(s; mc = monte_carlo, country = "de")
         demand_profile = read_demand_data(s; mc = monte_carlo, country = "de")
         start_idx = (s-1) * hours
@@ -67,7 +67,7 @@ function create_profile_data_germany!(data)
                     genprofile[21, start_idx + h] = wind_profile["23"]["data"]["$h_idx"]["electricity"]
                 elseif length(data["gen"]) > 21
                     genprofile[22, start_idx + h] = wind_profile["54"]["data"]["$h_idx"]["electricity"]
-                end 
+                end
             end
         end
         loadprofile[:, start_idx + 1 : start_idx + hours] .= repeat(demand_profile[1:hours]', size(loadprofile, 1))
@@ -171,7 +171,7 @@ function create_profile_data_cigre(data, number_of_hours; start_period = 1, scal
         DataFrames.DataFrame;
         skipto = start_period + 1, # +1 is for header line
         limit = number_of_hours,
-        threaded = false # To ensure exact row limit is applied
+        ntasks = 1 # To ensure exact row limit is applied
     )
     if DataFrames.nrow(profiles_pu) < number_of_hours
         Memento.error(_LOGGER, "insufficient number of rows in file \"$file_profiles_pu\" ($number_of_hours requested, $(DataFrames.nrow(profiles_pu)) found)")
@@ -340,5 +340,5 @@ function read_res_data(year; mc = false, country = "it")
             wind_profile["67"]  = JSON.parse(dicttxt)  # parse and transform data
         end
         return wind_profile
-    end    
+    end
 end

@@ -53,7 +53,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 
-result_test1 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+result_test1 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, gurobi; setting = s)
 
 # Test 2: Line vs storage: Load at bus 5 [100, 100, 100 , 240] MW over time
 data = _PM.parse_file(file) # Create PowerModels data dictionary (AC networks and storage)
@@ -72,7 +72,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-result_test2 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+result_test2 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, gurobi; setting = s)
 
 # Test 3: Line vs storage: Storage investment -> existing storage is out of service "status" = 0
 data = _PM.parse_file(file) # Create PowerModels data dictionary (AC networks and storage)
@@ -92,4 +92,4 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-result_test3 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+result_test3 = _FP.strg_tnep(mn_data, _PM.DCPPowerModel, gurobi; setting = s)

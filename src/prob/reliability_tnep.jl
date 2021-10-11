@@ -34,13 +34,15 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             variable_demand_interruption(pm; nw = n) # reliability specific
         end
         # new variables for TNEP problem
-        _PM.variable_ne_branch_indicator(pm; nw = n)
+        variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
+        variable_ne_branch_investment(pm; nw = n)
         _PM.variable_ne_branch_power(pm; nw = n)
         _PM.variable_ne_branch_voltage(pm; nw = n)
         variable_storage_power_ne(pm; nw = n)
         _PMACDC.variable_active_dcbranch_flow_ne(pm; nw = n)
-        _PMACDC.variable_branch_ne(pm; nw = n)
-        _PMACDC.variable_dc_converter_ne(pm; nw = n)
+        variable_ne_branchdc_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PMACDC.variable_branch_ne().
+        variable_ne_branchdc_investment(pm; nw = n)
+        variable_dc_converter_ne(pm; nw = n) # FlexPlan version: replaces _PMACDC.variable_dc_converter_ne().
         _PMACDC.variable_dcbranch_current_ne(pm; nw = n)
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
     end
@@ -86,9 +88,6 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             _PM.constraint_ne_voltage_angle_difference(pm, i; nw = n)
             _PM.constraint_ne_thermal_limit_from(pm, i; nw = n)
             _PM.constraint_ne_thermal_limit_to(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_acbranches_mp(pm, n, i)
-            end
         end
 
         for i in _PM.ids(pm, n, :busdc)
@@ -104,9 +103,6 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
         for i in _PM.ids(pm, n, :branchdc_ne)
             _PMACDC.constraint_ohms_dc_branch_ne(pm, i; nw = n)
             _PMACDC.constraint_branch_limit_on_off(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_dcbranches_mp(pm, n, i)
-            end
         end
 
         for i in _PM.ids(pm, n, :convdc)
@@ -123,9 +119,6 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             _PMACDC.constraint_converter_losses_ne(pm, i; nw = n)
             _PMACDC.constraint_converter_current_ne(pm, i; nw = n)
             _PMACDC.constraint_converter_limit_on_off(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_converters_mp(pm, n, i)
-            end
             _PMACDC.constraint_conv_transformer_ne(pm, i; nw = n)
             _PMACDC.constraint_conv_reactor_ne(pm, i; nw = n)
             _PMACDC.constraint_conv_filter_ne(pm, i; nw = n)
@@ -223,16 +216,5 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             end
         end
         #
-    end
-    network_ids = nw_ids(pm)
-    n_1 = network_ids[1]
-    for n_2 in network_ids[2:end]
-        for i in _PM.ids(pm, :load, nw = n_2)
-            constraint_flex_investment(pm, n_1, n_2, i)
-        end
-        for i in _PM.ids(pm, :ne_storage, nw = n_2)
-            constraint_storage_investment(pm, n_1, n_2, i)
-        end
-        n_1 = n_2
     end
 end

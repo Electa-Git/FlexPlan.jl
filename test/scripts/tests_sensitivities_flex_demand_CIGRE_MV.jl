@@ -99,7 +99,7 @@ for i_load_scaling_factor = 1:n_load_scaling_factor
 
             extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
             # Create data dictionary where time series data is included at the right place
-            mn_data = _FP.multinetwork_data(data, extradata)
+            mn_data = _FP.make_multinetwork(data, extradata)
 
             # Add PowerModels(ACDC) settings
             if use_DC
@@ -115,9 +115,9 @@ for i_load_scaling_factor = 1:n_load_scaling_factor
 
             # Build optimisation model, solve it and write solution dictionary:
             if use_DC
-                results = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting=s)
+                results = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc; setting=s)
             else
-                results = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc, multinetwork=true; setting=s)
+                results = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc; setting=s)
             end
 
             # Finding number of branches that are built

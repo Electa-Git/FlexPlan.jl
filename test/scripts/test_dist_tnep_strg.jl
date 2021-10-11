@@ -36,7 +36,8 @@ _FP.add_storage_data!(data)
 
 # Create multi-period data dictionary where time series data is included at the right place
 _FP.add_dimension!(data, :hour, number_of_hours)
-mn_data = _FP.multinetwork_data(data, extradata)
+_FP.add_dimension!(data, :year, 1)
+mn_data = _FP.make_multinetwork(data, extradata)
 
 
 ## Solve problem
@@ -44,7 +45,7 @@ mn_data = _FP.multinetwork_data(data, extradata)
 # PowerModels and FlexPlan settings
 s = Dict("output" => Dict("branch_flows" => true))
 
-result = _FP.strg_tnep(mn_data, _FP.BFARadPowerModel, optimizer; multinetwork=true, setting=s)
+result = _FP.strg_tnep(mn_data, _FP.BFARadPowerModel, optimizer; setting=s)
 @assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
 
 

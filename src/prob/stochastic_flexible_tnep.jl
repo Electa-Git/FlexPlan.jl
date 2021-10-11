@@ -1,29 +1,33 @@
 export stoch_flex_tnep
 
-""
+"Multi-scenario TNEP with flexible loads and storage, for transmission networks"
 function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
+    require_dim(data, :hour, :scenario, :year)
     return _PM.run_model(
         data, model_type, optimizer, post_stoch_flex_tnep;
         ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        multinetwork = true,
         kwargs...
     )
 end
 
-# for distribution models
-""
-function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{T}, optimizer; kwargs...) where T <: _PM.AbstractBFModel
-    return _PM.run_model(data, model_type, optimizer, post_stoch_flex_tnep;
+"Multi-scenario TNEP with flexible loads and storage, for distribution networks"
+function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
+    require_dim(data, :hour, :scenario, :year)
+    return _PM.run_model(
+        data, model_type, optimizer, post_stoch_flex_tnep;
         ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
         solution_processors = [_PM.sol_data_model!],
+        multinetwork = true,
         kwargs...
     )
 end
 
 
 # Here the problem is defined, which is then sent to the solver.
-# It is basically a declarion of variables and constraint of the problem
+# It is basically a declaration of variables and constraints of the problem
 
-""
+"Builds transmission model."
 function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
 # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl
     for n in nw_ids(pm)
@@ -41,15 +45,16 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
         variable_absorbed_energy_ne(pm; nw = n)
         variable_flexible_demand(pm; nw = n)
 
-
         # new variables for TNEP problem
-        _PM.variable_ne_branch_indicator(pm; nw = n)
+        variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
+        variable_ne_branch_investment(pm; nw = n)
         _PM.variable_ne_branch_power(pm; nw = n)
         _PM.variable_ne_branch_voltage(pm; nw = n)
         variable_storage_power_ne(pm; nw = n)
         _PMACDC.variable_active_dcbranch_flow_ne(pm; nw = n)
-        _PMACDC.variable_branch_ne(pm; nw = n)
-        _PMACDC.variable_dc_converter_ne(pm; nw = n)
+        variable_ne_branchdc_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PMACDC.variable_branch_ne().
+        variable_ne_branchdc_investment(pm; nw = n)
+        variable_dc_converter_ne(pm; nw = n) # FlexPlan version: replaces _PMACDC.variable_dc_converter_ne().
         _PMACDC.variable_dcbranch_current_ne(pm; nw = n)
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
     end
@@ -91,9 +96,6 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             _PM.constraint_ne_voltage_angle_difference(pm, i; nw = n)
             _PM.constraint_ne_thermal_limit_from(pm, i; nw = n)
             _PM.constraint_ne_thermal_limit_to(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_acbranches_mp(pm, n, i)
-            end
         end
 
         for i in _PM.ids(pm, n, :busdc)
@@ -109,9 +111,6 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
         for i in _PM.ids(pm, n, :branchdc_ne)
             _PMACDC.constraint_ohms_dc_branch_ne(pm, i; nw = n)
             _PMACDC.constraint_branch_limit_on_off(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_dcbranches_mp(pm, n, i)
-            end
         end
 
         for i in _PM.ids(pm, n, :convdc)
@@ -128,9 +127,6 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             _PMACDC.constraint_converter_losses_ne(pm, i; nw = n)
             _PMACDC.constraint_converter_current_ne(pm, i; nw = n)
             _PMACDC.constraint_converter_limit_on_off(pm, i; nw = n)
-            if n > 1
-                _PMACDC.constraint_candidate_converters_mp(pm, n, i)
-            end
             _PMACDC.constraint_conv_transformer_ne(pm, i; nw = n)
             _PMACDC.constraint_conv_reactor_ne(pm, i; nw = n)
             _PMACDC.constraint_conv_filter_ne(pm, i; nw = n)
@@ -160,7 +156,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
 
-        if is_first_nw(pm, n, :hour)
+        if is_first_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, nw = n)
                 constraint_maximum_absorption(pm, i, nw = n)
@@ -178,9 +174,8 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
                     constraint_shift_down_state(pm, i, nw = n)
                 end
             end
-
         else
-            if is_last_nw(pm, n, :hour)
+            if is_last_id(pm, n, :hour)
                 for i in _PM.ids(pm, :storage, nw = n)
                     constraint_storage_state_final(pm, i, nw = n)
                 end
@@ -197,8 +192,8 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             end
 
             # From second hour to last hour
-            prev_n = prev_nw(pm, n, :hour)
-            first_n = first_nw(pm, n, :hour)
+            prev_n = prev_id(pm, n, :hour)
+            first_n = first_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, prev_n, n)
                 constraint_maximum_absorption(pm, i, prev_n, n)
@@ -216,24 +211,33 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
                 end
             end
         end
-    end
 
-    network_ids = nw_ids(pm)
-    n_1 = network_ids[1]
-
-    for n_2 in network_ids[2:end]
-        for i in _PM.ids(pm, :load, nw = n_2)
-            constraint_flex_investment(pm, n_1, n_2, i)
+        # Constraints on investments
+        if is_first_id(pm, n, :hour, :scenario)
+            # Inter-year constraints
+            prev_nws = prev_ids(pm, n, :year)
+            for i in _PM.ids(pm, :ne_branch; nw = n)
+                constraint_ne_branch_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :branchdc_ne; nw = n)
+                constraint_ne_branchdc_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :convdc_ne; nw = n)
+                constraint_ne_converter_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :ne_storage; nw = n)
+                constraint_ne_storage_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :load; nw = n)
+                if _PM.ref(pm, n, :load, i, "flex") == 1
+                    constraint_flexible_demand_activation(pm, i, prev_nws, n)
+                end
+            end
         end
-        for i in _PM.ids(pm, :ne_storage, nw = n_2)
-            constraint_storage_investment(pm, n_1, n_2, i)
-        end
-        n_1 = n_2
     end
 end
 
-# distribution version
-""
+"Builds distribution model."
 function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
 
     for n in nw_ids(pm)
@@ -249,7 +253,8 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
         variable_flexible_demand(pm; nw = n)
 
         # new variables for TNEP problem
-        _PM.variable_ne_branch_indicator(pm; nw = n)
+        variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
+        variable_ne_branch_investment(pm; nw = n)
         _PM.variable_ne_branch_power(pm; nw = n, bounded = false) # Bounds computed here would be too limiting in the case of ne_branches added in parallel
         variable_ne_branch_current(pm; nw = n)
         variable_oltc_ne_branch_transform(pm; nw = n)
@@ -261,6 +266,10 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
     for n in nw_ids(pm)
         _PM.constraint_model_current(pm; nw = n)
         constraint_ne_model_current(pm; nw = n)
+
+        if haskey(dim_prop(pm), :sub_nw)
+            constraint_td_coupling_power_reactive_bounds(pm; nw = n)
+        end
 
         for i in _PM.ids(pm, n, :ref_buses)
             _PM.constraint_theta_ref(pm, i, nw = n)
@@ -299,7 +308,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
 
-        if is_first_nw(pm, n, :hour)
+        if is_first_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, nw = n)
                 constraint_maximum_absorption(pm, i, nw = n)
@@ -319,7 +328,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
             end
 
         else
-            if is_last_nw(pm, n, :hour)
+            if is_last_id(pm, n, :hour)
                 for i in _PM.ids(pm, :storage, nw = n)
                     constraint_storage_state_final(pm, i, nw = n)
                 end
@@ -336,8 +345,8 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
             end
 
             # From second hour to last hour
-            prev_n = prev_nw(pm, n, :hour)
-            first_n = first_nw(pm, n, :hour)
+            prev_n = prev_id(pm, n, :hour)
+            first_n = first_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, prev_n, n)
                 constraint_maximum_absorption(pm, i, prev_n, n)
@@ -355,22 +364,28 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
                 end
             end
         end
-    end
 
-    network_ids = nw_ids(pm)
-    n_1 = network_ids[1]
+        # Constraints on investments
+        if is_first_id(pm, n, :hour, :scenario)
+            for i in _PM.ids(pm, n, :branch)
+                if !isempty(ne_branch_ids(pm, i; nw = n))
+                    constraint_branch_complementarity(pm, i; nw = n)
+                end
+            end
 
-    for n_2 in network_ids[2:end]
-        for i in _PM.ids(pm, :ne_branch, nw = n_2)
-            # Constrains binary activation variable of ne_branch i to the same value in n_2-1 and n_2 nws
-            _PMACDC.constraint_candidate_acbranches_mp(pm, n_2, i)
+            # Inter-year constraints
+            prev_nws = prev_ids(pm, n, :year)
+            for i in _PM.ids(pm, :ne_branch; nw = n)
+                constraint_ne_branch_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :ne_storage; nw = n)
+                constraint_ne_storage_activation(pm, i, prev_nws, n)
+            end
+            for i in _PM.ids(pm, :load; nw = n)
+                if _PM.ref(pm, n, :load, i, "flex") == 1
+                    constraint_flexible_demand_activation(pm, i, prev_nws, n)
+                end
+            end
         end
-        for i in _PM.ids(pm, :load, nw = n_2)
-            constraint_flex_investment(pm, n_1, n_2, i)
-        end
-        for i in _PM.ids(pm, :ne_storage, nw = n_2)
-            constraint_storage_investment(pm, n_1, n_2, i)
-        end
-        n_1 = n_2
     end
 end

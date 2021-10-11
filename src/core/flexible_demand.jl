@@ -1,6 +1,7 @@
 ##################################################################################
-#### DEFINTION OF NEW VARIABLES FOR FLEXIBLE DEMAND ACCORDING TO FlexPlan MODEL
+#### DEFINITION OF NEW VARIABLES FOR FLEXIBLE DEMAND ACCORDING TO FlexPlan MODEL
 ##################################################################################
+
 function variable_flexible_demand(pm::_PM.AbstractPowerModel; kwargs...)
     variable_total_flex_demand(pm; kwargs...)
     variable_demand_reduction(pm; kwargs...)
@@ -10,6 +11,7 @@ function variable_flexible_demand(pm::_PM.AbstractPowerModel; kwargs...)
     variable_demand_shifting_downwards(pm; kwargs...)
     variable_total_demand_shifting_downwards(pm; kwargs...)
     variable_demand_curtailment(pm; kwargs...)
+    variable_flexible_demand_indicator(pm; kwargs..., relax=true)
     variable_flexible_demand_investment(pm; kwargs...)
 end
 #
@@ -137,28 +139,59 @@ function variable_demand_curtailment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw,
     report && _IM.sol_component_value(pm, nw, :load, :pcurt, _PM.ids(pm, nw, :load), pcurt)
 end
 
-function variable_flexible_demand_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
+function variable_flexible_demand_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
     # Integer (boolean) decision variable for investment in enabling flexible demand at a load point.
-    if !relax
-        z = _PM.var(pm, nw)[:z_flex] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_z_flex",
-        binary = true,
-        start = 0
-        )
+    first_n = first_id(pm, nw, :hour, :scenario)
+    if nw == first_n
+        if !relax
+            z = _PM.var(pm, nw)[:z_flex] = JuMP.@variable(pm.model,
+                [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_z_flex",
+                binary = true,
+                start = 0
+            )
+        else
+            z = _PM.var(pm, nw)[:z_flex] = JuMP.@variable(pm.model,
+                [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_z_flex",
+                lower_bound = 0,
+                upper_bound = 1,
+                start = 0
+            )
+        end
     else
-        z = _PM.var(pm, nw)[:z_flex] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_z_flex",
-        lower_bound = 0,
-        upper_bound = 1,
-        start = 0
-        )
+        z = _PM.var(pm, nw)[:z_flex] = _PM.var(pm, first_n)[:z_flex]
     end
     report && _IM.sol_component_value(pm, nw, :load, :isflex, _PM.ids(pm, nw, :load), z)
- end
+end
+
+function variable_flexible_demand_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
+    first_n = first_id(pm, nw, :hour, :scenario)
+    if nw == first_n
+        if !relax
+            investment = _PM.var(pm, nw)[:z_flex_investment] = JuMP.@variable(pm.model,
+                [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_z_flex_investment",
+                binary = true,
+                start = 0
+            )
+        else
+            investment = _PM.var(pm, nw)[:z_flex_investment] = JuMP.@variable(pm.model,
+                [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_z_flex_investment",
+                lower_bound = 0,
+                upper_bound = 1,
+                start = 0
+            )
+        end
+    else
+        investment = _PM.var(pm, nw)[:z_flex_investment] = _PM.var(pm, first_n)[:z_flex_investment]
+    end
+    report && _IM.sol_component_value(pm, nw, :load, :investment, _PM.ids(pm, nw, :load), investment)
+end
+
+
 # ####################################################
 # Constraint Templates: They are used to do all data manipuations and return a function with the same name,
 # this way the constraint itself only containts the mathematical formulation
 # ###################################################
+
 function constraint_fixed_demand(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
     constraint_fixed_demand(pm, nw, i)
 end
@@ -239,10 +272,21 @@ function constraint_shift_down_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int
     end
     constraint_shift_down_state_initial(pm, nw, i)
 end
-#
+
+function constraint_flexible_demand_activation(pm::_PM.AbstractPowerModel, i::Int, prev_nws::Vector{Int}, nw::Int)
+    investment_horizon = [nw]
+    lifetime = _PM.ref(pm, nw, :load, i, "lifetime")
+    for n in Iterators.reverse(prev_nws[1:min(lifetime-1,length(prev_nws))])
+        i in _PM.ids(pm, n, :load) ? push!(investment_horizon, n) : break
+    end
+    constraint_flexible_demand_activation(pm, nw, i, investment_horizon)
+end
+
+
 # ####################################################
 # ############### Constraints
 # ###################################################
+
 function constraint_fixed_demand(pm::_PM.AbstractPowerModel, n::Int, i)
     pshift_up = _PM.var(pm, n, :pshift_up, i)
     pshift_down = _PM.var(pm, n, :pshift_down, i)
@@ -365,14 +409,6 @@ function constraint_shift_state_final(pm::_PM.AbstractPowerModel, n::Int, i::Int
     JuMP.@constraint(pm.model, pshift_up_tot == pshift_down_tot)
 end
 
-function constraint_flex_investment(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int)
-    z_1 = _PM.var(pm, n_1, :z_flex, i)
-    z_2 = _PM.var(pm, n_2, :z_flex, i)
-
-    # Demand flexibility enabled at one time step should also be enabled at another time step
-    JuMP.@constraint(pm.model, z_1 == z_2)
-end
-
 function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, n::Int, i::Int, start_grace::Int, placeholder::Nothing) # Placeholder is to distinguish constraint template and constraint implementation through multiple dispatch
     pshift_up = _PM.var(pm, n, :pshift_up, i)
     pshift_up_max = JuMP.upper_bound(pshift_up)
@@ -391,3 +427,10 @@ function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, n::Int, i::I
     JuMP.@constraint(pm.model, pshift_down <= pshift_down_max - sum(_PM.var(pm, t, :pshift_down, i) for t in start_grace:n-1))
 end
 
+function constraint_flexible_demand_activation(pm::_PM.AbstractPowerModel, n::Int, i::Int, horizon::Vector{Int})
+    indicator = _PM.var(pm, n, :z_flex, i)
+    investments = _PM.var.(Ref(pm), horizon, :z_flex_investment, i)
+
+    # Activate the flexibility depending on the investment decisions in the load's horizon.
+    JuMP.@constraint(pm.model, indicator == sum(investments))
+end

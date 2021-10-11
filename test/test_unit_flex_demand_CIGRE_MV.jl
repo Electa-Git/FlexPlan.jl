@@ -7,7 +7,7 @@ include("io/read_case_data_from_csv.jl")
 number_of_hours = 72          # Number of time steps
 n_loads = 13                  # Number of load points
 start_hour = 1                # First time step
-load_scaling_factor = 0.8       # Factor with which original base case load demand data should be scaled
+load_scaling_factor = 0.69    # Factor with which original base case load demand data should be scaled
 
 # Vector of hours (time steps) included in case
 t_vec = start_hour:start_hour+(number_of_hours-1)
@@ -18,51 +18,49 @@ file = normpath(@__DIR__,"..","test","data","CIGRE_MV_benchmark_network_flex.m")
 # Filename with extra_load array with demand flexibility model parameters
 filename_load_extra = normpath(@__DIR__,"..","test","data","CIGRE_MV_benchmark_network_flex_load_extra.csv")
 
-# Create PowerModels data dictionary (AC networks and storage)
-data = _PM.parse_file(file)
-_FP.add_dimension!(data, :hour, number_of_hours)
+# Create data dictionary (AC networks and storage)
+data = _FP.parse_file(file; flex_load=false)
 
-# Handle possible missing auxiliary fields of the MATPOWER case file
-field_names = ["busdc","busdc_ne","branchdc","branchdc_ne","convdc","convdc_ne","ne_storage","storage","storage_extra"]
-for field_name in field_names
-      if !haskey(data,field_name)
-            data[field_name] = Dict{String,Any}()
-      end
+# Add extra_load table for demand flexibility model parameters
+data = read_case_data_from_csv(data,filename_load_extra,"load_extra")
+
+# Add flexible data model (required because we loaded `extra_load` separately from a csv; otherwise `_FP.parse_file` would be sufficient)
+_FP.add_flexible_demand_data!(data)
+
+# Scale load at all of the load points
+for i = 1:n_loads
+    data["load"]["$i"]["pd"] *= load_scaling_factor
+    data["load"]["$i"]["qd"] *= load_scaling_factor
 end
+
+_FP.add_dimension!(data, :hour, number_of_hours)
+_FP.add_dimension!(data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>1))
+
+_FP.scale_data!(data)
 
 # Read load demand series and assign (relative) profiles to load points in the network
 data,loadprofile,genprofile = create_profile_data_norway(data, number_of_hours)
 
-# Add extra_load array for demand flexibility model parameters
-data = read_case_data_from_csv(data,filename_load_extra,"load_extra")
-
-# Scale load at all of the load points
-for i_load = 1:n_loads
-      data["load"][string(i_load)]["pd"] = data["load"][string(i_load)]["pd"] * load_scaling_factor
-      data["load"][string(i_load)]["qd"] = data["load"][string(i_load)]["qd"] * load_scaling_factor
-end
-
-# Add flexible data model
-_FP.add_flexible_demand_data!(data)
-
-# create a dictionary to pass time series data to data dictionary
+# Create a dictionary to pass time series data to data dictionary
 extradata = _FP.create_profile_data(number_of_hours, data, loadprofile)
 
 # Create data dictionary where time series data is included at the right place
-mn_data = _FP.multinetwork_data(data, extradata)
+mn_data = _FP.make_multinetwork(data, extradata)
 
 # Build optimisation model, solve it and write solution dictionary:
 s = Dict("output" => Dict("branch_flows" => true))
-result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc, multinetwork=true; setting = s)
+result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc; setting = s)
+#@assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
+
+#_PM.print_summary(result["solution"]["nw"]["68"])
 
 # Test solution against benchmark solution
 @testset "Flexible TNEP distribution" begin
     @testset "CIGRE MV benchmark network demand flexibility" begin
-        @test isapprox(result["objective"], 84.390, atol = 1e-3)
-        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["1"]["built"],0.0, atol = 1e-1)
-        @test isapprox(result["solution"]["nw"]["1"]["ne_branch"]["2"]["built"],0.0, atol = 1e-1)
-        @test isapprox(result["solution"]["nw"]["68"]["load"]["2"]["pnce"], 0.0180421, atol = 1e-5)
-        @test isapprox(result["solution"]["nw"]["72"]["load"]["2"]["pshift_down_tot"], 0.2166877, atol = 1e-5)
+        @test result["objective"] ≈ 86.23540694350396 rtol=1e-4
+        @test result["solution"]["nw"]["1"]["ne_branch"]["1"]["built"] ≈ 0.0 atol=1e-1
+        @test result["solution"]["nw"]["1"]["ne_branch"]["2"]["built"] ≈ 0.0 atol=1e-1
+        @test result["solution"]["nw"]["68"]["load"]["9"]["pnce"] ≈ 0.004652080014302931 rtol=1e-3
+        @test result["solution"]["nw"]["72"]["load"]["2"]["pshift_down_tot"] ≈ 0.026483113121855778 rtol=1e-3
     end
 end
-
