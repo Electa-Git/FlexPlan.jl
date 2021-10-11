@@ -19,22 +19,23 @@ if solver == "Cbc"
     ) # Solver options: <https://github.com/jump-dev/Cbc.jl#using-with-jump>
 elseif solver == "Gurobi"
     import Gurobi
-    optimizer = _FP.optimizer_with_attributes(Gurobi.Optimizer) # Solver options: <https://github.com/jump-dev/Cbc.jl#using-with-jump>
+    optimizer = _FP.optimizer_with_attributes(Gurobi.Optimizer) # Solver options: <https://www.gurobi.com/documentation/current/refman/parameters.html>
 end
 
 
 ## Input parameters
 
-test_case = "case67" # Available test cases: "case6", "case67"
+test_case = "case6" # Available test cases: "case6", "case67"
 number_of_hours = 4 # Number of hourly optimization periods
 number_of_scenarios = 2 # Number of scenarios (different generation/load profiles)
 number_of_years = 3 # Number of years (different investments)
+cost_scale_factor = 1.0 # Scale factor for all costs
 model_type = _PM.DCPPowerModel
 
 
 ## Generate test case
 
-data = create_multi_year_network_data(test_case, number_of_hours, number_of_scenarios, number_of_years)
+data = create_multi_year_network_data(test_case, number_of_hours, number_of_scenarios, number_of_years; cost_scale_factor)
 
 
 ## Solve problem

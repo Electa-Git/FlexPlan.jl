@@ -171,7 +171,7 @@ function create_profile_data_cigre(data, number_of_hours; start_period = 1, scal
         DataFrames.DataFrame;
         skipto = start_period + 1, # +1 is for header line
         limit = number_of_hours,
-        threaded = false # To ensure exact row limit is applied
+        ntasks = 1 # To ensure exact row limit is applied
     )
     if DataFrames.nrow(profiles_pu) < number_of_hours
         Memento.error(_LOGGER, "insufficient number of rows in file \"$file_profiles_pu\" ($number_of_hours requested, $(DataFrames.nrow(profiles_pu)) found)")
