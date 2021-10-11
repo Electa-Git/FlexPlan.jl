@@ -21,7 +21,7 @@ import JuMP
 #import Gurobi
 import Cbc
 import JSON
-import CSV
+#import CSV
 
 # Solver configurations
 scs = JuMP.with_optimizer(SCS.Optimizer, max_iters=100000)
