@@ -41,7 +41,7 @@ function load_test_case(test_case_name::String; number_of_hours::Int, number_of_
         data = _FP.make_multinetwork(data)
 
     else
-        Memento.error(script_logger, "Test case \"$test_case_name\" not implemented.")
+        Memento.error(_LOGGER, "Test case \"$test_case_name\" not implemented.")
 
     end
 

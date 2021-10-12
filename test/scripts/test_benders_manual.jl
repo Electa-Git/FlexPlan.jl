@@ -10,6 +10,7 @@ using Dates
 using Memento
 using Printf
 import CPLEX
+_LOGGER = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script, also used by included files.
 include("../benders/test_case.jl")
 include("../benders/cplex.jl")
 include("../benders/compare.jl")
@@ -85,10 +86,9 @@ rm(main_log_file; force=true)
 filter!(handler -> first(handler)=="console", gethandlers(getlogger())) # Remove from root logger possible previously added handlers
 push!(getlogger(), DefaultHandler(main_log_file)) # Tell root logger to write to our log file as well
 setlevel!.(Memento.getpath(getlogger(FlexPlan)), "debug") # FlexPlan logger verbosity level. Useful values: "info", "debug", "trace"
-script_logger = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script. Name is filename without `.jl` extension, level is "info" by default.
-info(script_logger, "Test case string: \"$test_case_string\"")
-info(script_logger, "Algorithm string: \"$algorithm_string\"")
-info(script_logger, "          Now is: $(now(UTC)) (UTC)")
+info(_LOGGER, "Test case string: \"$test_case_string\"")
+info(_LOGGER, "Algorithm string: \"$algorithm_string\"")
+info(_LOGGER, "          Now is: $(now(UTC)) (UTC)")
 
 
 ## Load test case
@@ -98,7 +98,7 @@ data, model_type, ref_extensions, solution_processors, setting = load_test_case(
 
 ## Solve problem
 
-info(script_logger, "Solving the problem with Benders decomposition...")
+info(_LOGGER, "Solving the problem with Benders decomposition...")
 algo = algorithm == _FP.Benders.Classical ? algorithm(; obj_rtol, max_iter, tightening_rtol, silent) : algorithm(; max_iter, tightening_rtol, silent)
 result_benders = _FP.run_benders_decomposition(
     algo,
@@ -113,7 +113,7 @@ result_benders = _FP.run_benders_decomposition(
 ## Make plots
 
 if make_plots
-    info(script_logger, "Making plots...")
+    info(_LOGGER, "Making plots...")
     make_benders_plots(result_benders, out_dir; display_plots)
 end
 
@@ -121,13 +121,13 @@ end
 ## Solve benchmark and compare
 
 if compare_to_benchmark
-    info(script_logger, "Solving the problem as MILP...")
+    info(_LOGGER, "Solving the problem as MILP...")
     result_benchmark = run_and_time(data, model_type, optimizer_benchmark, _FP.stoch_flex_tnep; ref_extensions, solution_processors, setting)
-    info(script_logger, @sprintf("MILP time: %.1f s", result_benchmark["time"]["total"]))
-    info(script_logger, @sprintf("Benders/MILP solve time ratio: %.3f", result_benders["time"]["total"]/result_benchmark["time"]["total"]))
-    check_solution_correctness(result_benders, result_benchmark, obj_rtol, script_logger)
+    info(_LOGGER, @sprintf("MILP time: %.1f s", result_benchmark["time"]["total"]))
+    info(_LOGGER, @sprintf("Benders/MILP solve time ratio: %.3f", result_benders["time"]["total"]/result_benchmark["time"]["total"]))
+    check_solution_correctness(result_benders, result_benchmark, obj_rtol, _LOGGER)
 end
 
 
 println("Output files saved in \"$out_dir\"")
-info(script_logger, "Test completed")
+info(_LOGGER, "Test completed")
