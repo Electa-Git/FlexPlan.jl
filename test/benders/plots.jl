@@ -108,3 +108,24 @@ function make_benders_plots(data::Dict{String,Any}, result::Dict{String,Any}, ou
 
     return nothing
 end
+
+# Plot of time vs. `x` variable (keeping other variables fixed). Used in performance tests.
+function scatter_time_vs_variable(results::DataFrame, fixed_vars::Vector{Symbol}, x::Symbol)
+    plots_data = groupby(results, fixed_vars)
+    for k in keys(plots_data)
+        data = select(plots_data[k], x, :algorithm, :time)
+        plt = @df data scatter(data[!,"$x"], :time; group=:algorithm,
+            title         = "$k"[12:end-1],
+            titlefontsize = 9,
+            xlabel        = "$x",
+            ylabel        = "Time [s]",
+            yscale        = :log10,
+            yminorgrid    = true,
+            legend        = :bottomright,
+            legendtitle   = "Algorithm"
+        )
+        #display(plt)
+        plot_name = replace("$k"[12:end-1] * ".svg", '"' => "")
+        savefig(plt, joinpath(session_params[:results_dir], "$x", plot_name))
+    end
+end
