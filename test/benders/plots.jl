@@ -3,7 +3,7 @@
 using DataFrames
 using StatsPlots
 
-function make_benders_plots(result::Dict{String,Any}, out_dir::String; display_plots::Bool=true)
+function make_benders_plots(data::Dict{String,Any}, result::Dict{String,Any}, out_dir::String; display_plots::Bool=true)
     stat = result["stat"]
     n_iter = length(stat)
     ub = [stat[i]["value"]["ub"] for i in 1:n_iter]
@@ -48,7 +48,7 @@ function make_benders_plots(result::Dict{String,Any}, out_dir::String; display_p
     )
     main_sol = Dict(i => Dict(year=>stat[i]["main"]["sol"][n] for (year,n) in enumerate(_FP.nw_ids(data; hour=1, scenario=1))) for i in 1:n_iter)
     int_vars = DataFrame(name = String[], idx=Int[], year=Int[], legend = String[], values = Vector{Bool}[])
-    for year in 1:number_of_years
+    for year in 1:_FP.dim_length(data, :year)
         for (comp, name) in comp_name
             var = comp_var[comp]
             if haskey(main_sol[1][year], var)
@@ -74,7 +74,7 @@ function make_benders_plots(result::Dict{String,Any}, out_dir::String; display_p
     palette = cgrad([HSL(0,0,0.75), HSL(0,0,0.5), HSL(203,0.5,0.76), HSL(203,0.5,0.51)], 4, categorical = true)
     plt = heatmap(1:n_iter, int_vars.legend, values_matrix_plot;
         yflip    = true,
-        yticks   = :all,
+        yticks   = nrow(int_vars) <= 50 ? :all : :auto,
         title    = "Investment decisions",
         ylabel   = "Components",
         xlabel   = "Iterations",

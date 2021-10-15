@@ -117,7 +117,7 @@ end
 
 if make_plots
     info(_LOGGER, "Making plots...")
-    make_benders_plots(result_benders, out_dir; display_plots)
+    make_benders_plots(data, result_benders, out_dir; display_plots)
 end
 
 
