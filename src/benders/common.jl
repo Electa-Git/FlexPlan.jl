@@ -242,12 +242,13 @@ function build_solution(pm_main, pm_sec, solution_processors)
     combine_sol_dict!(solution_sec, solution_main) # It is good that `solution_sec` is the first because 1) it has most of the data and 2) its integer values are rounded.
 end
 
-function build_result(ub, lb, solution, stat, time_procedure_start, time_build)
+function build_result(ub, lb, solution, termination_status, stat, time_procedure_start, time_build)
     result = Dict{String,Any}()
-    result["objective"]    = ub
+    result["objective"] = ub
     result["objective_lb"] = lb
-    result["solution"]     = solution
-    result["stat"]         = stat
+    result["solution"] = solution
+    result["termination_status"] = termination_status
+    result["stat"] = stat
     time_proc = Dict{String,Any}()
     time_proc["total"] = time() - time_procedure_start # Time spent after this line is not measured
     time_proc["build"] = time_build

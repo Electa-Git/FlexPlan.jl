@@ -136,7 +136,8 @@ function run_benders_decomposition(
 
     fix_and_optimize_secondary!(pm_sec, best_main_var_values)
     solution = build_solution(pm_main, pm_sec, solution_processors)
-    build_result(ub, lb, solution, stat, time_procedure_start, time_build)
+    termination_status = iter > algo.max_iter ? _MOI.ITERATION_LIMIT : _MOI.OPTIMAL
+    build_result(ub, lb, solution, termination_status, stat, time_procedure_start, time_build)
 end
 
 function get_var_values(algo::Modern, pm, cb_data)
