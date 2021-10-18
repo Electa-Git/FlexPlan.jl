@@ -114,10 +114,15 @@ function scatter_time_vs_variable(results::DataFrame, fixed_vars::Vector{Symbol}
     plots_data = groupby(results, fixed_vars)
     for k in keys(plots_data)
         data = select(plots_data[k], x, :algorithm, :time)
-        plt = @df data scatter(data[!,"$x"], :time; group=:algorithm,
+        x_min, x_max = extrema(data[!,x])
+        x_logscale = x_max/x_min > 10.0 # Whether to use log scale along x axis
+        plt = @df data scatter(data[!,x], :time; group=:algorithm,
             title         = "$k"[12:end-1],
             titlefontsize = 9,
             xlabel        = "$x",
+            xscale        = x_logscale ? :log10 : :identity,
+            xminorgrid    = x_logscale,
+            xticks        = x_logscale ? :all : unique(data[!,x]),
             ylabel        = "Time [s]",
             yscale        = :log10,
             yminorgrid    = true,
