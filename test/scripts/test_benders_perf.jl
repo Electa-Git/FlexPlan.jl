@@ -92,19 +92,10 @@ results = run_performance_tests(tasks, case_params, optimization_params, session
 ## Analyze results
 
 notice(_LOGGER, "Analyzing results...")
-
-results_optimal = filter(row -> row.termination_status == "OPTIMAL", results)
-if nrow(results) != nrow(results_optimal)
-    warn(_LOGGER, "Removed from analysis $(nrow(results)-nrow(results_optimal)) tests whose termination status is not OPTIMAL.")
-end
-
-result_variables = [:test_case, :number_of_hours, :number_of_scenarios, :number_of_years]
-for x in [:number_of_hours, :number_of_scenarios, :number_of_years]
-    mkpath(joinpath(session_params[:results_dir], "$x"))
-    fixed_vars = filter(var->var≠x, result_variables)
-    scatter_time_vs_variable(results_optimal, fixed_vars, x)
-end
-info(_LOGGER, "Plots saved in \"$(session_params[:results_dir])\".")
-
-
+make_benders_perf_plots(results, session_params[:results_dir])
 notice(_LOGGER, "Performance tests for Benders decomposition ended.")
+
+
+## Analyze results of a previous run
+
+make_benders_perf_plots("test/data/output_files/benders/perf 2021-10-19 case67-case6/results")

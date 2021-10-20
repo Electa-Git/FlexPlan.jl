@@ -110,7 +110,7 @@ function make_benders_plots(data::Dict{String,Any}, result::Dict{String,Any}, ou
 end
 
 # Plot of time vs. `x` variable (keeping other variables fixed). Used in performance tests.
-function scatter_time_vs_variable(results::DataFrame, fixed_vars::Vector{Symbol}, x::Symbol)
+function scatter_time_vs_variable(results::DataFrame, results_dir::String, fixed_vars::Vector{Symbol}, x::Symbol)
     plots_data = groupby(results, fixed_vars)
     for k in keys(plots_data)
         data = select(plots_data[k], x, :algorithm, :time)
@@ -131,6 +131,26 @@ function scatter_time_vs_variable(results::DataFrame, fixed_vars::Vector{Symbol}
         )
         #display(plt)
         plot_name = replace("$k"[12:end-1] * ".svg", '"' => "")
-        savefig(plt, joinpath(session_params[:results_dir], "$x", plot_name))
+        savefig(plt, joinpath(results_dir, "$x", plot_name))
     end
+end
+
+function make_benders_perf_plots(results::DataFrame, results_dir::String)
+    results_optimal = filter(row -> row.termination_status == "OPTIMAL", results)
+    if nrow(results) != nrow(results_optimal)
+        warn(_LOGGER, "Removed from analysis $(nrow(results)-nrow(results_optimal)) tests whose termination status is not OPTIMAL.")
+    end
+
+    result_variables = propertynames(results_optimal)[1:end-4] # Exclude `:algorithm`, `:task_start_time`, `:termination_status`, and `:time`
+    for x in result_variables[2:end] # Exclude `:test_case`
+        mkpath(joinpath(results_dir, "$x"))
+        fixed_vars = filter(var->var≠x, result_variables)
+        scatter_time_vs_variable(results_optimal, results_dir, fixed_vars, x)
+    end
+    info(_LOGGER, "Plots saved in \"$results_dir\".")
+end
+
+function make_benders_perf_plots(results_dir::String)
+    results = CSV.read(joinpath(results_dir, "results.csv"), DataFrame; pool=false, stringtype=String)
+    make_benders_perf_plots(results, results_dir)
 end
