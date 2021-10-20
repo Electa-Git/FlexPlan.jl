@@ -32,6 +32,7 @@ optimization_params = Dict{Symbol,Any}(
 ## Set up logging
 
 datetime_format = "yyyymmddTHHMMSS\\Z" # As per ISO 8601. Basic format (i.e. without separators) is used for consistency across operating systems.
+setlevel!.(Memento.getpath(getlogger(FlexPlan)), "debug") # Log messages from FlexPlan having level >= "debug"
 root_logger = getlogger()
 push!(gethandlers(root_logger)["console"], Memento.Filter(rec -> rec.name==_LOGGER.name || root_logger.levels[getlevel(rec)]>=root_logger.levels["warn"])) # Filter console output: display all records from this script and records from other loggers having level >= "warn"
 mkpath(session_params[:out_dir])

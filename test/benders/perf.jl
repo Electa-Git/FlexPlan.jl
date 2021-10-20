@@ -128,7 +128,8 @@ function run_performance_tests(tasks::DataFrame, case_params::Dict, opt_params::
             for r in 1:session_params[:repetitions]
                 task_start_time = now(UTC)
                 n_curr_task += 1
-                info(_LOGGER, "$(task_start_time)Z - $n_curr_task/$n_tasks: $case_string-$(task[:algorithm]) ($r/$(session_params[:repetitions]))")
+                info(_LOGGER, "┌ $n_curr_task/$n_tasks: $case_string-$(task[:algorithm]) ($r/$(session_params[:repetitions]))")
+                info(_LOGGER, "│ started at $(task_start_time)Z")
                 if r > existing_tasks_like_this
                     task_dir = opt_params[:out_dir] = mkpath(joinpath(session_params[:tasks_dir], case_string, task[:algorithm], Dates.format(task_start_time,datetime_format)))
                     switch_log_file(joinpath(task_dir, "algorithm.log"))
@@ -139,8 +140,9 @@ function run_performance_tests(tasks::DataFrame, case_params::Dict, opt_params::
                     switch_log_file(main_log_file)
                     push!(results, (task..., task_start_time, "$termination_status", task_duration))
                     CSV.write(results_file, results) # TODO: write just the new line istead of the whole table
+                    info(_LOGGER, "└ completed in $(round(Int,task_duration)) s")
                 else
-                    info(_LOGGER, "$case_string-$(task[:algorithm]): skipped (reusing existing result)")
+                    info(_LOGGER, "└ skipped (reusing existing result)")
                 end
             end
         end
