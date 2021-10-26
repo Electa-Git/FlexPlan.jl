@@ -99,4 +99,4 @@ notice(_LOGGER, "Performance tests for Benders decomposition ended.")
 
 ## Analyze results of a previous run
 
-make_benders_perf_plots("test/data/output_files/benders/perf 2021-10-19 case67-case6/results")
+#make_benders_perf_plots("test/data/output_files/benders/my_old_perf_run/results")
