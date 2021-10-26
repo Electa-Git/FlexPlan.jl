@@ -5,9 +5,11 @@
 import FlexPlan; const _FP = FlexPlan
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
-import InfrastructureModels; const _IM = InfrastructureModels
 
-# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP, 
+include("../io/create_profile.jl")
+include("../io/plots.jl")
+
+# Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP,
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
 import Ipopt
 import SCS
@@ -43,16 +45,16 @@ for p1 in 0:0.1:1
     scenario["sc_years"]["1"] = Dict{String, Any}()
     scenario["sc_years"]["1"]["year"] = 2019
     scenario["sc_years"]["1"]["start"] = 1546300800000   # 01.01.2019:00:00 in epoch time
-    scenario["sc_years"]["1"]["probability"] = p1  
+    scenario["sc_years"]["1"]["probability"] = p1
     scenario["sc_years"]["2"] = Dict{String, Any}()
     scenario["sc_years"]["2"]["year"] = 2018
-    scenario["sc_years"]["2"]["start"] = 1514764800000   # 01.01.2018:00:00 in epoch time  
+    scenario["sc_years"]["2"]["start"] = 1514764800000   # 01.01.2018:00:00 in epoch time
     scenario["sc_years"]["2"]["probability"] = p2
     #######################cs######################################
     # TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments for the Italian case
 
     data = _PM.parse_file(file) # Create PowerModels data dictionary (AC networks and storage)
-    data, loadprofile, genprofile = _FP.create_profile_data_italy(data, scenario) # create laod and generation profiles
+    data, loadprofile, genprofile = create_profile_data_italy(data, scenario) # create laod and generation profiles
     _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
     _FP.add_storage_data!(data) # Add addtional storage data model
     _FP.add_flexible_demand_data!(data) # Add flexible data model
@@ -84,19 +86,19 @@ for p1 in 0:0.1:1
     # Build optimisation model, solve it and write solution dictionary:
     # This is the "problem file" which needs to be constructed individually depending on application
     # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-    result = _FP.stoch_flex_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+    result = _FP.stoch_flex_tnep(mn_data, _PM.DCPPowerModel, gurobi; setting = s)
     # Plot final topology
     plot_settings = Dict("add_nodes" => true, "plot_solution_only" => true)
     plot_filename = join(["./test/data/output_files/lec","$idx","_noflex_nostrg.kml"])
     _FP.plot_geo_data(mn_data, plot_filename, plot_settings; solution = result)
 
-    p = _FP.plot_profile_data(extradata, number_of_hours, Dict() ,["3" "5" "6"])
+    p = plot_profile_data(extradata, number_of_hours, Dict() ,["3" "5" "6"])
     lp_file = join(["./test/data/output_files/profile_","$idx","_noflex_nostrg.png"])
     Plots.savefig(p,lp_file)
 
 
     for ld in 1:5
-        p = _FP.plot_flex_demand(result, ld, data, extradata)
+        p = plot_flex_demand(result, ld, data, extradata)
         lp_result = join(["./test/data/output_files/load_porfile_","$ld","_","$idx","_noflex_nostrg.png"])
         Plots.savefig(p,lp_result)
     end

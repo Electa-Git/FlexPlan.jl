@@ -4,15 +4,13 @@
 
 ## Import packages and choose a solver
 
-import PowerModels
-const _PM = PowerModels
-import PowerModelsACDC
-const _PMACDC = PowerModelsACDC
-import FlexPlan
-const _FP = FlexPlan
+import PowerModels; const _PM = PowerModels
+import PowerModelsACDC; const _PMACDC = PowerModelsACDC
+import FlexPlan; const _FP = FlexPlan
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
+include("../io/create_profile.jl")
 
 ## Input parameters
 
@@ -31,13 +29,15 @@ data = _PM.parse_file(data_file)
 data["ne_branch"] = Dict{String,Any}()
 
 # Generate hourly time profiles for loads and generators, based on CIGRE benchmark distribution network.
-extradata = _FP.create_profile_data_cigre(data, number_of_hours; scale_load = scale_load, scale_gen = scale_gen)
+extradata = create_profile_data_cigre(data, number_of_hours; scale_load = scale_load, scale_gen = scale_gen)
 
 # Add storage data to the data dictionary
 _FP.add_storage_data!(data)
 
 # Create multi-period data dictionary where time series data is included at the right place
-mn_data = _FP.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+_FP.add_dimension!(data, :hour, number_of_hours)
+_FP.add_dimension!(data, :year, 1)
+mn_data = _FP.make_multinetwork(data, extradata)
 
 
 ## Solve problem
@@ -45,7 +45,7 @@ mn_data = _FP.multinetwork_data(data, extradata, Set{String}(["source_type", "na
 # PowerModels and FlexPlan settings
 s = Dict("output" => Dict("branch_flows" => true))
 
-result = _FP.strg_tnep(mn_data, _FP.BFARadPowerModel, optimizer; multinetwork=true, setting=s)
+result = _FP.strg_tnep(mn_data, _FP.BFARadPowerModel, optimizer; setting=s)
 @assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
 
 

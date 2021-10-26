@@ -1,8 +1,8 @@
 function mpc = CIGRE_MV_benchmark_network_tnep
 % CIGRE_MV_BENCHMARK_NETWORK_TNEP Returns MATPOWER case for the CIGRE medium-voltage benchmark network with edits
-% 
+%
 % References:
-% [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed 
+% [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed
 % Energy Resources", CIGRE, Technical Brochure 575, 2014.
 %
 % EDITS:
@@ -26,7 +26,7 @@ mpc.version = '2';
 
 %%-----  Power Flow Data  -----%%
 %% system MVA base
-mpc.baseMVA = 1;
+mpc.baseMVA = 1.0;
 
 %% bus data
 % bus_i type      pd       qd   gs   bs bus_area   vm   va base_kv zone    vmax    vmin
@@ -66,6 +66,25 @@ mpc.gen = [
        10  0.006  0.000    0.003    -0.003  1     1          1    0.014     0.0   0   0      0      0      0      0        0       0       0      0   0;
        11  0.006  0.000    0.003    -0.003  1     1          1    0.01      0.0   0   0      0      0      0      0        0       0       0      0   0;
        15  0.000  0.000  100.0    -100.0    1     1          1  100.0    -100.0   0   0      0      0      0      0        0       0       0      0   0;
+];
+
+%% generator cost data
+% model startup shutdown ncost  cost
+mpc.gencost = [
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2   50.0  0.0;
+      2     0.0      0.0     2  100.0  0.0;
 ];
 
 %% branch data
@@ -113,30 +132,29 @@ mpc.branch_oltc = [
 ];
 
 %% network expansion branch data
-%column_names% f_bus t_bus     br_r       br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost replace tm_min tm_max
+%column_names% f_bus t_bus     br_r       br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost replace tm_min tm_max lifetime
 mpc.ne_branch = [
-                  15     1  0.0002375   0.0023875   0.000000     50     50     50     1     0         1    -60     60              0.8        1    0.9    1.1;
-                  15    12  0.000475    0.004775    0.000000     25     25     25     1     0         1    -60     60              0.75       0    1.0    1.0;
-                  12    13  0.003062363 0.002237175 0.003102216  15     15     15     0     0         1    -60     60              0.73       1    0.0    0.0;
-                  12    13  0.003062363 0.002237175 0.003102216  15     15     15     0     0         1    -60     60              0.78       1    0.0    0.0;
-                  13    14  0.003744975 0.00273585  0.003793712   7.5    7.5    7.5   0     0         1    -60     60              0.45       0    0.0    0.0;
+                  15     1  0.0002375   0.0023875   0.000000     50     50     50     1     0         1    -60     60              0.8        1    0.9    1.1       30;
+                  15    12  0.000475    0.004775    0.000000     25     25     25     1     0         1    -60     60              0.75       0    1.0    1.0       30;
+                  12    13  0.003062363 0.002237175 0.003102216  15     15     15     0     0         1    -60     60              0.73       1    0.0    0.0       60;
+                  12    13  0.003062363 0.002237175 0.003102216  15     15     15     0     0         1    -60     60              0.78       1    0.0    0.0       60;
+                  13    14  0.003744975 0.00273585  0.003793712   7.5    7.5    7.5   0     0         1    -60     60              0.45       0    0.0    0.0       60;
 ];
 
-%% generator cost data
-% model startup shutdown ncost  cost
-mpc.gencost = [
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2   50.0  0.0;
-      2     0.0      0.0     2  100.0  0.0;
+%% flexible load data
+%column_names% load_id pf_angle e_nce_max p_red_max p_shift_up_max p_shift_down_max p_shift_down_tot_max t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost lifetime
+mpc.load_extra = [
+                     1    0.230       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                     2    0.395       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                     3    0.245       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                     4    0.245       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                     5    0.245       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                     6    0.548       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                     7    0.245       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                     8    0.555       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                     9    0.288       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                    10    0.246       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                    11    0.230       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                    12    0.553       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
+                    13    0.446       0.0       0.0            0.0              0.0                  0.0          0            0            0.0           0.0             0.0   10000.0        0    0      0.0       10;
 ];

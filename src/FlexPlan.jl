@@ -4,9 +4,6 @@ module FlexPlan
 
 # import Compat
 import JuMP
-import JSON
-import CSV
-import DataFrames
 import Memento
 import PowerModels
 import PowerModelsACDC
@@ -20,7 +17,7 @@ const _MOI = _IM._MOI # MathOptInterface
 import JuMP: with_optimizer, optimizer_with_attributes
 export with_optimizer, optimizer_with_attributes
 
-import Plots
+using Printf
 
 # Create our module level logger (this will get precompiled)
 const _LOGGER = Memento.getlogger(@__MODULE__)
@@ -34,25 +31,25 @@ include("prob/dist.jl")
 include("prob/flexible_tnep.jl")
 include("prob/stochastic_flexible_tnep.jl")
 include("prob/storage_tnep.jl")
+include("prob/reliability_tnep.jl")
 
 include("io/common.jl")
 include("io/multinetwork.jl")
-include("io/profile_data.jl")
 include("io/plot_geo_data.jl")
-include("io/plots.jl")
-include("io/read_case_data_from_csv.jl")
-include("io/read_res_data.jl")
-include("io/read_demand_data.jl")
-include("io/get_result.jl")
-include("io/get_data.jl")
-include("io/t-d_decoupling.jl")
+include("io/profile_data.jl")
 
 include("core/types.jl")
+include("core/dimensions.jl")
+include("core/variable.jl")
+include("core/variableconv.jl")
+include("core/variabledcgrid.jl")
 include("core/flexible_demand.jl")
 include("core/storage.jl")
 include("core/objective.jl")
+include("core/reliability.jl")
 include("core/model_references.jl")
-include("core/shared_constraints.jl")
+include("core/constraint_template.jl")
+include("core/constraint.jl")
 include("core/line_replacement.jl")
 include("core/distribution.jl")
 include("core/t-d_coupling.jl")
@@ -60,4 +57,6 @@ include("core/t-d_decoupling.jl")
 
 include("form/bf.jl")
 include("form/bfarad.jl")
+include("formconv/dcp.jl")
+
 end

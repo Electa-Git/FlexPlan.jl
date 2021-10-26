@@ -35,73 +35,82 @@ function add_storage_data!(data)
     return data
 end
 
-function scale_cost_data!(data, scenario)
-    rescale_hourly = x -> (8760*scenario["planning_horizon"] / scenario["hours"]) * x # scale hourly costs to the planning horizon
-    rescale_total  = x -> (                                1 / scenario["hours"]) * x # scale total costs to the planning horizon
-    for (g, gen) in data["gen"]
-        _PM._apply_func!(gen, "cost", rescale_hourly)
-    end
-    for (b, branch) in get(data, "ne_branch", Dict{String,Any}())
-        _PM._apply_func!(branch, "construction_cost", rescale_total)
-        _PM._apply_func!(branch, "co2_cost", rescale_total)
-    end
-    for (b, branch) in get(data, "branchdc_ne", Dict{String,Any}())
-        _PM._apply_func!(branch, "cost", rescale_total)
-        _PM._apply_func!(branch, "co2_cost", rescale_total)
-    end
-    for (c, conv) in get(data, "convdc_ne", Dict{String,Any}())
-        _PM._apply_func!(conv, "cost", rescale_total)
-        _PM._apply_func!(conv, "co2_cost", rescale_total)
-    end
-    for (s, strg) in get(data, "ne_storage", Dict{String,Any}())
-        _PM._apply_func!(strg, "eq_cost", rescale_total)
-        _PM._apply_func!(strg, "inst_cost", rescale_total)
-        _PM._apply_func!(strg, "co2_cost", rescale_total)
-    end
-    for (l, load) in data["load"]
-        _PM._apply_func!(load, "cost_shift_up", rescale_hourly)
-        _PM._apply_func!(load, "cost_shift_down", rescale_hourly)
-        _PM._apply_func!(load, "cost_curtailment", rescale_hourly)
-        _PM._apply_func!(load, "cost_reduction", rescale_hourly)
-        _PM._apply_func!(load, "cost_investment", rescale_total)
-        _PM._apply_func!(load, "co2_cost", rescale_total)
-    end
-    _PM._apply_func!(data, "co2_emission_cost", rescale_hourly)
-end
-
 function add_flexible_demand_data!(data)
     for (le, load_extra) in data["load_extra"]
+
+        # ID of load point
         idx = load_extra["load_id"]
+
+        # Superior bound on not consumed power (voluntary load reduction) (p.u., 0 \leq p_shift_up_max \leq 1)
         data["load"]["$idx"]["p_red_max"] = load_extra["p_red_max"]
-        data["load"]["$idx"]["p_red_min"] = load_extra["p_red_min"]
+
+        # Superior bound on upward demand shifted (p.u., 0 \leq p_shift_up_max \leq 1)
         data["load"]["$idx"]["p_shift_up_max"] = load_extra["p_shift_up_max"]
-        data["load"]["$idx"]["p_shift_up_tot_max"] = load_extra["p_shift_up_tot_max"]
+
+        # Superior bound on downward demand shifted (p.u., 0 \leq p_shift_up_max \leq 1)
         data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]
+
+        # Maximum energy (accumulated load) shifted downward during time horizon (MWh)
         data["load"]["$idx"]["p_shift_down_tot_max"] = load_extra["p_shift_down_tot_max"]
+
+        # Compensation for consuming less (i.e. voluntary demand reduction) (€/MWh)
         data["load"]["$idx"]["cost_reduction"] = load_extra["cost_reduction"]
+
+        # Recovery period for upward demand shifting (h)
         data["load"]["$idx"]["t_grace_up"] = load_extra["t_grace_up"]
+
+        # Recovery period for downward demand shifting (h)
         data["load"]["$idx"]["t_grace_down"] = load_extra["t_grace_down"]
-        data["load"]["$idx"]["cost_shift_up"] = load_extra["cost_shift_up"]
+
+        # Compensation for downward demand shifting (€/MWh)
         data["load"]["$idx"]["cost_shift_down"] = load_extra["cost_shift_down"]
+
+        # Compensation for upward demand shifting (€/MWh); usually, the c_shift_up parameter should be set to zero
+        # to avoid double-counting of the flexibility activation cost, since demand shifted downwards at some point
+        # needs to be shifted upwards again
+        data["load"]["$idx"]["cost_shift_up"] = load_extra["cost_shift_up"]
+
+        # Compensation for load curtailment (i.e. involuntary demand reduction) (€/MWh)
         data["load"]["$idx"]["cost_curtailment"] = load_extra["cost_curt"]
+
+        # Investment costs for enabling flexible demand (€)
         data["load"]["$idx"]["cost_investment"] = load_extra["cost_inv"]
+
+        # Whether load is flexible (boolean)
         data["load"]["$idx"]["flex"] = load_extra["flex"]
+
+        # Maximum energy not consumed (accumulated voluntary load reduction) (MWh)
         data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
+
+        # Expected lifetime of flexibility-enabling equipment (years)
+        data["load"]["$idx"]["lifetime"] = load_extra["lifetime"]
+
+        # Value of Lost Load (VOLL), i.e. costs for load curtailment due to contingencies (€/MWh)
+        if haskey(load_extra, "cost_voll")
+            data["load"]["$idx"]["cost_voll"] = load_extra["cost_voll"]
+        end
+
+        # CO2 costs for enabling flexible demand (€)
         if haskey(load_extra, "co2_cost")
             data["load"]["$idx"]["co2_cost"] = load_extra["co2_cost"]
         end
+
+        # Power factor angle θ, giving the reactive power as Q = P ⨉ tan(θ)
         if haskey(load_extra, "pf_angle")
             data["load"]["$idx"]["pf_angle"] = load_extra["pf_angle"]
         end
+
+        # Rescale cost and power input values to the p.u. values used internally in the model
         rescale_cost = x -> x*data["baseMVA"]
         rescale_power = x -> x/data["baseMVA"]
         _PM._apply_func!(data["load"]["$idx"], "cost_reduction", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_up", rescale_cost)
-        _PM._apply_func!(data["load"]["$idx"], "cost_shift_up_tot_max", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down", rescale_cost)
-        _PM._apply_func!(data["load"]["$idx"], "cost_shift_down_tot_max", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_curtailment", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "e_nce_max", rescale_power)
+        if haskey(load_extra, "cost_voll")
+            _PM._apply_func!(data["load"]["$idx"], "cost_voll", rescale_cost)
+        end
     end
     delete!(data, "load_extra")
     return data
@@ -118,12 +127,160 @@ function add_generation_emission_data!(data)
     return data
 end
 
-function create_profile_data(number_of_hours, data, loadprofile = ones(length(data["load"]), number_of_hours), genprofile = ones(length(data["gen"]), number_of_hours))
+"""
+    scale_data!(data; <keyword arguments>)
+
+Scale lifetime and cost data.
+
+See `_scale_time_data!`, `_scale_operational_cost_data!` and `_scale_investment_cost_data!`.
+
+# Arguments
+- `data`: a single-network data dictionary.
+- `number_of_hours`: number of optimization periods (default: `dim_length(data, :hour)`).
+- `year_scale_factor`: how many years a representative year should represent (default: `dim_meta(data, :year, "scale_factor")`).
+- `number_of_years`: number of representative years (default: `dim_length(data, :year)`).
+- `year_idx`: id of the representative year (default: `1`).
+- `cost_scale_factor`: scale factor for all costs (default: `1.0`).
+"""
+function scale_data!(
+        data::Dict{String,Any};
+        number_of_hours::Int = haskey(data, "dim") ? dim_length(data, :hour) : 1,
+        year_scale_factor::Int = haskey(data, "dim") ? dim_meta(data, :year, "scale_factor") : 1,
+        number_of_years::Int = haskey(data, "dim") ? dim_length(data, :year) : 1,
+        year_idx::Int = 1,
+        cost_scale_factor::Float64 = 1.0
+    )
+    if _IM.ismultinetwork(data)
+        Memento.error(_LOGGER, "`scale_data!` can only be applied to single-network data dictionaries.")
+    end
+    _scale_time_data!(data, year_scale_factor)
+    _scale_operational_cost_data!(data, number_of_hours, year_scale_factor, cost_scale_factor)
+    _scale_investment_cost_data!(data, number_of_years, year_idx, cost_scale_factor) # Must be called after `_scale_time_data!`
+end
+
+"""
+    _scale_time_data!(data, year_scale_factor)
+
+Scale lifetime data from years to periods of `year_scale_factor` years.
+
+After applying this function, the step between consecutive years takes the value 1: in this
+way it is easier to write the constraints that link variables belonging to different years.
+"""
+function _scale_time_data!(data, year_scale_factor)
+    rescale = x -> x ÷ year_scale_factor
+    for component in ("ne_branch", "branchdc_ne", "ne_storage", "convdc_ne", "load")
+        for (key, val) in get(data, component, Dict{String,Any}())
+            if !haskey(val, "lifetime")
+                if component == "load" && !Bool(get(val, "flex", 0))
+                    continue # "lifetime" field might not be used in cases where the load is not flexible
+                else
+                    Memento.error(_LOGGER, "Missing `lifetime` key in `$component` $key.")
+                end
+            end
+            if val["lifetime"] % year_scale_factor != 0
+                Memento.error(_LOGGER, "Lifetime of $component $key ($(val["lifetime"])) must be a multiple of the year scale factor ($year_scale_factor).")
+            end
+            _PM._apply_func!(val, "lifetime", rescale)
+        end
+    end
+end
+
+"""
+    _scale_operational_cost_data!(data, number_of_hours, year_scale_factor, cost_scale_factor)
+
+Scale hourly costs to the planning horizon.
+
+Scale hourly costs so that the sum of the costs over all optimization periods
+(`number_of_hours` hours) represents the cost over the entire planning horizon
+(`year_scale_factor` years). In this way it is possible to perform the optimization using a
+reduced number of hours and still obtain a cost that approximates the cost that would be
+obtained if 8760 hours were used for each year.
+"""
+function _scale_operational_cost_data!(data, number_of_hours, year_scale_factor, cost_scale_factor)
+    rescale = x -> (8760*year_scale_factor / number_of_hours) * cost_scale_factor * x # scale hourly costs to the planning horizon
+    for (g, gen) in data["gen"]
+        _PM._apply_func!(gen, "cost", rescale)
+    end
+    for (l, load) in data["load"]
+        _PM._apply_func!(load, "cost_shift_up", rescale)     # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_shift_down", rescale)   # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_curtailment", rescale)  # Compensation for load curtailment (i.e. involuntary demand reduction)
+        _PM._apply_func!(load, "cost_reduction", rescale)    # Compensation for consuming less (i.e. voluntary demand reduction)
+    end
+    _PM._apply_func!(data, "co2_emission_cost", rescale)
+end
+
+"""
+    _scale_investment_cost_data!(data, number_of_years, year_idx, cost_scale_factor)
+
+Correct investment costs considering the residual value at the end of the planning horizon.
+
+Linear depreciation is assumed.
+
+This function _must_ be called after `_scale_time_data!`.
+"""
+function _scale_investment_cost_data!(data, number_of_years, year_idx, cost_scale_factor)
+    # Assumption: the `lifetime` parameter of investment candidates has already been scaled
+    # using `_scale_time_data!`.
+    remaining_years = number_of_years - year_idx + 1
+    for (b, branch) in get(data, "ne_branch", Dict{String,Any}())
+        rescale = x -> min(remaining_years/branch["lifetime"], 1.0) * cost_scale_factor * x
+        _PM._apply_func!(branch, "construction_cost", rescale)
+        _PM._apply_func!(branch, "co2_cost", rescale)
+    end
+    for (b, branch) in get(data, "branchdc_ne", Dict{String,Any}())
+        rescale = x -> min(remaining_years/branch["lifetime"], 1.0) * cost_scale_factor * x
+        _PM._apply_func!(branch, "cost", rescale)
+        _PM._apply_func!(branch, "co2_cost", rescale)
+    end
+    for (c, conv) in get(data, "convdc_ne", Dict{String,Any}())
+        rescale = x -> min(remaining_years/conv["lifetime"], 1.0) * cost_scale_factor * x
+        _PM._apply_func!(conv, "cost", rescale)
+        _PM._apply_func!(conv, "co2_cost", rescale)
+    end
+    for (s, strg) in get(data, "ne_storage", Dict{String,Any}())
+        rescale = x -> min(remaining_years/strg["lifetime"], 1.0) * cost_scale_factor * x
+        _PM._apply_func!(strg, "eq_cost", rescale)
+        _PM._apply_func!(strg, "inst_cost", rescale)
+        _PM._apply_func!(strg, "co2_cost", rescale)
+    end
+    for (l, load) in data["load"]
+        rescale = x -> min(remaining_years/load["lifetime"], 1.0) * cost_scale_factor * x
+        _PM._apply_func!(load, "cost_investment", rescale)
+        _PM._apply_func!(load, "co2_cost", rescale)
+    end
+end
+
+function create_profile_data(number_of_periods, data, loadprofile = ones(length(data["load"]), number_of_periods), genprofile = ones(length(data["gen"]), number_of_periods))
+    extradata = Dict{String,Any}()
+    extradata["load"] = Dict{String,Any}()
+    extradata["gen"] = Dict{String,Any}()
+    for (l, load) in data["load"]
+        extradata["load"][l] = Dict{String,Any}()
+        extradata["load"][l]["pd"] = Array{Float64,2}(undef, 1, number_of_periods)
+        for d in 1:number_of_periods
+            extradata["load"][l]["pd"][1, d] = data["load"][l]["pd"] * loadprofile[parse(Int, l), d]
+        end
+    end
+
+    for (g, gen) in data["gen"]
+        extradata["gen"][g] = Dict{String,Any}()
+        extradata["gen"][g]["pmax"] = Array{Float64,2}(undef, 1, number_of_periods)
+        for d in 1:number_of_periods
+            extradata["gen"][g]["pmax"][1, d] = data["gen"][g]["pmax"] * genprofile[parse(Int, g), d]
+        end
+    end
+    return extradata
+end
+
+function create_contingency_data(number_of_hours, data, contingency_profiles=Dict(), loadprofile = ones(length(data["load"]), number_of_hours),
+    genprofile = ones(length(data["gen"]), number_of_hours))
     extradata = Dict{String,Any}()
     extradata["dim"] = Dict{String,Any}()
     extradata["dim"] = number_of_hours
     extradata["load"] = Dict{String,Any}()
     extradata["gen"] = Dict{String,Any}()
+
     for (l, load) in data["load"]
         extradata["load"][l] = Dict{String,Any}()
         extradata["load"][l]["pd"] = Array{Float64,2}(undef, 1, number_of_hours)
@@ -140,182 +297,29 @@ function create_profile_data(number_of_hours, data, loadprofile = ones(length(da
         end
     end
 
-    return extradata
-end
-
-function create_profile_data_italy(data, scenario = Dict{String, Any}())
-
-    genprofile = ones(length(data["gen"]), length(scenario["sc_years"]) * scenario["hours"])
-    loadprofile = ones(length(data["load"]), length(scenario["sc_years"]) * scenario["hours"])
-
-    data["scenario"] = Dict{String, Any}()
-    data["scenario_prob"] = Dict{String, Any}()
-
-    if haskey(scenario, "mc")
-        monte_carlo = scenario["mc"]
-    else
-        monte_carlo = false
-    end
-
-    for (s, scnr) in scenario["sc_years"]
-        year = scnr["year"]
-        pv_sicily, pv_south_central, wind_sicily = read_res_data(year; mc = monte_carlo)
-        demand_center_north_pu, demand_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu = read_demand_data(year; mc = monte_carlo)
-
-        start_idx = (parse(Int, s) - 1) * scenario["hours"]
-        if monte_carlo == false
-            for h in 1 : scenario["hours"]
-                h_idx = scnr["start"] + ((h-1) * 3600000)
-                genprofile[3, start_idx + h] = pv_south_central["data"]["$h_idx"]["electricity"]
-                genprofile[5, start_idx + h] = pv_sicily["data"]["$h_idx"]["electricity"]
-                genprofile[6, start_idx + h] = wind_sicily["data"]["$h_idx"]["electricity"]
+    for (utype, profiles) in contingency_profiles
+        extradata[utype] = Dict{String,Any}()
+        for (u, unit) in data[utype]
+            extradata[utype][u] = Dict{String,Any}()
+            if "br_status" in keys(unit)
+                state_str = "br_status"
+            elseif "status" in keys(unit)
+                state_str = "status"
             end
-        else
-            genprofile[3, start_idx + 1 : start_idx + scenario["hours"]] = pv_south_central[1: scenario["hours"]]
-            genprofile[5, start_idx + 1 : start_idx + scenario["hours"]] = pv_sicily[1: scenario["hours"]]
-            genprofile[6, start_idx + 1 : start_idx + scenario["hours"]] = wind_sicily[1: scenario["hours"]]
-        end
-        loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = [demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1: scenario["hours"]]
-        # loadprofile[:, start_idx + 1 : start_idx + scenario["hours"]] = repeat([demand_center_north_pu'; demand_north_pu'; demand_center_south_pu'; demand_south_pu'; demand_sardinia_pu'][:, 1],1,scenario["hours"])
-
-        data["scenario"][s] = Dict()
-        data["scenario_prob"][s] = scnr["probability"]
-        for h in 1 : scenario["hours"]
-            network = start_idx + h
-            data["scenario"][s]["$h"] = network
-        end
-
-    end
-    # Add bus loactions to data dictionary
-    data["bus"]["1"]["lat"] = 43.4894; data["bus"]["1"]["lon"] =  11.7946; #Italy central north
-    data["bus"]["2"]["lat"] = 45.3411; data["bus"]["2"]["lon"] =  9.9489;  #Italy north
-    data["bus"]["3"]["lat"] = 41.8218; data["bus"]["3"]["lon"] =   13.8302; #Italy central south
-    data["bus"]["4"]["lat"] = 40.5228; data["bus"]["4"]["lon"] =   16.2155; #Italy south
-    data["bus"]["5"]["lat"] = 40.1717; data["bus"]["5"]["lon"] =   9.0738; # Sardinia
-    data["bus"]["6"]["lat"] = 37.4844; data["bus"]["6"]["lon"] =   14.1568; # Sicily
-    # Return info
-    return data, loadprofile, genprofile
-end
-
-function create_profile_data_norway(data, number_of_hours)
-# creates load and generation profiles from Norway data
-# - for now generation profile is constant at 1.0
-# - for now works only for single scenario
-
-    demand_data = CSV.read("./test/data/demand_Norway_2015.csv", DataFrames.DataFrame)
-    demand = demand_data[:,2:end]
-    n_hours_data = size(demand,1)
-    n_loads_data = size(demand,2)
-    demand_pu = zeros(n_hours_data,n_loads_data)
-    for i_load_data = 1:n_loads_data
-          demand_pu[:,i_load_data] = demand[:,i_load_data] ./ maximum(demand[:,i_load_data])
-    end
-    loadprofile = demand_pu[1:number_of_hours,1:length(data["load"])]'
-    # for now gen profile is constant
-    genprofile = ones(length(data["gen"]), number_of_hours)
-
-    return data,loadprofile,genprofile
-end
-
-"Create load and generation profiles for CIGRE distribution network."
-function create_profile_data_cigre(data, number_of_hours; start_period = 1, scale_load = 1.0, scale_gen = 1.0, file_profiles_pu = "./test/data/CIGRE_profiles_per_unit.csv")
-
-    ## Fixed parameters
-
-    file_load_ind    = "./test/data/CIGRE_industrial_loads.csv"
-    file_load_res    = "./test/data/CIGRE_residential_loads.csv"
-    scale_unit       = 0.001 # scale factor from CSV power data to FlexPlan power base: here converts from kVA to MVA
-
-    ## Import data
-
-    load_ind    = CSV.read(file_load_ind, DataFrames.DataFrame)
-    load_res    = CSV.read(file_load_res, DataFrames.DataFrame)
-    profiles_pu = CSV.read(
-        file_profiles_pu,
-        DataFrames.DataFrame;
-        skipto = start_period + 1, # +1 is for header line
-        limit = number_of_hours,
-        threaded = false # To ensure exact row limit is applied
-    )
-    if DataFrames.nrow(profiles_pu) < number_of_hours
-        Memento.error(_LOGGER, "insufficient number of rows in file \"$file_profiles_pu\" ($number_of_hours requested, $(DataFrames.nrow(profiles_pu)) found)")
-    end
-    DataFrames.select!(profiles_pu,
-        :industrial_load  => :load_ind,
-        :residential_load => :load_res,
-        :photovoltaic     => :pv,
-        :wind_turbine     => :wind,
-        :fuel_cell        => :fuel_cell,
-        :CHP_diesel       => :chp_diesel,
-        :CHP_fuel_cell    => :chp_fuel_cell
-    )
-    profiles_pu = Dict(pairs(eachcol(profiles_pu)))
-
-    ## Prepare output structure
-
-    extradata = Dict{String,Any}()
-    extradata["dim"] = number_of_hours
-
-    ## Loads
-
-    # Compute active and reactive power base of industrial loads
-    DataFrames.rename!(load_ind, [:bus, :s, :cosϕ])
-    load_ind.p_ind = scale_load * scale_unit * load_ind.s .* load_ind.cosϕ
-    load_ind.q_ind = scale_load * scale_unit * load_ind.s .* sin.(acos.(load_ind.cosϕ))
-    DataFrames.select!(load_ind, :bus, :p_ind, :q_ind)
-
-    # Compute active and reactive power base of residential loads
-    DataFrames.rename!(load_res, [:bus, :s, :cosϕ])
-    load_res.p_res = scale_load * scale_unit * load_res.s .* load_res.cosϕ
-    load_res.q_res = scale_load * scale_unit * load_res.s .* sin.(acos.(load_res.cosϕ))
-    DataFrames.select!(load_res, :bus, :p_res, :q_res)
-
-    # Create a table of industrial and residential power bases, indexed by the load ids used by `data`
-    load_base = coalesce.(DataFrames.outerjoin(load_ind, load_res; on=:bus), 0.0)
-    load_base.bus = string.(load_base.bus)
-    bus_load_lookup = Dict{String,String}()
-    for (l, load) in data["load"]
-        bus_load_lookup["$(load["load_bus"])"] = l
-    end
-    DataFrames.transform!(load_base, :bus => DataFrames.ByRow(b -> bus_load_lookup[b]) => :load_id)
-
-    # Compute active and reactive power profiles of each load
-    extradata["load"] = Dict{String,Any}()
-    for l in eachrow(load_base)
-        extradata["load"][l.load_id] = Dict{String,Any}()
-        extradata["load"][l.load_id]["pd"] = l.p_ind .* profiles_pu[:load_ind] .+ l.p_res .* profiles_pu[:load_res]
-        extradata["load"][l.load_id]["qd"] = l.q_ind .* profiles_pu[:load_ind] .+ l.q_res .* profiles_pu[:load_res]
-    end
-
-    ## Generators
-
-    # Define a Dict for the technology of generators, indexed by the gen ids used by `data`
-    gen_tech = Dict{String,Symbol}()
-    gen_tech["1"]  = :pv
-    gen_tech["2"]  = :pv
-    gen_tech["3"]  = :pv
-    gen_tech["4"]  = :fuel_cell
-    gen_tech["5"]  = :pv
-    gen_tech["6"]  = :wind
-    gen_tech["7"]  = :pv
-    gen_tech["8"]  = :pv
-    gen_tech["9"]  = :chp_diesel
-    gen_tech["10"] = :chp_fuel_cell
-    gen_tech["11"] = :pv
-    gen_tech["12"] = :fuel_cell
-    gen_tech["13"] = :pv
-
-    # Compute active and reactive power profiles of each generator
-    extradata["gen"]  = Dict{String,Any}()
-    for (g, gen) in data["gen"]
-        if haskey(gen_tech, g)
-            extradata["gen"][g] = Dict{String,Any}()
-            extradata["gen"][g]["pmax"] = scale_gen * gen["pmax"] .* profiles_pu[gen_tech[g]]
-            extradata["gen"][g]["pmin"] = scale_gen * gen["pmin"] .* profiles_pu[gen_tech[g]]
-            extradata["gen"][g]["qmax"] = scale_gen * gen["qmax"] .* ones(number_of_hours)
-            extradata["gen"][g]["qmin"] = scale_gen * gen["qmin"] .* ones(number_of_hours)
+            if "rate_a" in keys(unit)
+                rate_str = "rate_a"
+            else "rateA" in keys(unit)
+                rate_str = "rateA"
+            end
+            rate = unit[rate_str]
+            extradata[utype][u][state_str] = Array{Float64,2}(undef, 1, number_of_hours)
+            extradata[utype][u][rate_str] = Array{Float64,2}(undef, 1, number_of_hours)
+            for d in 1:number_of_hours
+                state = profiles[parse(Int, u), d]
+                extradata[utype][u][state_str][1, d] = state
+                extradata[utype][u][rate_str][1, d] = state*rate
+            end
         end
     end
-
     return extradata
 end

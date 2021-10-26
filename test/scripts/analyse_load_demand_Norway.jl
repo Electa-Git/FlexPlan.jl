@@ -18,5 +18,5 @@ for i_load_data = 1:n_loads_data
 end
 
 # Write to file
-df = DataFrames.DataFrame(peak_to_avg_ratio)
+df = DataFrames.DataFrame(peak_to_avg_ratio, :auto)
 CSV.write("load_demand_Norway_peak_to_avg_ratio.csv",df)

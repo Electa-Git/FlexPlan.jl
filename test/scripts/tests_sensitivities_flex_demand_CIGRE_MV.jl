@@ -4,9 +4,11 @@
 import FlexPlan; const _FP = FlexPlan
 import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
-import InfrastructureModels; const _IM = InfrastructureModels
 import IndexedTables; const _IT = IndexedTables
 using Plots
+
+include("../io/create_profile.jl")
+include("../io/read_case_data_from_csv.jl")
 
 # Add solver packages
 import JuMP
@@ -23,22 +25,22 @@ n_loads = 13                  # Number of load points
 use_DC = false                              # True for using DC power flow model; false for using linearized power real-reactive flow model for radial networks
 
 # Values for sensitivity analysis of factor with which original base case load demand data should be scaled
-vec_load_scaling_factor = [0.8 0.825 0.85 0.875 0.9 0.925 0.95 0.975 1.0]     
-#vec_load_scaling_factor = [0.8 0.85 0.9 0.95 1.0]     
+vec_load_scaling_factor = [0.8 0.825 0.85 0.875 0.9 0.925 0.95 0.975 1.0]
+#vec_load_scaling_factor = [0.8 0.85 0.9 0.95 1.0]
 
 # Values for sensitivity analysis of p_shift_down and p_shift_up (demand flexibility potential)
-vec_p_shift_max = [0.0 0.1 0.2 0.3]     
-#vec_p_shift_max = [0.0]     
+vec_p_shift_max = [0.0 0.1 0.2 0.3]
+#vec_p_shift_max = [0.0]
 
 # Values for sensitivity analysis of p_shift_down and p_shift_up (demand flexibility potential)
-vec_t_grace = [2 6 10]     
-#vec_t_grace = [2]     
+vec_t_grace = [2 6 10]
+#vec_t_grace = [2]
 
 # Vector of hours (time steps) included in case
 t_vec = start_hour:start_hour + (number_of_hours - 1)
 
 # Input case, in matpower m-file format: Here CIGRE MV benchmark network
-file = "./test/data/CIGRE_MV_benchmark_network_flex.m" 
+file = "./test/data/CIGRE_MV_benchmark_network_flex.m"
 
 # Filename with extra_load array with demand flexibility model parameters
 filename_load_extra = "./test/data/CIGRE_MV_benchmark_network_flex_load_extra.csv"
@@ -71,10 +73,10 @@ for i_load_scaling_factor = 1:n_load_scaling_factor
             end
 
             # Read load demand series and assign (relative) profiles to load points in the network
-            data, loadprofile, genprofile = _FP.create_profile_data_norway(data, number_of_hours)
+            data, loadprofile, genprofile = create_profile_data_norway(data, number_of_hours)
 
             # Add extra_load array for demand flexibility model parameters
-            data = _FP.read_case_data_from_csv(data, filename_load_extra, "load_extra")
+            data = read_case_data_from_csv(data, filename_load_extra, "load_extra")
 
             if use_DC
                 _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
@@ -85,7 +87,7 @@ for i_load_scaling_factor = 1:n_load_scaling_factor
             for i_load = 1:n_loads
                 data["load"][string(i_load)]["pd"] = data["load"][string(i_load)]["pd"] * vec_load_scaling_factor[i_load_scaling_factor]
                 data["load"][string(i_load)]["qd"] = data["load"][string(i_load)]["qd"] * vec_load_scaling_factor[i_load_scaling_factor]
-            end            
+            end
 
             # Update demand flexibility parameter values for all load points
             for i_load = 1:n_loads
@@ -97,18 +99,14 @@ for i_load_scaling_factor = 1:n_load_scaling_factor
 
             extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
             # Create data dictionary where time series data is included at the right place
-            if use_DC
-                mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
-            else
-                mn_data = _FP.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
-            end
+            mn_data = _FP.make_multinetwork(data, extradata)
 
             # Add PowerModels(ACDC) settings
             if use_DC
                 if length(data["ne_branch"]) > 0
                     do_replace_branch =  ( data["ne_branch"]["1"]["replace"] == 1 )
                 else
-                    do_replace_branch = false  
+                    do_replace_branch = false
                 end
                 s = Dict("output" => Dict("branch_flows" => true), "allow_line_replacement" => do_replace_branch, "conv_losses_mp" => false, "process_data_internally" => false)
             else
@@ -117,9 +115,9 @@ for i_load_scaling_factor = 1:n_load_scaling_factor
 
             # Build optimisation model, solve it and write solution dictionary:
             if use_DC
-                results = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting=s)
+                results = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc; setting=s)
             else
-                results = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc, multinetwork=true; setting=s)
+                results = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc; setting=s)
             end
 
             # Finding number of branches that are built
