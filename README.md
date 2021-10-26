@@ -1,40 +1,44 @@
 # FlexPlan.jl
 
 Status:
-[![CI](https://github.com/Electa-Git/FlexPLan.jl/workflows/CI/badge.svg)](https://github.com/Electa-Git/FlexPlan.jl/actions?query=workflow%3ACI)
-</p>
+[![CI](https://github.com/Electa-Git/FlexPlan.jl/workflows/CI/badge.svg)](https://github.com/Electa-Git/FlexPlan.jl/actions?query=workflow%3ACI)
+<a href="https://codecov.io/gh/Electa-Git/FlexPlan.jl"><img src="https://img.shields.io/codecov/c/github/Electa-Git/FlexPlan.jl?logo=Codecov"></img></a>
+<a href="https://electa-git.github.io/FlexPlan.jl/stable/"><img src="https://github.com/Electa-Git/FlexPlan.jl/workflows/Documentation/badge.svg"></img></a>
 
 
-The repository to develop small scale proof-of-concept tests for the FlexPlan model
+## Overview
+FlexPlan.jl is a Julia/JuMP package to carry out transmission and distribution network planning considering, ac and dc technology, storage and demand flexibility as possible expansion candidates. Using time series input on renewble generation and demand, as well a list of candidates for grid expansion, a mixed-integer linear problem is cosntrcuted which can be solved with any commercial or open-source MILP solver. Some modelling features are:
 
-More documentation will follow (WIP).
+- Multi-period, multi-stage formulation to model a number of planning years, and planning hours within years for a sequential grid expansion plan
+- Stoachestic formulation of the planning problem, based on scenario probabilities for a number of different time series
+- Linearized DistFlow model considering reactive power and voltage magnitudes for radial distribution grids
+- Extensive, parametrized models for storage, demand flexibility and dc grids
+- Different decomposition methods for solving the large-scale MILP problem
 
-## How to run scripts
+This package builds upon the PowerModels.jl and PowerModelsACDC.jl packages, and uses a similar structure.
 
-To run scripts contained in `test/scripts` you need to activate an environment and import all the needed packages.
+## Collaboration / improvements
+Please note that FlexPlan.jl is research-grade software library and is constantly being improved and extended. If you have suggetions for improvement, please contact us via the issues page on the repository.
 
-1. Choose a directory where to create the environment:
-   ```julia
-   cd("path/to/env/dir")
-   ```
+## Developed by:
+- Hakan Ergun, KU Leuven / EnergyVille
+- Matteo Rossi, RSE
+- Marco Rossi, RSE 
+- Damien Lapage, N-Side
+- Iver Bakken Sperstad, SINTEF
+- Espen Flo Bødal, SINTEF
+- Merkebu Zenebe Degefa, SINTEF 
+- Reinhilde D'hulst, VITO / EnergyVille
 
-2. Activate the environment:
+## Installation of FlexPlan
+The latest stable release of FlexPlan can be installed using the Julia package manager with:
 
-3. ```julia
-   ]activate .
-   ```
+```julia
+] add "FlexPlan"
+```
 
-4. `add` or `dev` the FlexPlan repository:
-   ```julia
-   ]add https://github.com/Electa-Git/FlexPlan.jl
-   ```
-   or
-   ```julia
-   ]dev https://github.com/Electa-Git/FlexPlan.jl
-   ```
+## Acknowledgement
+This software implementation is conducted within the European Union’s Horizon  2020 research and innovation programme under the FlexPlan project (grantagreement no. 863819).
 
-5. `add` every package required by the script.
-   For example, if the script contains `import Plots`, then execute
-   ```julia
-   ]add Plots
-   ```
+## Special Thanks To
+Carleton Coffrin (Los Alamos National Laboratory) for his countless design tips.  
