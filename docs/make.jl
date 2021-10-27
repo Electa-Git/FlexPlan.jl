@@ -27,7 +27,7 @@ Documenter.deploydocs(
     target = "build",
     repo = "github.com/Electa-Git/FlexPlan.jl.git",
     branch = "gh-pages",
-    devbranch = "main",
+    devbranch = "prepare_release",
     versions = ["stable" => "v^", "v#.#"],
     push_preview = false
 )
