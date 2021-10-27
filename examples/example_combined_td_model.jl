@@ -10,8 +10,9 @@ import FlexPlan; const _FP = FlexPlan
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
-include("../io/create_profile.jl")
 
+# Include profile data from FlexPlan repository, you can of course also use your own data
+include("../test/io/create_profile.jl")
 
 ## Input parameters
 

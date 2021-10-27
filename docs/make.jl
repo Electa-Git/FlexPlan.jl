@@ -9,12 +9,16 @@ Documenter.makedocs(
         "Home" => "index.md"
         "Manual" => [
             "Getting started" => "quickguide.md"
+            "Example scripts" => "example_scripts.md"
         ]
         "Library" => [
+            "Problem types" => "problem_types.md"
+            "Network formulations" => "network_formulations.md"
             "Multi - period, multi-stage modelling" => [
                 "Modelling assumptions" => "modeling_assumptions.md"
-                "Modelling dimensions" => "dimensions.md"
+                "Model dimensions" => "dimensions.md"
             ]
+            "Data model" => "data_model.md"
         ]
     ]
 )
