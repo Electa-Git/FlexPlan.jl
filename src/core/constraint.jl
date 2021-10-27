@@ -103,6 +103,14 @@ function constraint_ne_branch_activation(pm::_PM.AbstractPowerModel, n::Int, i::
     JuMP.@constraint(pm.model, indicator == sum(investments))
 end
 
+# Force investment decisions in two different nws to be the same.
+function constraint_ne_branch_investment_same(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int)
+    investment_1 = _PM.var(pm, n_1, :branch_ne_investment, i)
+    investment_2 = _PM.var(pm, n_2, :branch_ne_investment, i)
+
+    JuMP.@constraint(pm.model, investment_1 == investment_2)
+end
+
 
 ## Candidate DC branches
 

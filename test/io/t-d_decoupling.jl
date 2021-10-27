@@ -44,8 +44,8 @@ function report_dist_candidates_pcc_power(
         for cand_id in candidate_ids
             res = dist_candidates[cand_id]["result"]
             if haskey(res, "base")
-                pcc_deviation["$(cand_id)_import"] = pcc_power["$(cand_id)_import"] - pcc_power["$(cand_id)_base"]
-                pcc_deviation["$(cand_id)_export"] = pcc_power["$(cand_id)_export"] - pcc_power["$(cand_id)_base"]
+                pcc_deviation[!,"$(cand_id)_import"] = pcc_power[!,"$(cand_id)_import"] - pcc_power[!,"$(cand_id)_base"]
+                pcc_deviation[!,"$(cand_id)_export"] = pcc_power[!,"$(cand_id)_export"] - pcc_power[!,"$(cand_id)_base"]
             end
         end
         CSV.write(normpath(out_dir,"$(filename)_deviation.csv"), pcc_deviation)
@@ -64,7 +64,7 @@ function report_dist_candidates_pcc_power(
         pcc_flex_band = DataFrame()
         pcc_flex_band.period = pcc_power.period
         for cand_id in candidate_ids
-            pcc_flex_band["$(cand_id)"] = pcc_power["$(cand_id)_import"] - pcc_power["$(cand_id)_export"]
+            pcc_flex_band[!,"$(cand_id)"] = pcc_power[!,"$(cand_id)_import"] - pcc_power[!,"$(cand_id)_export"]
         end
         CSV.write(normpath(out_dir,"$(filename)_flex_band.csv"), pcc_flex_band)
         if plot

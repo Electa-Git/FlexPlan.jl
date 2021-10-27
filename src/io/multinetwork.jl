@@ -66,6 +66,31 @@ function make_multinetwork(
 end
 
 """
+    shift_nws!(mn_data, offset=dim_length(mn_data))
+
+Shift by `offset` the networks in `mn_data`.
+
+The `offset` argument is added to the existing offset.
+Return the updated `mn_data` variable.
+`mn_data` must be a multinetwork `data` dictionary.
+If possible, use `shift_ids!` instead.
+
+See also: `shift_ids!`.
+"""
+function shift_nws!(mn_data::Dict{String,Any}, offset::Int=dim_length(mn_data))
+    if !_IM.ismultinetwork(mn_data)
+        Memento.error(_LOGGER, "`mn_data` argument must be a multinetwork.")
+    end
+    shift_ids!(mn_data["dim"], offset)
+    shifted_nw = Dict{String,Any}()
+    for (n,nw) in mn_data["nw"]
+        shifted_nw["$(parse(Int,n)+offset)"] = nw
+    end
+    mn_data["nw"] = shifted_nw
+    return mn_data
+end
+
+"""
     import_nws!(mn_data, others...)
 
 Import into `mn_data["nw"]` the `nw`s contained in `others`.

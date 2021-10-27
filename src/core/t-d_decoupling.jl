@@ -1,10 +1,8 @@
 "Return some planning options for a dist network that also provide flexibility to transmission."
 function solve_td_coupling_distribution(sn_data::Dict{String,Any}, mn_data::Dict{String,Any}; optimizer, setting=Dict{String,Any}(), number_of_candidates)
-    if !haskey(mn_data, "sub_nw")
-        Memento.error(_LOGGER, "A distribution network is required")
-    end
-    if length(mn_data["sub_nw"]) > 1
-        Memento.error(_LOGGER, "A single distribution network is required ($(length(mn_data["sub_nw"])) found)")
+    require_dim(mn_data, :sub_nw)
+    if dim_length(mn_data, :sub_nw) > 1
+        Memento.error(_LOGGER, "A single distribution network is required ($(dim_length(mn_data, :sub_nw)) found)")
     end
     if number_of_candidates < 1
         Memento.warn(_LOGGER, "The number of requested distribution network planning candidates must be positive: substituting $number_of_candidates with 1.")
@@ -55,7 +53,7 @@ function min_investments(mn_data, optimizer, setting)
     mn_data_current_investments = deepcopy(mn_data)
     add_ne_branch_indicator!(mn_data_current_investments, min_base)
     add_ne_storage_indicator!(mn_data_current_investments, min_base)
-    
+
     min_import = run_td_coupling_model(mn_data_current_investments, build_max_import_with_current_investments, optimizer; setting)
     min_export = run_td_coupling_model(mn_data_current_investments, build_max_export_with_current_investments, optimizer; setting)
 
@@ -70,13 +68,13 @@ function max_power(mn_data, optimizer, setting)
     max_export_1 = run_td_coupling_model(mn_data, build_max_export, optimizer; setting)
     mn_data_max_export_2 = deepcopy(mn_data)
     add_td_coupling_power_active!(mn_data_max_export_2, max_export_1)
-    shift_sub_nw!(mn_data_max_export_2)
+    shift_nws!(mn_data_max_export_2)
 
-    mn_data_max_pair = merge_multinetworks(mn_data_max_import_2, mn_data_max_export_2)
+    mn_data_max_pair = merge_multinetworks!(mn_data_max_import_2, mn_data_max_export_2, :sub_nw)
     max_pair = run_td_coupling_model(mn_data_max_pair, build_min_cost_with_same_investments_in_all_sub_nws, optimizer; setting)
     max_import, max_export = split_result(max_pair)
 
-    mn_data_max_base = deepcopy(mn_data) 
+    mn_data_max_base = deepcopy(mn_data)
     add_ne_branch_indicator!(mn_data_max_base, max_import) # Same investments as max_export
     add_ne_storage_indicator!(mn_data_max_base, max_import) # Same investments as max_export
     max_base = run_td_coupling_model(mn_data_max_base, build_min_cost_with_fixed_investments, optimizer; setting)
@@ -87,8 +85,8 @@ end
 function intermediate_investment(mn_data, i, intermediate_cost, optimizer, setting; kwargs...)
     mn_data_1 = deepcopy(mn_data)
     mn_data_2 = deepcopy(mn_data)
-    shift_sub_nw!(mn_data_2)
-    mn_data_pair = merge_multinetworks(mn_data_1, mn_data_2)
+    shift_nws!(mn_data_2)
+    mn_data_pair = merge_multinetworks!(mn_data_1, mn_data_2, :sub_nw)
     add_max_cost!(mn_data_pair, intermediate_cost)
     pair_1 = run_td_coupling_model(mn_data_pair, build_max_flex_band_with_bounded_cost, optimizer; setting, kwargs...)
 
@@ -96,7 +94,7 @@ function intermediate_investment(mn_data, i, intermediate_cost, optimizer, setti
     pair_2 = run_td_coupling_model(mn_data_pair, build_min_cost_with_same_investments_in_all_sub_nws, optimizer; setting, kwargs...)
     i_import, i_export = split_result(pair_2)
 
-    mn_data_base = deepcopy(mn_data) 
+    mn_data_base = deepcopy(mn_data)
     add_ne_branch_indicator!(mn_data_base, i_import) # Same investments as i_export
     add_ne_storage_indicator!(mn_data_base, i_import) # Same investments as i_export
     i_base = run_td_coupling_model(mn_data_base, build_min_cost_with_fixed_investments, optimizer; setting, kwargs...)
@@ -133,11 +131,10 @@ function add_ne_storage_indicator!(mn_data::Dict{String,Any}, result::Dict{Strin
     end
 end
 
-# Works even if both mn_data and result have multiple subnetworks
 function add_td_coupling_power_active!(mn_data::Dict{String,Any}, result::Dict{String,Any})
     for (n, data_nw) in mn_data["nw"]
         p = result["solution"]["nw"][n]["td_coupling"]["p"]
-        d_gen_id = data_nw["td_coupling"]["d_gen"]
+        d_gen_id = dim_prop(mn_data, parse(Int,n), :sub_nw, "d_gen")
         d_gen = data_nw["gen"]["$d_gen_id"] = deepcopy(data_nw["gen"]["$d_gen_id"]) # Gen data is shared among nws originally.
         d_gen["pmax"] = p
         d_gen["pmin"] = p
@@ -246,30 +243,31 @@ end
 "Put an upper bound on investment cost related to a single subnetwork"
 function constraint_investment_cost_max(pm::_PM.AbstractPowerModel; sub_nw = 1)
     inv_cost = sum(
-            calc_ne_branch_cost(pm, n, false)
-            + calc_ne_storage_cost(pm, n, false)
-            + calc_load_cost_inv(pm, n, false)
-        for n in pm.ref[:sub_nw]["$sub_nw"])
+            calc_ne_branch_cost(pm, n)
+            + calc_ne_storage_cost(pm, n)
+            + calc_load_investment_cost(pm, n)
+        for n in nw_ids(pm; hour=1, scenario=1, sub_nw))
     max_cost = pm.ref[:max_cost]
-            
+
     JuMP.@constraint(pm.model, inv_cost <= max_cost)
 end
 
-"Ensure that investment decisions are the same, spanning over periods and possibly multiple subnetworks"
+"Ensure that investment decisions are the same in each subnetwork"
 function constraint_same_investments(pm::_PM.AbstractPowerModel)
-    sorted_nw_ids = sort(collect(_PM.nw_ids(pm)))
-    n_1 = first(sorted_nw_ids)
-    for n_2 in sorted_nw_ids[2:end]
-        for i in _PM.ids(pm, :ne_branch, nw = n_2)
-            # Constrains binary activation variable of ne_branch i to the same value in n_2-1 and n_2 nws
-            _PMACDC.constraint_candidate_acbranches_mp(pm, n_2, i)
+    for y in 1:dim_length(pm, :year)
+        n_1, rest = Iterators.peel(nw_ids(pm; hour=1, scenario=1, year=y))
+        for n_2 in rest
+            for i in _PM.ids(pm, :ne_branch, nw = n_2)
+                constraint_ne_branch_investment_same(pm, n_1, n_2, i)
+            end
+            for i in _PM.ids(pm, :ne_storage, nw = n_2)
+                constraint_ne_storage_investment_same(pm, n_1, n_2, i)
+            end
+            n_1 = n_2
         end
-        for i in _PM.ids(pm, :ne_storage, nw = n_2)
-            constraint_storage_investment(pm, n_1, n_2, i)
-        end
-        n_1 = n_2
     end
-end    
+end
+
 
 
 ## Objectives
@@ -287,35 +285,26 @@ function objective_max_export(pm::_PM.AbstractPowerModel)
 end
 
 function calc_td_coupling_power_active(pm::_PM.AbstractPowerModel, n::Int)
-    pcc_gen = _PM.ref(pm, n, :td_coupling, "d_gen")
+    pcc_gen = dim_prop(pm, n, :sub_nw, "d_gen")
     p = _PM.var(pm, n, :pg, pcc_gen)
     return p
 end
 
 function objective_max_flex_band_2sub(pm::_PM.AbstractPowerModel)
     return JuMP.@objective(pm.model, Max,
-        sum( calc_td_coupling_power_active(pm, n) for n in pm.ref[:sub_nw]["1"] )
-        - sum( calc_td_coupling_power_active(pm, n) for n in pm.ref[:sub_nw]["2"] )
+        sum( calc_td_coupling_power_active(pm, n) for n in nw_ids(pm; hour=1, scenario=1, sub_nw=1) )
+        - sum( calc_td_coupling_power_active(pm, n) for n in nw_ids(pm; hour=1, scenario=1, sub_nw=2) )
     )
 end
 
 function objective_min_investment_cost(pm::_PM.AbstractPowerModel)
-    return JuMP.@objective(pm.model, Min,
-        sum(
-            calc_ne_branch_cost(pm, n, false)
-            + calc_ne_storage_cost(pm, n, false)
-            + calc_load_cost_inv(pm, n, false)
-        for (n, nw_ref) in _PM.nws(pm))
+    investment = sum(
+        calc_ne_branch_cost(pm, n)
+        + calc_ne_storage_cost(pm, n)
+        + calc_load_investment_cost(pm, n)
+        for n in nw_ids(pm; hour=1, scenario=1)
     )
-end
-    
-function calc_load_cost_inv(pm::_PM.AbstractPowerModel, n::Int, add_co2_cost::Bool)
-    load = _PM.ref(pm, n, :load)
-    cost = sum(l["cost_investment"]*_PM.var(pm, n, :z_flex, i) for (i,l) in load)
-    if add_co2_cost
-        cost += sum(l["co2_cost"]*_PM.var(pm, n, :z_flex, i) for (i,l) in load)
-    end
-    return cost
+    JuMP.@objective(pm.model, Min, investment)
 end
 
 
@@ -369,7 +358,7 @@ end
 ## Distribution candidates handling
 
 function add_dist_candidate!(dist_candidates::Dict{String,Any}, name::String, r_import::Dict{String,Any}, r_export::Dict{String,Any}, r_base::Dict{String,Any} = Dict{String,Any}())
-    
+
     c = dist_candidates[name] = Dict{String,Any}()
 
     result = c["result"] = Dict{String,Any}()
@@ -436,7 +425,7 @@ function add_dist_candidates_cost!(dist_candidates::Dict{String,Any}, sn_data::D
         cl_ne_storage[s] = storage["eq_cost"] + storage["inst_cost"]
     end
 
-    for candidate in values(dist_candidates) 
+    for candidate in values(dist_candidates)
         candidate["cost"] = sum( sum( cost_lookup[comp_name][id] * length(candidate["ids"]["nw"]) * built for (id, built) in comp_inv ) for (comp_name, comp_inv) in candidate["investment"])
     end
 end
