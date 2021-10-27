@@ -1,3 +1,3 @@
-## Data model
+# Problem types
 
 WORK IN PROGRESS

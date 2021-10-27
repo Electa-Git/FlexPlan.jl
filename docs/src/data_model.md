@@ -1,3 +1,3 @@
-## Data model
+# Data model
 
 WORK IN PROGRESS

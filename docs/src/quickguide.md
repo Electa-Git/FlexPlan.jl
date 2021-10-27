@@ -1,3 +1,5 @@
+# Quickguide
+
 ## How to run scripts
 
 To run scripts contained in `test/scripts` you need to activate an environment and import all the needed packages.

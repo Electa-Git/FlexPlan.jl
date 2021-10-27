@@ -49,7 +49,7 @@ t_data, t_loadprofile, t_genprofile = create_profile_data_italy!(t_data) # Load 
 t_time_series = _FP.create_profile_data(number_of_hours, t_data, t_loadprofile, t_genprofile) # Create time series data to be passed to the data dictionay 
 ```
 
-# Coupling of transmission and distribution networks
+### Coupling of transmission and distribution networks
 
 FlexPlan.jl provides the possiblity to couple multiple radial distribution networks to the transmission system, for solving the combined T&D grid expansion problem. For the meshed transmission system the linearized 'DC' power flow formulation is used, whereas radial networks are modelled using the linearised DistFlow model (more information can be found under "network formulations").
 
