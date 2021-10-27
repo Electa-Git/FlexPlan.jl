@@ -226,10 +226,10 @@ function sol_td_coupling!(pm::_PM.AbstractBFModel, solution::Dict{String,Any})
 
     for (nw, nw_sol) in nws_sol
         n = parse(Int, nw)
-        if !(haskey(dim_prop(pm), :sub_nw) && haskey(dim_prop(pm, :sub_nw, coord(pm,n,:sub_nw)), "d_gen"))
+        if !(haskey(dim_prop(pm), :sub_nw) && haskey(dim_prop(pm, n, :sub_nw), "d_gen"))
                 Memento.error(_LOGGER, "T&D coupling data is missing from the model of nw $nw.")
         end
-        d_gen = dim_prop(pm, :sub_nw, coord(pm,n,:sub_nw), "d_gen")
+        d_gen = dim_prop(pm, n, :sub_nw, "d_gen")
         nw_sol["td_coupling"] = Dict{String,Any}()
         nw_sol["td_coupling"]["p"] = nw_sol["gen"]["$d_gen"]["pg"]
         nw_sol["td_coupling"]["q"] = nw_sol["gen"]["$d_gen"]["qg"]
@@ -267,7 +267,7 @@ end
 State the power conservation between a distribution nw and the corresponding transmission nw.
 """
 function constraint_td_coupling_power_balance(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel, t_nw::Int, d_nw::Int)
-    sub_nw = dim_prop(d_pm, :sub_nw, coord(d_pm, d_nw, :sub_nw))
+    sub_nw = dim_prop(d_pm, d_nw, :sub_nw)
     t_gen = sub_nw["t_gen"]
     d_gen = sub_nw["d_gen"]
     t_mbase = _PM.ref(t_pm, t_nw, :gen, t_gen, "mbase")
@@ -281,7 +281,7 @@ end
 Apply bounds on reactive power exchange at the point of common coupling (PCC) of a distribution nw.
 """
 function constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel; nw::Int=d_pm.cnw)
-    sub_nw = dim_prop(d_pm, :sub_nw, coord(d_pm, nw, :sub_nw))
+    sub_nw = dim_prop(d_pm, nw, :sub_nw)
     d_gen = sub_nw["d_gen"]
     qs_ratio_bound = sub_nw["qs_ratio_bound"] # Allowable fraction of rated apparent power
 
