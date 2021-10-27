@@ -379,43 +379,59 @@ end
 
 """
     coord(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)
+    coord(data::Dict{String,Any}, n::Int, dimension::Symbol)
+    coord(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)
 
-Return the coordinate along `dimension` of nw `n` of `pm`.
+Return the coordinate along `dimension` of nw `n` of `pm`, `data` or `dim`.
 """
-function coord(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)
-    dim = pm.ref[:dim]
+function coord end
+
+function coord(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)
     pos = dim[:pos]
     offset = dim[:offset]
     ci_n = dim[:ci][n-offset]
     ci_n[pos[dimension]]
 end
 
+coord(data::Dict{String,Any}, args...) = coord(data["dim"], args...)
+coord(pm::_PM.AbstractPowerModel, args...) = coord(pm.ref[:dim], args...)
+
 """
     is_first_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
+    is_first_id(data::Dict{String,Any}, n::Int, dimension::Symbol...)
+    is_first_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
 
-Return whether the network `n` is the first along `dimension` in `pm`.
+Return whether the network `n` is the first along `dimension` in `pm`, `data` or `dim`.
 """
-function is_first_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
-    dim = pm.ref[:dim]
+function is_first_id end
+
+function is_first_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
     pos = dim[:pos]
     offset = dim[:offset]
     ci_n = dim[:ci][n-offset]
     all(ci_n[pos[d]] == 1 for d in dimension)
 end
 
+is_first_id(data::Dict{String,Any}, args...) = is_first_id(data["dim"], args...)
+is_first_id(pm::_PM.AbstractPowerModel, args...) = is_first_id(pm.ref[:dim], args...)
+
 """
     is_last_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
+    is_last_id(data::Dict{String,Any}, n::Int, dimension::Symbol...)
+    is_last_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
 
-Return whether the network `n` is the last along `dimension` in `pm`.
+Return whether the network `n` is the last along `dimension` in `pm`, `data` or `dim`.
 """
-function is_last_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
-    dim = pm.ref[:dim]
+function is_last_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
     pos = dim[:pos]
     offset = dim[:offset]
     li = dim[:li]
     ci_n = dim[:ci][n-offset]
     all(ci_n[pos[d]] == size(li,pos[d]) for d in dimension)
 end
+
+is_last_id(data::Dict{String,Any}, args...) = is_last_id(data["dim"], args...)
+is_last_id(pm::_PM.AbstractPowerModel, args...) = is_last_id(pm.ref[:dim], args...)
 
 
 ## Access data relating to dimensions
@@ -426,12 +442,22 @@ end
     dim_prop(pm::PowerModels.AbstractPowerModel[, dimension[, id[, key]]])
 
 Properties associated to the `id`s of `dimension`.
+
+    dim_prop(dim::Dict{Symbol,Any}, n, dimension[, key])
+    dim_prop(data::Dict{String,Any}, n, dimension[, key])
+    dim_prop(pm::PowerModels.AbstractPowerModel, n, dimension[, key])
+
+Properties associated to `dimension` of a network `n`.
 """
 function dim_prop end
 dim_prop(dim::Dict{Symbol,Any}) = dim[:prop]
 dim_prop(dim::Dict{Symbol,Any}, dimension::Symbol) = dim[:prop][dimension]
 dim_prop(dim::Dict{Symbol,Any}, dimension::Symbol, id::Int) = dim[:prop][dimension][id]
 dim_prop(dim::Dict{Symbol,Any}, dimension::Symbol, id::Int, key::String) = dim[:prop][dimension][id][key]
+
+dim_prop(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol) = dim[:prop][dimension][coord(dim,n,dimension)]
+dim_prop(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol, key::String) = dim[:prop][dimension][coord(dim,n,dimension)][key]
+
 dim_prop(data::Dict{String,Any}, args...) = dim_prop(data["dim"], args...)
 dim_prop(pm::_PM.AbstractPowerModel, args...) = dim_prop(pm.ref[:dim], args...)
 
