@@ -44,7 +44,7 @@
 
     sn_data = Dict{String,Any}(c=>Dict{String,Any}() for c in ("bus","branch","dcline","gen","load","shunt","switch","storage")) # Fake a single-network data structure
     _FP.add_dimension!(sn_data, :hour, 4)
-    _FP.add_dimension!(sn_data, :scenario, Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3))
+    _FP.add_dimension!(sn_data, :scenario, Dict(s => Dict{String,Any}("probability"=>s/6) for s in 1:3))
     _FP.add_dimension!(sn_data, :sub_nw, 2; metadata = Dict{String,Any}("description"=>"sub_nws model different physical networks"))
     dt = Dict{String,Any}("dim"=>sn_data["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data)) # Fake a multinetwork data structure
     pm = _PM.instantiate_model(dt, _PM.ACPPowerModel, pm->nothing)
@@ -72,7 +72,7 @@
         delete!(dt2, "dim")
         _FP.add_dimension!(dt2, :hour, 4)
         _FP.add_dimension!(dt2, :sub_nw, 2; metadata = Dict{String,Any}("description"=>"sub_nws model different physical networks"))
-        _FP.add_dimension!(dt2, :scenario, Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3))
+        _FP.add_dimension!(dt2, :scenario, Dict(s => Dict{String,Any}("probability"=>s/6) for s in 1:3))
         @test_throws ErrorException _FP.merge_dim!(dt1["dim"], dt2["dim"], :sub_nw) # Dimensions are not sorted in the same way
         dt1 = deepcopy(dt)
         dt2 = deepcopy(dt)
@@ -96,7 +96,7 @@
         dt2 = deepcopy(dt)
         delete!(dt2, "dim")
         _FP.add_dimension!(dt2, :hour, 4)
-        _FP.add_dimension!(dt2, :scenario, Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3))
+        _FP.add_dimension!(dt2, :scenario, Dict(s => Dict{String,Any}("probability"=>s/6) for s in 1:3))
         _FP.add_dimension!(dt2, :sub_nw, 4; metadata = Dict{String,Any}("description"=>"sub_nws model different physical networks"))
         @test _FP.merge_dim!(dt1["dim"], dt_shift["dim"], :sub_nw) == dt2["dim"]
     end
@@ -233,37 +233,44 @@
     end
 
     @testset "coord" begin
-        @test _FP.coord(pm, 7, :hour) == 3
-        @test _FP.coord(pm, 7, :scenario) == 2
-        @test _FP.coord(pm_shift, 31, :hour) == 3
-        @test _FP.coord(pm_shift, 31, :scenario) == 2
+        @test _FP.coord(dim, 7, :hour) == 3
+        @test _FP.coord(dim, 7, :scenario) == 2
+        @test _FP.coord(dim_shift, 31, :hour) == 3
+        @test _FP.coord(dim_shift, 31, :scenario) == 2
+        @test _FP.coord(dt, 7, :hour) == _FP.coord(dim, 7, :hour)
+        @test _FP.coord(pm, 7, :hour) == _FP.coord(dim, 7, :hour)
     end
 
     @testset "is_first_id" begin
-        @test _FP.is_first_id(pm, 14, :hour) == false
-        @test _FP.is_first_id(pm, 14, :scenario) == true
-        @test _FP.is_first_id(pm, 17, :hour) == true
-        @test _FP.is_first_id(pm, 17, :scenario) == false
-        @test _FP.is_first_id(pm_shift, 38, :hour) == false
-        @test _FP.is_first_id(pm_shift, 38, :scenario) == true
+        @test _FP.is_first_id(dim, 14, :hour) == false
+        @test _FP.is_first_id(dim, 14, :scenario) == true
+        @test _FP.is_first_id(dim, 17, :hour) == true
+        @test _FP.is_first_id(dim, 17, :scenario) == false
+        @test _FP.is_first_id(dim_shift, 38, :hour) == false
+        @test _FP.is_first_id(dim_shift, 38, :scenario) == true
+        @test _FP.is_first_id(dt, 14, :hour) == _FP.is_first_id(dim, 14, :hour)
+        @test _FP.is_first_id(pm, 14, :hour) == _FP.is_first_id(dim, 14, :hour)
     end
 
     @testset "is_last_id" begin
-        @test _FP.is_last_id(pm, 20, :hour) == true
-        @test _FP.is_last_id(pm, 20, :scenario) == false
-        @test _FP.is_last_id(pm, 21, :hour) == false
-        @test _FP.is_last_id(pm, 21, :scenario) == true
-        @test _FP.is_last_id(pm, 20, :hour) == true
-        @test _FP.is_last_id(pm_shift, 44, :hour) == true
-        @test _FP.is_last_id(pm_shift, 44, :scenario) == false
+        @test _FP.is_last_id(dim, 20, :hour) == true
+        @test _FP.is_last_id(dim, 20, :scenario) == false
+        @test _FP.is_last_id(dim, 21, :hour) == false
+        @test _FP.is_last_id(dim, 21, :scenario) == true
+        @test _FP.is_last_id(dim_shift, 44, :hour) == true
+        @test _FP.is_last_id(dim_shift, 44, :scenario) == false
+        @test _FP.is_last_id(dt, 20, :hour) == _FP.is_last_id(dim, 20, :hour)
+        @test _FP.is_last_id(pm, 20, :hour) == _FP.is_last_id(dim, 20, :hour)
     end
 
     @testset "dim_prop" begin
         @test Set(keys(_FP.dim_prop(dim))) == Set((:hour, :scenario, :sub_nw))
         @test _FP.dim_prop(dim, :hour) == Dict(h => Dict{String,Any}() for h in 1:4)
-        @test _FP.dim_prop(dim, :scenario) == Dict(s => Dict{String,Any}("probability"=>1/3) for s in 1:3)
-        @test _FP.dim_prop(dim, :scenario, 1) == Dict{String,Any}("probability"=>1/3)
-        @test _FP.dim_prop(dim, :scenario, 1, "probability") == 1/3
+        @test _FP.dim_prop(dim, :scenario) == Dict(s => Dict{String,Any}("probability"=>s/6) for s in 1:3)
+        @test _FP.dim_prop(dim, :scenario, 1) == Dict{String,Any}("probability"=>1/6)
+        @test _FP.dim_prop(dim, :scenario, 1, "probability") == 1/6
+        @test _FP.dim_prop(dim, 13, :scenario) == Dict{String,Any}("probability"=>1/6)
+        @test _FP.dim_prop(dim, 13, :scenario, "probability") == 1/6
         @test _FP.dim_prop(dt) == _FP.dim_prop(dim)
         @test _FP.dim_prop(pm) == _FP.dim_prop(dim)
     end
