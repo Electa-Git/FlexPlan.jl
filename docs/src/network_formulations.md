@@ -1,3 +1,3 @@
-## Data model
+# Network formulations
 
 WORK IN PROGRESS

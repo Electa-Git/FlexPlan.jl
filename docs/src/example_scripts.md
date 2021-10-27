@@ -1,10 +1,10 @@
 ## How to run scripts
 
-A number of example scripts have been provided within FlexPlan.jl under "FlexPlan/examples". The general structure of the example scripts is as follows.
+A number of example scripts have been provided within ```FlexPlan.jl``` under ```"FlexPlan/examples"```. The general structure of the example scripts is as follows.
 
 ## Step 1: Declaration of the required packages and solvers
 
-The required packages for FlexPlan.jl are PowerModels.jl and PowerModelsACDC.jl. You cane declare the packages as follows, and use short names to access specific functions wihtout having to type the full package name every time.
+The required packages for FlexPlan.jl are ```PowerModels.jl``` and ```PowerModelsACDC.jl```. You cane declare the packages as follows, and use short names to access specific functions wihtout having to type the full package name every time.
 
 ``` julia
 import PowerModels; const _PM = PowerModels
@@ -13,7 +13,7 @@ import FlexPlan; const _FP = FlexPlan
 ```
 Any other additional package that you might need, e.g., for priting, plotting, exporting results etc. can be declared in the same way.
 
-Also, for the solution of the problem will reqiure an MILP solver. As FlexPlan.jl is in the Julia / JuMP environement, it can be interfaced with any optimisation solver. You can declare and initialize the solver as follows:
+Also, for the solution of the problem will reqiure an MILP solver. As ```FlexPlan.jl``` is in the Julia / JuMP environement, it can be interfaced with any optimisation solver. You can declare and initialize the solver as follows:
 
 ``` julia
 import Cbc
@@ -21,7 +21,7 @@ optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 ```
 
 ## Step 2: Input data
-The data model is very similar to the PowerModels.jl/PowerModelsACDC.jl data models. As such, a data dictionary containing all information is passed to the optimisation problem. The standard network elements such as generators, buses, branches, etc. are extended with the existing and candidate storage and demand flexibility elements. The multi-network modelling functionality of the PowerModels.jl package is used to represent the different number of scenarios, planning years and planning hours within the year. The procedure is further explained under "Model dimensions" section. The package contains some sample time-series as well as grid data, which is located under "FlexPlan/test/data". This data has been used in for the validation of the model in the FlexPlan D1.2, https://flexplan-project.eu/wp-content/uploads/2021/03/D1.2_20210325_V1.0.pdf.
+The data model is very similar to the ```PowerModels.jl/PowerModelsACDC.jl``` data models. As such, a data dictionary containing all information is passed to the optimisation problem. The standard network elements such as generators, buses, branches, etc. are extended with the existing and candidate storage and demand flexibility elements. The multi-network modelling functionality of the PowerModels.jl package is used to represent the different number of scenarios, planning years and planning hours within the year. The procedure is further explained under ```"Model dimensions"``` section. The package contains some sample time-series as well as grid data, which is located under "FlexPlan/test/data". This data has been used in for the validation of the model in the FlexPlan D1.2, https://flexplan-project.eu/wp-content/uploads/2021/03/D1.2_20210325_V1.0.pdf.
 
 ```
 @article{ergun2021probabilistic,
@@ -91,3 +91,7 @@ result = _FP.flex_tnep(t_mn_data, d_mn_data, _PM.DCPPowerModel, _FP.BFARadPowerM
 ```
 
 For other possible problem types and decomposed models, please check the section "Problem types".
+
+## Inspecting your results
+
+To obtain, power flow results, you can use the standard "print_summary" function of ```PowerModels.jl```. Further, there are number of possibilities to plot your time series results and also a ```.kml``` export, if you provide the latitude and longitude of the buses as an additional entry in your ```data["bus"]``` dictionary. Please consult ```"FlexPlan\examples"``` for different plotting possibilities.
