@@ -421,8 +421,8 @@ end
 ## Access data relating to dimensions
 
 """
-    dim_prop(dim::dict{Symbol,Any}[, dimension[, id[, key]]])
-    dim_prop(data::dict{String,Any}[, dimension[, id[, key]]])
+    dim_prop(dim::Dict{Symbol,Any}[, dimension[, id[, key]]])
+    dim_prop(data::Dict{String,Any}[, dimension[, id[, key]]])
     dim_prop(pm::PowerModels.AbstractPowerModel[, dimension[, id[, key]]])
 
 Properties associated to the `id`s of `dimension`.
@@ -436,8 +436,8 @@ dim_prop(data::Dict{String,Any}, args...) = dim_prop(data["dim"], args...)
 dim_prop(pm::_PM.AbstractPowerModel, args...) = dim_prop(pm.ref[:dim], args...)
 
 """
-    dim_meta(dim::dict{Symbol,Any}[, dimension[, key]])
-    dim_meta(data::dict{String,Any}[, dimension[, key]])
+    dim_meta(dim::Dict{Symbol,Any}[, dimension[, key]])
+    dim_meta(data::Dict{String,Any}[, dimension[, key]])
     dim_meta(pm::PowerModels.AbstractPowerModel[, dimension[, key]])
 
 Metadata associated to `dimension`.
@@ -450,8 +450,8 @@ dim_meta(data::Dict{String,Any}, args...) = dim_meta(data["dim"], args...)
 dim_meta(pm::_PM.AbstractPowerModel, args...) = dim_meta(pm.ref[:dim], args...)
 
 """
-    dim_length(dim::dict{Symbol,Any}[, dimension])
-    dim_length(data::dict{String,Any}[, dimension])
+    dim_length(dim::Dict{Symbol,Any}[, dimension])
+    dim_length(data::Dict{String,Any}[, dimension])
     dim_length(pm::PowerModels.AbstractPowerModel[, dimension])
 
 Return the number of networks or, if `dimension` is specified, return its size.
