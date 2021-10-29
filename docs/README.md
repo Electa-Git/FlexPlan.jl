@@ -22,7 +22,7 @@ Please note that FlexPlan.jl is research-grade software library and is constantl
 
 ## Developed by:
 - Hakan Ergun, KU Leuven / EnergyVille
-- Matteo Rossi, RSE
+- Matteo Rossini, RSE
 - Marco Rossi, RSE 
 - Damien Lapage, N-Side
 - Iver Bakken Sperstad, SINTEF

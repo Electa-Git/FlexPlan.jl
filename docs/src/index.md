@@ -18,7 +18,7 @@ This package builds upon the PowerModels.jl and PowerModelsACDC.jl packages, and
 
 Developed by:
 - Hakan Ergun, KU Leuven / EnergyVille
-- Matteo Rossi, RSE
+- Matteo Rossini, RSE
 - Marco Rossi, RSE 
 - Damien Lapage, N-Side
 - Iver Bakken Sperstad, SINTEF

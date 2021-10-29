@@ -4,7 +4,7 @@ Documenter.makedocs(
     modules = FlexPlan,
     format = Documenter.HTML(),
     sitename = "FlexPlan",
-    authors = "Hakan Ergun, Matteo Rossi, Damien Lapage, Iver Bakken Sperstad, Espen Flo Bødal, Marco Rossi, Merkebu Zenebe Degefa, Reinhilde D'hulst",
+    authors = "Hakan Ergun, Matteo Rossini, Damien Lapage, Iver Bakken Sperstad, Espen Flo Bødal, Marco Rossi, Merkebu Zenebe Degefa, Reinhilde D'hulst",
     pages = [
         "Home" => "index.md"
         "Manual" => [
@@ -27,7 +27,7 @@ Documenter.deploydocs(
     target = "build",
     repo = "github.com/Electa-Git/FlexPlan.jl.git",
     branch = "gh-pages",
-    devbranch = "prepare_release",
+    devbranch = "master",
     versions = ["stable" => "v^", "v#.#"],
     push_preview = false
 )
