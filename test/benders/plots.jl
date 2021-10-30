@@ -18,17 +18,13 @@ function make_benders_plots(data::Dict{String,Any}, result::Dict{String,Any}, ou
         label      = ["UB" "LB" "improving solution" "non-improving solution"],
         seriestype = [:steppost :steppost :scatter :scatter],
         color      = [3 2 1 HSL(0,0,0.5)],
-        ylims      = [lb[ceil(Int,n_iter/5)], maximum(objective[ceil(Int,n_iter/5):n_iter])],
+        ylims      = [lb[ceil(Int,n_iter/5)], maximum(objective[ceil(Int,n_iter/3):n_iter])],
         title      = "Benders decomposition solutions",
         ylabel     = "Cost",
         xlabel     = "Iterations",
         legend     = :topright,
     )
-    savefig(plt, joinpath(out_dir,"sol_lin.svg"))
-    display_plots && display(plt)
-
-    plt = plot!(plt; yscale = :log10, ylims = [0.1opt, Inf])
-    savefig(plt, joinpath(out_dir,"sol_log10.svg"))
+    savefig(plt, joinpath(out_dir,"sol.svg"))
     display_plots && display(plt)
 
     # Binary variable values versus iterations
@@ -92,17 +88,30 @@ function make_benders_plots(data::Dict{String,Any}, result::Dict{String,Any}, ou
     main_time = [stat[i]["time"]["main"] for i in 1:n_iter]
     sec_time = [stat[i]["time"]["secondary"] for i in 1:n_iter]
     other_time = [stat[i]["time"]["other"] for i in 1:n_iter]
-    plt = groupedbar(1:n_iter, [other_time sec_time main_time];
-        label        = ["other" "secondary problems" "main problem"],
+    plt1 = groupedbar(1:n_iter, [other_time sec_time main_time];
         bar_position = :stack,
         bar_width    = n_iter < 50 ? 0.8 : 1.0,
-        color        = [HSL(0,0,0.5) 2 1],
+        color        = [HSL(0,0,2//3) 2 1],
         linewidth    = n_iter < 50 ? 1 : 0,
         title        = "Solve time",
-        ylabel       = "Time [s]",
-        xlabel       = "Iterations",
-        legend       = :top,
+        yguide       = "Time [s]",
+        xguide       = "Iterations",
+        legend       = :none,
     )
+    plt2 = groupedbar([result["time"]["build"] result["time"]["main"] result["time"]["secondary"] result["time"]["other"]];
+        bar_position     = :stack,
+        orientation      = :horizontal,
+        color            = [HSL(0,0,1//3) 1 2 HSL(0,0,2//3)],
+        legend           = :outerright,
+        label            = ["build model" "main problem" "secondary problems" "other"],
+        grid             = :none,
+        axis             = :hide,
+        ticks            = :none,
+        flip             = true,
+        xguide           = "Total time: $(round(Int,result["time"]["total"])) s   —   Threads: $(Threads.nthreads())",
+        xguidefontsize   = 9,
+    )
+    plt = plot(plt1, plt2; layout = grid(2,1; heights=[0.92, 0.08]))
     savefig(plt, joinpath(out_dir,"time.svg"))
     display_plots && display(plt)
 
