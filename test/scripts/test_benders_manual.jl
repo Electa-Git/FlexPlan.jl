@@ -48,6 +48,23 @@ display_plots = true
 compare_to_benchmark = true # Solve the problem as MILP, check whether solutions are identical and compare solve times
 
 
+## Process script parameters, set up logging
+
+algorithm_name = lowercase(last(split(string(algorithm),'.')))
+test_case_string = @sprintf("%s_%04i_%02i_%1i_%.0e", test_case, number_of_hours, number_of_scenarios, number_of_years, scale_cost)
+algorithm_string = @sprintf("manual_%s", algorithm_name)
+out_dir = normpath(out_dir, "benders", test_case_string, algorithm_string)
+mkpath(out_dir)
+main_log_file = joinpath(out_dir,"script.log")
+rm(main_log_file; force=true)
+filter!(handler -> first(handler)=="console", gethandlers(getlogger())) # Remove from root logger possible previously added handlers
+push!(getlogger(), DefaultHandler(main_log_file)) # Tell root logger to write to our log file as well
+setlevel!.(Memento.getpath(getlogger(FlexPlan)), "debug") # FlexPlan logger verbosity level. Useful values: "info", "debug", "trace"
+info(_LOGGER, "Test case string: \"$test_case_string\"")
+info(_LOGGER, "Algorithm string: \"$algorithm_string\"")
+info(_LOGGER, "          Now is: $(now(UTC)) (UTC)")
+
+
 ## Set CPLEX
 
 optimizer_MILP = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger(normpath(out_dir,"milp.log")), # Options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
@@ -72,23 +89,6 @@ optimizer_benchmark = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger(
     "CPXPARAM_MIP_Display" => 2,                         # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>
     "CPXPARAM_Output_CloneLog" => -1,                    # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-clone-log-in-parallel-optimization>
 )
-
-
-## Process script parameters, set up logging
-
-algorithm_name = lowercase(last(split(string(algorithm),'.')))
-test_case_string = @sprintf("%s_%04i_%02i_%1i_%.0e", test_case, number_of_hours, number_of_scenarios, number_of_years, scale_cost)
-algorithm_string = @sprintf("manual_%s", algorithm_name)
-out_dir = normpath(out_dir, "benders", test_case_string, algorithm_string)
-mkpath(out_dir)
-main_log_file = joinpath(out_dir,"script.log")
-rm(main_log_file; force=true)
-filter!(handler -> first(handler)=="console", gethandlers(getlogger())) # Remove from root logger possible previously added handlers
-push!(getlogger(), DefaultHandler(main_log_file)) # Tell root logger to write to our log file as well
-setlevel!.(Memento.getpath(getlogger(FlexPlan)), "debug") # FlexPlan logger verbosity level. Useful values: "info", "debug", "trace"
-info(_LOGGER, "Test case string: \"$test_case_string\"")
-info(_LOGGER, "Algorithm string: \"$algorithm_string\"")
-info(_LOGGER, "          Now is: $(now(UTC)) (UTC)")
 
 
 ## Load test case
