@@ -82,7 +82,7 @@ add_tasks!(tasks; test_case="case6", number_of_hours=[1,2,4], number_of_scenario
 
 notice(_LOGGER, "Warming up...")
 warmup_tasks = similar(tasks, 0)
-add_tasks!(warmup_tasks; test_case="case6", number_of_hours=1, number_of_scenarios=1, number_of_years=1, algorithm=unique(tasks.algorithm), emphasis_mip=0)
+add_tasks!(warmup_tasks; test_case="case6", number_of_hours=1, number_of_scenarios=1, number_of_years=1, algorithm=unique(tasks.algorithm), mip_strategy_search=0, emphasis_mip=0)
 warmup_dir = joinpath(settings[:session][:out_dir], "warmup")
 rm(warmup_dir; force=true, recursive=true)
 mkpath(warmup_dir)

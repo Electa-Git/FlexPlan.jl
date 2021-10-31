@@ -10,6 +10,10 @@ end
 
 function add_tasks!(tasks::DataFrame; kwargs...)
     names = keys(kwargs)
+    mismatched_names = symdiff(Set(propertynames(tasks)),Set(names))
+    if !isempty(mismatched_names)
+        Memento.error(_LOGGER, "The parameters of the tasks to be added do not match the defined parameters. Check \"" * join(string.(mismatched_names), "\", \"", "\" and \"") * "\".")
+    end
     vals = [v isa Vector ? v : [v] for v in values(kwargs)]
     for job_values in Iterators.product(vals...)
         push!(tasks, Dict(Pair.(names, job_values)))
