@@ -119,28 +119,35 @@ function make_benders_plots(data::Dict{String,Any}, result::Dict{String,Any}, ou
 end
 
 # Plot of time vs. `x` variable (keeping other variables fixed). Used in performance tests.
-function scatter_time_vs_variable(results::DataFrame, results_dir::String, fixed_vars::Vector{Symbol}, x::Symbol)
+function scatter_time_vs_variable(results::DataFrame, results_dir::String, fixed_vars::Vector{Symbol}, group_var::Symbol, x_var::Symbol)
     plots_data = groupby(results, fixed_vars)
     for k in keys(plots_data)
-        data = select(plots_data[k], x, :algorithm, :time)
-        x_min, x_max = extrema(data[!,x])
-        x_logscale = x_max/x_min > 10.0 # Whether to use log scale along x axis
-        plt = @df data scatter(data[!,x], :time; group=:algorithm,
-            title         = "$k"[12:end-1],
-            titlefontsize = 9,
-            xlabel        = "$x",
-            xscale        = x_logscale ? :log10 : :identity,
-            xminorgrid    = x_logscale,
-            xticks        = x_logscale ? :all : unique(data[!,x]),
-            ylabel        = "Time [s]",
-            yscale        = :log10,
-            yminorgrid    = true,
-            legend        = :bottomright,
-            legendtitle   = "Algorithm"
-        )
-        #display(plt)
-        plot_name = replace("$k"[12:end-1] * ".svg", '"' => "")
-        savefig(plt, joinpath(results_dir, "$x", plot_name))
+        data = select(plots_data[k], x_var, group_var, :time)
+        if length(unique(data[!,group_var]))>1 && length(unique(data[!,x_var]))>1
+            param_string = replace("$k"[12:end-1], '"' => "")
+            x_min, x_max = extrema(data[!,x_var])
+            x_logscale = x_min>0 && x_max/x_min > 10.0 # Whether to use log scale along x axis
+            y_min, y_max = extrema(data.time)
+            y_logscale = y_max/y_min > 10.0 # Whether to use log scale along y axis
+            plt = @df data scatter(data[!,x_var], :time; group=data[!,group_var],
+                title         = replace(param_string, r"(.+, .+, .+,) "=>s"\1\n"), # Insert a newline every 3 params
+                titlefontsize = 9,
+                xlabel        = "$x_var",
+                xscale        = x_logscale ? :log10 : :identity,
+                xminorgrid    = x_logscale,
+                xticks        = x_logscale ? :all : unique(data[!,x_var]),
+                ylabel        = "Time [s]",
+                yscale        = y_logscale ? :log10 : :identity,
+                yminorgrid    = y_logscale,
+                ylim          = [y_logscale ? -Inf : 0, Inf],
+                legend        = :bottomright,
+                legendtitle   = "$group_var"
+            )
+            #display(plt)
+            plot_name = param_string * ".svg"
+            mkpath(joinpath(results_dir, "$group_var", "$x_var"))
+            savefig(plt, joinpath(results_dir, "$group_var", "$x_var", plot_name))
+        end
     end
 end
 
@@ -150,11 +157,16 @@ function make_benders_perf_plots(results::DataFrame, results_dir::String)
         warn(_LOGGER, "Removed from analysis $(nrow(results)-nrow(results_optimal)) tests whose termination status is not OPTIMAL.")
     end
 
-    result_variables = propertynames(results_optimal)[1:end-4] # Exclude `:algorithm`, `:task_start_time`, `:termination_status`, and `:time`
-    for x in result_variables[2:end] # Exclude `:test_case`
-        mkpath(joinpath(results_dir, "$x"))
-        fixed_vars = filter(var->var≠x, result_variables)
-        scatter_time_vs_variable(results_optimal, results_dir, fixed_vars, x)
+    param_variables = setdiff(propertynames(results_optimal), [:task_start_time, :termination_status, :time])
+    for group in param_variables
+        if length(unique(results_optimal[!,group])) > 1
+            for x in param_variables
+                if group≠x && eltype(results_optimal[!,x])<:Number && length(unique(results_optimal[!,x]))>1
+                    fixed_vars = setdiff(param_variables, [group, x])
+                    scatter_time_vs_variable(results_optimal, results_dir, fixed_vars, group, x)
+                end
+            end
+        end
     end
     info(_LOGGER, "Plots saved in \"$results_dir\".")
 end
