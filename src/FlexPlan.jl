@@ -58,4 +58,10 @@ include("form/bf.jl")
 include("form/bfarad.jl")
 include("formconv/dcp.jl")
 
+
+# Submodules
+
+include("json_converter/json_converter.jl")
+using .JSONConverter
+
 end
