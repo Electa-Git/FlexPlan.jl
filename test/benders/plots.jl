@@ -130,7 +130,7 @@ function scatter_time_vs_variable(results::DataFrame, results_dir::String, fixed
             y_min, y_max = extrema(data.time)
             y_logscale = y_max/y_min > 10.0 # Whether to use log scale along y axis
             plt = @df data scatter(data[!,x_var], :time; group=data[!,group_var],
-                title         = replace(param_string, r"(.+, .+, .+,) "=>s"\1\n"), # Insert a newline every 3 params
+                title         = replace(param_string, r"(.+?, .+?, .+?,) "=>s"\1\n"), # Insert a newline every 3 params
                 titlefontsize = 9,
                 xlabel        = "$x_var",
                 xscale        = x_logscale ? :log10 : :identity,
