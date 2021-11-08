@@ -68,21 +68,21 @@ params = Dict(
 tasks = initialize_tasks(params)
 
 # Toy job, just to run the script and see some results
-add_tasks!(tasks; test_case="case6", number_of_hours=[1,2,4], number_of_scenarios=4, number_of_years=3, algorithm=["manual_classical","manual_modern","cplex_auto","benchmark"], mip_strategy_search=0, emphasis_mip=0)
+add_tasks!(tasks; test_case="case6", number_of_hours=[1,2,4], number_of_scenarios=4, number_of_years=3, algorithm=["manual_classical","manual_modern","cplex_auto","benchmark"], mip_strategy_search=2, emphasis_mip=1)
 
 # Compare our Benders decomposition implementations
-#add_tasks!(tasks; test_case=["case6","case67"], number_of_hours=[1,2,4], number_of_scenarios=3, number_of_years=3, algorithm=["manual_classical","manual_modern"], mip_strategy_search=0, emphasis_mip=0)
+#add_tasks!(tasks; test_case=["case6","case67"], number_of_hours=[1,2,4], number_of_scenarios=3, number_of_years=3, algorithm=["manual_classical","manual_modern"], mip_strategy_search=2, emphasis_mip=1)
 
 # Test how performance changes by varying some optimization parameters
-#add_tasks!(tasks; test_case="case6", number_of_hours=[1,4,16], number_of_scenarios=3, number_of_years=3, algorithm=["manual_classical","manual_modern"], mip_strategy_search=[1,2], emphasis_mip=[0,1,2,3,4,5])
-#add_tasks!(tasks; test_case="case67", number_of_hours=[1,2,4], number_of_scenarios=3, number_of_years=3, algorithm=["manual_classical","manual_modern"], mip_strategy_search=[1,2], emphasis_mip=[0,1,2,3,4,5])
+#add_tasks!(tasks; test_case="case6", number_of_hours=[1,4,16], number_of_scenarios=3, number_of_years=3, algorithm=["manual_classical","manual_modern"], mip_strategy_search=2, emphasis_mip=[0,1])
+#add_tasks!(tasks; test_case="case67", number_of_hours=[2,4,8], number_of_scenarios=3, number_of_years=3, algorithm=["manual_classical","manual_modern"], mip_strategy_search=2, emphasis_mip=[0,1])
 
 
 ## Warm up
 
 notice(_LOGGER, "Warming up...")
 warmup_tasks = similar(tasks, 0)
-add_tasks!(warmup_tasks; test_case="case6", number_of_hours=1, number_of_scenarios=1, number_of_years=1, algorithm=unique(tasks.algorithm), mip_strategy_search=0, emphasis_mip=0)
+add_tasks!(warmup_tasks; test_case="case6", number_of_hours=1, number_of_scenarios=1, number_of_years=1, algorithm=unique(tasks.algorithm), mip_strategy_search=2, emphasis_mip=1)
 warmup_dir = joinpath(settings[:session][:out_dir], "warmup")
 rm(warmup_dir; force=true, recursive=true)
 mkpath(warmup_dir)

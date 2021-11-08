@@ -69,7 +69,7 @@ info(_LOGGER, "          Now is: $(now(UTC)) (UTC)")
 
 optimizer_MILP = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger(normpath(out_dir,"milp.log")), # Options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
                                                          # range     default  link
-    "CPXPARAM_Emphasis_MIP" => 0,                        # { 0,     5}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-emphasis-switch>
+    "CPXPARAM_Emphasis_MIP" => 1,                        # { 0,     5}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-emphasis-switch>
     "CPXPARAM_MIP_Tolerances_MIPGap" => obj_rtol,        # [ 0,     1]  1e-4  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-relative-mip-gap-tolerance>
     "CPXPARAM_ScreenOutput" => 0,                        # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
     "CPXPARAM_MIP_Display" => 2,                         # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>
