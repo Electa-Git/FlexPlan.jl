@@ -23,7 +23,7 @@ settings = Dict(
         :scale_cost => 1e-9, # Cost scale factor (to test the numerical tractability of the problem)
     ),
     :optimization => Dict{Symbol,Any}(
-        :obj_rtol => 1e-6, # Relative tolerance for stopping
+        :obj_rtol => 1e-4, # Relative tolerance for stopping
         :max_iter => 10000, # Iteration limit
         :tightening_rtol => 1e-9, # Relative tolerance for adding optimality cuts
         :silent => true, # Suppress solvers output, taking precedence over any other solver attribute
