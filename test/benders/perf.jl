@@ -45,20 +45,25 @@ function optimize_case(case_data, task, settings)
     opt_s = settings[:optimization]
     if task[:algorithm] ∈ ("manual_classical", "manual_modern")
         optimizer_MILP = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger(normpath(opt_s[:out_dir],"milp.log")), # Options: <https://www.ibm.com/docs/en/icos/latest?topic=cplex-list-parameters>
-                                                                                    # range     default  link
-            "CPXPARAM_MIP_Strategy_Search" => get(task,"mip_strategy_search",0),    # { 0,..., 2}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-dynamic-search-switch>
-            "CPXPARAM_Emphasis_MIP" => get(task,"emphasis_mip",0),                  # { 0,..., 5}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-emphasis-switch>
-            "CPXPARAM_MIP_Tolerances_MIPGap" => opt_s[:obj_rtol],                   # [ 0,     1]  1e-4  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-relative-mip-gap-tolerance>
-            "CPXPARAM_ScreenOutput" => 0,                                           # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
-            "CPXPARAM_MIP_Display" => 2,                                            # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>
-            "CPXPARAM_Output_CloneLog" => -1,                                       # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-clone-log-in-parallel-optimization>
+                                                                                                    # range     default  link
+            "CPXPARAM_Preprocessing_RepeatPresolve" => get(task,:preprocessing_repeatpresolve,-1),  # {-1,..., 3}    -1  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-repeat-presolve-switch>
+            "CPXPARAM_MIP_Strategy_Search" => get(task,:mip_strategy_search,0),                     # { 0,..., 2}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-dynamic-search-switch>
+            "CPXPARAM_Emphasis_MIP" => get(task,:emphasis_mip,0),                                   # { 0,..., 5}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-emphasis-switch>
+            "CPXPARAM_MIP_Strategy_NodeSelect" => get(task,:mip_strategy_nodeselect,1),             # { 0,..., 3}     1  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-selection-strategy>
+            "CPXPARAM_MIP_Strategy_VariableSelect" => get(task,:mip_strategy_variableselect,0),     # {-1,..., 4}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-variable-selection-strategy>
+            "CPXPARAM_MIP_Strategy_BBInterval" => get(task,:mip_strategy_bbinterval,7),             # { 0, 1,...}     7  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-strategy-best-bound-interval>
+            "CPXPARAM_MIP_Strategy_Branch" => get(task,:mip_strategy_branch,0),                     # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-branching-direction>
+            "CPXPARAM_MIP_Tolerances_MIPGap" => opt_s[:obj_rtol],                                   # [ 0,     1]  1e-4  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-relative-mip-gap-tolerance>
+            "CPXPARAM_ScreenOutput" => 0,                                                           # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
+            "CPXPARAM_MIP_Display" => 2,                                                            # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>
+            "CPXPARAM_Output_CloneLog" => -1,                                                       # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-clone-log-in-parallel-optimization>
         )
         optimizer_LP = _FP.optimizer_with_attributes(CPLEX.Optimizer, # Log file would be interleaved in case of multiple secondary problems. To enable logging, substitute `CPLEX.Optimizer` with: `CPLEX_optimizer_with_logger(<path_to_log_file>)`
-                                                                                    # range     default  link
-            "CPXPARAM_Read_Scale" => 0,                                             # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-scale-parameter>
-            "CPXPARAM_LPMethod" => 2,                                               # { 0,..., 6}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-algorithm-continuous-linear-problems>
-            "CPXPARAM_ScreenOutput" => 0,                                           # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
-            "CPXPARAM_MIP_Display" => 2,                                            # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>
+                                            # range     default  link
+            "CPXPARAM_Read_Scale" => 0,     # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-scale-parameter>
+            "CPXPARAM_LPMethod" => 2,       # { 0,..., 6}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-algorithm-continuous-linear-problems>
+            "CPXPARAM_ScreenOutput" => 0,   # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
+            "CPXPARAM_MIP_Display" => 2,    # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>
         )
         if task[:algorithm] == "manual_classical"
             algo = _FP.Benders.Classical(; obj_rtol=opt_s[:obj_rtol], max_iter=opt_s[:max_iter], tightening_rtol=opt_s[:tightening_rtol], silent=opt_s[:silent])

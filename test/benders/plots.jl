@@ -130,8 +130,8 @@ function scatter_time_vs_variable(results::DataFrame, results_dir::String, fixed
             y_min, y_max = extrema(data.time)
             y_logscale = y_max/y_min > 10.0 # Whether to use log scale along y axis
             plt = @df data scatter(data[!,x_var], :time; group=data[!,group_var],
-                title         = replace(param_string, r"(.+?, .+?, .+?,) "=>s"\1\n"), # Insert a newline every 3 params
-                titlefontsize = 9,
+                title         = replace(param_string, r"(.+?, .+?, .+?, .+?,) "=>s"\1\n"), # Insert a newline every 4 params
+                titlefontsize = 6,
                 xlabel        = "$x_var",
                 xscale        = x_logscale ? :log10 : :identity,
                 xminorgrid    = x_logscale,
@@ -144,7 +144,7 @@ function scatter_time_vs_variable(results::DataFrame, results_dir::String, fixed
                 legendtitle   = "$group_var"
             )
             #display(plt)
-            plot_name = param_string * ".svg"
+            plot_name = join(["$val" for val in k], "_") * ".svg"
             mkpath(joinpath(results_dir, "$group_var", "$x_var"))
             savefig(plt, joinpath(results_dir, "$group_var", "$x_var", plot_name))
         end
