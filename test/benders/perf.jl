@@ -53,6 +53,7 @@ function optimize_case(case_data, task, settings)
             "CPXPARAM_MIP_Strategy_VariableSelect" => get(task,:mip_strategy_variableselect,0),     # {-1,..., 4}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-variable-selection-strategy>
             "CPXPARAM_MIP_Strategy_BBInterval" => get(task,:mip_strategy_bbinterval,7),             # { 0, 1,...}     7  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-strategy-best-bound-interval>
             "CPXPARAM_MIP_Strategy_Branch" => get(task,:mip_strategy_branch,0),                     # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-branching-direction>
+            "CPXPARAM_MIP_Strategy_Probe" => get(task,:mip_strategy_probe,0),                       # {-1,..., 3}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-probing-level>
             "CPXPARAM_MIP_Tolerances_MIPGap" => opt_s[:obj_rtol],                                   # [ 0,     1]  1e-4  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-relative-mip-gap-tolerance>
             "CPXPARAM_ScreenOutput" => 0,                                                           # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
             "CPXPARAM_MIP_Display" => 2,                                                            # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>

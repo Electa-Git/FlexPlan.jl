@@ -68,6 +68,7 @@ params = Dict(
         :mip_strategy_variableselect => Int, # Only used by `manual_classical` and `manual_modern` algorithms
         :mip_strategy_bbinterval => Int, # Only used by `manual_classical` and `manual_modern` algorithms
         :mip_strategy_branch => Int, # Only used by `manual_classical` and `manual_modern` algorithms
+        :mip_strategy_probe => Int, # Only used by `manual_classical` and `manual_modern` algorithms
     ]
 )
 tasks = initialize_tasks(params)
@@ -78,22 +79,24 @@ add_tasks!(tasks; test_case="case6", number_of_hours=[2,4], number_of_scenarios=
     preprocessing_repeatpresolve = -1,
     mip_strategy_search = 2,
     emphasis_mip = 1,
-    mip_strategy_nodeselect = 1,
+    mip_strategy_nodeselect = 3,
     mip_strategy_variableselect = 0,
     mip_strategy_bbinterval = 7,
-    mip_strategy_branch = 0,
+    mip_strategy_branch = 1,
+    mip_strategy_probe = 0,
 )
 
 # Example: test how performance changes by varying one or more optimization parameters
 #add_tasks!(tasks; test_case="case67", number_of_hours=[2,4], number_of_scenarios=3, number_of_years=3,
 #    algorithm = "manual_modern",
-#    preprocessing_repeatpresolve = [-1,0],
+#    preprocessing_repeatpresolve = -1,
 #    mip_strategy_search = 2,
 #    emphasis_mip = 1,
-#    mip_strategy_nodeselect = 1,
+#    mip_strategy_nodeselect = 3,
 #    mip_strategy_variableselect = 0,
 #    mip_strategy_bbinterval = 7,
-#    mip_strategy_branch = 0,
+#    mip_strategy_branch = [0,1],
+#    mip_strategy_probe = 0,
 #)
 
 
@@ -101,7 +104,7 @@ add_tasks!(tasks; test_case="case6", number_of_hours=[2,4], number_of_scenarios=
 
 notice(_LOGGER, "Warming up...")
 warmup_tasks = similar(tasks, 0)
-add_tasks!(warmup_tasks; test_case="case6", number_of_hours=1, number_of_scenarios=1, number_of_years=1, algorithm=unique(tasks.algorithm), preprocessing_repeatpresolve=-1, mip_strategy_search=2, emphasis_mip=1, mip_strategy_nodeselect=1, mip_strategy_variableselect=0, mip_strategy_bbinterval=7, mip_strategy_branch=0)
+add_tasks!(warmup_tasks; test_case="case6", number_of_hours=1, number_of_scenarios=1, number_of_years=1, algorithm=unique(tasks.algorithm), preprocessing_repeatpresolve=-1, mip_strategy_search=2, emphasis_mip=1, mip_strategy_nodeselect=3, mip_strategy_variableselect=0, mip_strategy_bbinterval=7, mip_strategy_branch=1, mip_strategy_probe=0)
 warmup_dir = joinpath(settings[:session][:out_dir], "warmup")
 rm(warmup_dir; force=true, recursive=true)
 mkpath(warmup_dir)

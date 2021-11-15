@@ -71,6 +71,8 @@ optimizer_MILP = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger(normp
                                                          # range     default  link
     "CPXPARAM_Emphasis_MIP" => 1,                        # { 0,     5}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-emphasis-switch>
     "CPXPARAM_MIP_Tolerances_MIPGap" => obj_rtol,        # [ 0,     1]  1e-4  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-relative-mip-gap-tolerance>
+    "CPXPARAM_MIP_Strategy_NodeSelect" => 3,             # { 0,..., 3}     1  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-selection-strategy>
+    "CPXPARAM_MIP_Strategy_Branch" => 1,                 # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-branching-direction>
     "CPXPARAM_ScreenOutput" => 0,                        # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
     "CPXPARAM_MIP_Display" => 2,                         # { 0,..., 5}     2  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-mip-node-log-display-information>
     "CPXPARAM_Output_CloneLog" => -1,                    # {-1,..., 1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-clone-log-in-parallel-optimization>
