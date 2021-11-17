@@ -21,15 +21,7 @@ optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 ```
 
 ## Step 2: Input data
-The data model is very similar to the ```PowerModels.jl/PowerModelsACDC.jl``` data models. As such, a data dictionary containing all information is passed to the optimisation problem. The standard network elements such as generators, buses, branches, etc. are extended with the existing and candidate storage and demand flexibility elements. The multi-network modelling functionality of the PowerModels.jl package is used to represent the different number of scenarios, planning years and planning hours within the year. The procedure is further explained under ```"Model dimensions"``` section. The package contains some sample time-series as well as grid data, which is located under "FlexPlan/test/data". This data has been used in for the validation of the model in the FlexPlan D1.2, https://flexplan-project.eu/wp-content/uploads/2021/03/D1.2_20210325_V1.0.pdf.
-
-```
-@article{ergun2021probabilistic,
-  title={Probabilistic optimization of T\&D systems planning with high grid flexibility and its scalability},
-  author={Ergun, Hakan and Sperstad, Iver Bakken and Espen Flo, B{\o}dal and Siface, Dario and Pirovano, Guido and Rossi, Marco and Rossini, Matteo and Marmiroli, Benedetta and Agresti, Valentina and Costa, Matteo Paolo and others},
-  year={2021}
-}
-```
+The data model is very similar to the ```PowerModels.jl/PowerModelsACDC.jl``` data models. As such, a data dictionary containing all information is passed to the optimisation problem. The standard network elements such as generators, buses, branches, etc. are extended with the existing and candidate storage and demand flexibility elements. The multi-network modelling functionality of the PowerModels.jl package is used to represent the different number of scenarios, planning years and planning hours within the year. The procedure is further explained under ```"Model dimensions"``` section. The package contains some sample time-series as well as grid data, which is located under "FlexPlan/test/data". This data has been used in for the validation of the model in the FlexPlan deliverable 1.2 ["Probabilistic optimization of T&D systems planning with high grid flexibility and its scalability"](https://flexplan-project.eu/wp-content/uploads/2021/03/D1.2_20210325_V1.0.pdf)
 
 The data dictionary can be created by the user directly (see section data model for complete description) but also provided as an matpower file, as wihtin PowerModels.jl. Using the m-file, only the grid data dictionary will be created. In order to add time-series and scenario information to the data dictionary, a number of additional functions are required. An example of the process is illustrated below for the combined T&D planning model:
 
