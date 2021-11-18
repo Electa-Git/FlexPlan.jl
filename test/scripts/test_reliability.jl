@@ -98,7 +98,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 
 
 # Solve the model for base case:
-result_base = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s);
+result_base = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s);
 enbal_plot = plot_energy_balance_scenarios(mn_data, result_base, data["contingency"], 5);
 
 savefig(enbal_plot, "energy_balance_base.png")
@@ -110,7 +110,7 @@ mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type",
 
 
 # Solve
-result_base = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s);
+result_base = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s);
 
 
 # Plot
@@ -124,7 +124,7 @@ mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type",
 
 
 # Solve
-result_base = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s);
+result_base = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s);
 
 
 # Plot
@@ -189,7 +189,7 @@ mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type",
 
 
 # Solve:
-result_2con = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc, multinetwork=true; setting = s);
+result_2con = _FP.reliability_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s);
 enbal_plot = plot_energy_balance_scenarios(mn_data, result_2con, data["contingency"], 5);
 savefig(enbal_plot, "energy_balance_2scen_high_inv_cost.png")
 

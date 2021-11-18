@@ -1,8 +1,8 @@
 function mpc = CIGRE_MV_benchmark_network
 % CIGRE_MV_BENCHMARK_NETWORK Returns MATPOWER case for the CIGRE medium-voltage benchmark network
-% 
+%
 % References:
-% [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed 
+% [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed
 % Energy Resources", CIGRE, Technical Brochure 575, 2014.
 %
 % EDITS:
@@ -57,7 +57,7 @@ mpc.gen = [
 ];
 
 mpc.gencost = [
-	2	 0.0	 0.0	 3	   0	   0.01    0;
+	2	 0.0	 0.0	 2  0.0  0.0;
 ];
 
 
@@ -85,10 +85,10 @@ mpc.branch = [
 
 
 %% network expansion branch data
-%column_names% f_bus t_bus     br_r        br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost replace tm_min tm_max
+%column_names% f_bus t_bus     br_r        br_x         br_b    rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost replace tm_min tm_max lifetime
 mpc.ne_branch = [
-                   1     2  0.001766025  0.0025239   0.026786052  18     18     18     0     0         1    -60     60                 1       0    0.0    0.0;
-                   2     3  0.002768025  0.0079118   0.041983812  18     18     18     0     0         1    -60     60                 1       0    0.0    0.0;
+                   1     2  0.001766025  0.0025239   0.026786052  18     18     18     0     0         1    -60     60            100000       0    0.0    0.0       40;
+                   2     3  0.002768025  0.0079118   0.041983812  18     18     18     0     0         1    -60     60            100000       0    0.0    0.0       40;
 ];
 
 % hours

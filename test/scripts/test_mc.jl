@@ -58,7 +58,7 @@ for year = 0:1
     # Build optimisation model, solve it and write solution dictionary:
     # This is the "problem file" which needs to be constructed individually depending on application
     # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
-    result = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, gurobi, multinetwork=true; setting = s)
+    result = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, gurobi; setting = s)
 
     result_file = join(["/Users/hergun/Box Sync/Projects/FlexPlan/WP1/Code/testing/mc_tests/35_years/year_","$year",".json"])
     stringdata_result = JSON.json(result)

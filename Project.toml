@@ -1,8 +1,8 @@
 name = "FlexPlan"
 uuid = "196f2941-2d58-45ba-9f13-43a2532b2fa8"
-autors = ["Hakan Ergun"]
+autors = ["Hakan Ergun", "Matteo Rossini", "Marco Rossi", "Damien Lapage", "Iver Bakken Sperstad", "Espen Flo Bødal", "Merkebu Zenebe Degefa", "Reinhilde D'hulst"]
 repo = "https://github.com/electa-git/FlexPlan.jl"
-version = "0.0.0"
+version = "0.1.0"
 
 [deps]
 InfrastructureModels = "2030c09a-7f63-5d83-885d-db604e0e9cc0"
