@@ -1,42 +1,41 @@
-# PowerModelACDC.jl Documentation
+# FlexPlan.jl Documentation
 
 ```@meta
-CurrentModule = PowerModelsACDC
+CurrentModule = FlexPlan
 ```
 
 ## Overview
 
-PowerModelsACDC.jl is a Julia/JuMP package extending PowerModels.jl, which focuses on Steady-State Power Network Optimization. PowerModels.jl provides utilities for parsing and modifying network data and is designed to enable computational evaluation of emerging power network formulations and algorithms in a common platform.
+FlexPlan.jl is a Julia/JuMP package to carry out transmission and distribution network planning considering, ac and dc technology, storage and demand flexibility as possible expansion candidates. Using time series input on renewble generation and demand, as well a list of candidates for grid expansion, a mixed-integer linear problem is cosntrcuted which can be solved with any commercial or open-source MILP solver. Some modelling features are:
 
-PowerModelsACDC.jl adds new problem types:
-- Power flow with both ac and dc lines, from point-to-point connections to meshed grids, with converters connecting ac and dc grid lines
-- The equivalent optimal power flow problem type and TNEP problem type
+- Multi-period, multi-stage formulation to model a number of planning years, and planning hours within years for a sequential grid expansion plan
+- Stoachestic formulation of the planning problem, based on scenario probabilities for a number of different time series
+- Linearized DistFlow model considering reactive power and voltage magnitudes for radial distribution grids
+- Extensive, parametrized models for storage, demand flexibility and dc grids
+- Different decomposition methods for solving the large-scale MILP problem
 
-PowerModelsACDC.jl extends the formulation hierarchy developed for AC grids, with equivalent DC grid and converter station formulations:
-- ACPPowerModel
-- DCPPowerModel
-- SOCWRPowerModel
-- SDPWRMPowerModel
-- QCWRPowerModel
-- QCWRTriPowerModel
-- LPACPowerModel
+This package builds upon the PowerModels.jl and PowerModelsACDC.jl packages, and uses a similar structure.
 
 Developed by:
-- Hakan Ergun, Jay Dave KU Leuven / EnergyVille
-- Frederik Geth, CSIRO
+- Hakan Ergun, KU Leuven / EnergyVille
+- Matteo Rossini, RSE
+- Marco Rossi, RSE 
+- Damien Lapage, N-Side
+- Iver Bakken Sperstad, SINTEF
+- Espen Flo Bødal, SINTEF
+- Merkebu Zenebe Degefa, SINTEF 
+- Reinhilde D'hulst, VITO / EnergyVille
 
-## Installation of PowerModelACDC
+## Installation of FlexPlan
 
-The latest stable release of PowerModelACDC can be installed using the Julia package manager with
+The latest stable release of FlexPlan can be installed using the Julia package manager with:
 
 ```julia
-Pkg.add("PowerModelsACDC")
+] add "FlexPlan"
 ```
-The current version of PowerModelsACDC is 0.3.2 and is compatible with PowerModels v0.17.2, InfrastrucureModels v0.5.3
 
-!!! Important
-    This is a research-grade optimization package.
+## Acknowledgement
+This software implementation is conducted within the European Union’s Horizon  2020 research and innovation programme under the FlexPlan project (grantagreement no. 863819).
 
 ## Special Thanks To
-Jef Beerten (KU Leuven/EnergyVille) for his insights in AC/DC power flow modelling.
 Carleton Coffrin (Los Alamos National Laboratory) for his countless design tips.  

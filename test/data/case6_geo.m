@@ -41,9 +41,9 @@ mpc.branch = [
   2   4   0.040   0.400   0.00   100  100  100  0  0  1 -60  60;
   3   5   0.020   0.200   0.00   100  100  100  0  0  1 -60  60;
 ];
-%column_names% f_bus	t_bus	br_r	br_x	br_b	rate_a	rate_b	rate_c	tap	shift	br_status	angmin	angmax	construction_cost
+%column_names% f_bus	t_bus	br_r	br_x	br_b	rate_a	rate_b	rate_c	tap	shift	br_status	angmin	angmax	construction_cost lifetime
 mpc.ne_branch = [
-  5  6   0.020   0.200   0.00   100  100  100  0  0  1 -60  60 5;
+  5  6   0.020   0.200   0.00   100  100  100  0  0  1 -60  60 5 40;
 ];
 
 
@@ -59,30 +59,30 @@ mpc.busdc_ne = [
 ];
 
 %% candidate branches
-%column_names%   fbusdc  tbusdc  r      l        c   rateA   rateB   rateC status cost
+%column_names%   fbusdc  tbusdc  r      l        c   rateA   rateB   rateC status cost lifetime
 mpc.branchdc_ne = [
-	2	 5	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.3;
-	2	 6	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.4;
-	2	 6	 0.01	 0.00	 0.00  400.0	 0.0	 0.0	 1.0	 3.4;
-	3	 6	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.6;
-	3	 6	 0.01	 0.00	 0.00  400.0	 0.0	 0.0	 1.0	 3.6;
-	4	 5	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.7;
-	4	 5	 0.01	 0.00	 0.00  400.0	 0.0	 0.0	 1.0	 3.7;
-	4	 6	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.8;
-	4	 6	 0.01	 0.00	 0.00  400.0	 0.0	 0.0	 1.0	 3.8;
-	5	 6	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.9;
-	5	 6	 0.01	 0.00	 0.00  400.0	 0.0	 0.0	 1.0	 3.9;
+	2	 5	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.3 40;
+	2	 6	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.4 40;
+	2	 6	 0.01	 0.00	 0.00  400.0	 0.0	 0.0	 1.0	 3.4 40;
+	3	 6	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.6 40;
+	3	 6	 0.01	 0.00	 0.00  400.0	 0.0	 0.0	 1.0	 3.6 40;
+	4	 5	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.7 40;
+	4	 5	 0.01	 0.00	 0.00  400.0	 0.0	 0.0	 1.0	 3.7 40;
+	4	 6	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.8 40;
+	4	 6	 0.01	 0.00	 0.00  400.0	 0.0	 0.0	 1.0	 3.8 40;
+	5	 6	 0.01	 0.00	 0.00  200.0	 0.0	 0.0	 1.0	 2.9 40;
+	5	 6	 0.01	 0.00	 0.00  400.0	 0.0	 0.0	 1.0	 3.9 40;
  ];
 
 %% candidate converters
-%column_names%   busdc_i busac_i type_dc type_ac P_g   Q_g  islcc  Vtar rtf xtf  transformer tm   bf filter    rc      xc  reactor   basekVac Vmmax   Vmmin   Imax    status   LossA LossB  LossCrec LossCinv  droop Pdcset    Vdcset  dVdcset Pacmax Pacmin Qacmax Qacmin cost
+%column_names%   busdc_i busac_i type_dc type_ac P_g   Q_g  islcc  Vtar rtf xtf  transformer tm   bf filter    rc      xc  reactor   basekVac Vmmax   Vmmin   Imax    status   LossA LossB  LossCrec LossCinv  droop Pdcset    Vdcset  dVdcset Pacmax Pacmin Qacmax Qacmin cost lifetime
 mpc.convdc_ne = [
-1       1   1       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1     	1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 3;
-2       2   1       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 3.5;
-3       3   1       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 2.5;
-4       4   1       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 4;
-5       5   1       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 4.5;
-6       6   2       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 5;
+1       1   1       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1     	1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 3.0 30;
+2       2   1       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 3.5 30;
+3       3   1       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 2.5 30;
+4       4   1       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 4.0 30;
+5       5   1       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 4.5 30;
+6       6   2       1       -360    -1.66   		0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  345         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 700 -700 700 -700 5.0 30;
 ];
 
 % hours
@@ -103,7 +103,7 @@ mpc.storage_extra = [
 
 
 %% storage data
-%column_names%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
+%column_names%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate lifetime
 mpc.ne_storage = [
-	 5	 0.0	 0.0	 0.0	 1000.0	 200.0	 250.0	 0.9	 0.9	 250	 -50.0	 70.0	 0.1	 0.0	 0.0	 0.0	  1 	2.5 	0.5 	1 2400 0 0 1e-4;
+	 5	 0.0	 0.0	 0.0	 1000.0	 200.0	 250.0	 0.9	 0.9	 250	 -50.0	 70.0	 0.1	 0.0	 0.0	 0.0	  1 	2.5 	0.5 	1 2400 0 0 1e-4 10;
 ];

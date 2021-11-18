@@ -94,7 +94,7 @@ function constraint_dist_branch_tnep(pm::_PM.AbstractBFModel, i::Int; nw::Int=pm
         _PM.constraint_thermal_limit_to(pm, i; nw = nw)
     else
         expression_branch_indicator(pm, i; nw = nw)
-        constraint_branch_complementarity(pm, i; nw = nw)
+        # constraint_branch_complementarity(pm, i; nw = nw) is best added once per year; if added here, redundant constraints would be generated
         if is_frb_branch(pm, i; nw = nw)
             if is_oltc_branch(pm, i; nw = nw)
                 constraint_power_losses_oltc_on_off(pm, i; nw = nw)

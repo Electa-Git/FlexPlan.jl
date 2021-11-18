@@ -1,30 +1,31 @@
-# Quick Start Guide
+# Quickguide
 
-Once PowerModelsACDC is installed, Ipopt is installed, and an ACDC network data file (e.g. `"case5_acdc.m"` in the folder `"./test/data"`) has been acquired, an ACDC Optimal Power Flow can be executed with:
+## How to run scripts
 
-```julia
-using PowerModelsACDC
-using Ipopt
+To run scripts contained in `test/scripts` you need to activate an environment and import all the needed packages.
 
-result = run_acdcopf("case5_acdc.m", ACPPowerModel, IpoptSolver())
-result["solution"]["busdc"]["1"]
-result["solution"]["convdc"]["1"]
-```
+1. Choose a directory where to create the environment:
+   ```julia
+   cd("path/to/env/dir")
+   ```
 
-You can also find a test script in the folder `"./test/scripts"`.
+2. Activate the environment:
 
-## Modifying settings
-The flow AC and DC branch results are not written to the result by default. To inspect the flow results, pass a settings Dict
-```julia
-result = run_acdcopf("case5_acdc.m", ACPPowerModel, IpoptSolver(), setting = Dict("output" => Dict("branch_flows" => true)))
-result["solution"]["branchdc"]["1"]
-result["solution"]["branch"]["2"]
-```
+3. ```julia
+   ]activate .
+   ```
 
+4. `add` or `dev` the FlexPlan repository:
+   ```julia
+   ]add FlexPlan
+   ```
+   or
+   ```julia
+   ]dev https://github.com/Electa-Git/FlexPlan.jl
+   ```
 
-## Remark
-Note that `run_ac_opf` still works and runs a classic AC OPF on only the AC part of the described grid.
-
-```julia
-result = run_ac_opf("case5_acdc.m", IpoptSolver())
-```
+5. `add` every package required by the script.
+   For example, if the script contains `import Plots`, then execute
+   ```julia
+   ]add Plots
+   ```

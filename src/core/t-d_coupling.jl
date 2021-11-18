@@ -90,23 +90,25 @@ end
 ## Functions that manipulate data structures
 
 """
+    add_td_coupling_data!(d_data; sub_nw, qs_ratio_bound=0.48)
+
 Add to distribution single-network data structures the data needed for T&D coupling.
 
-- Add to distribution network data structure a coupling generator connected to the reference bus; if
-  it already exists, overwrite all its parameters except cost.
-- Define a bound on reactive power exchanged between transmission and distribution networks: it is
-  computed as a fraction `qs_ratio_bound` of the rated power of the distribution network (based on
-  the rated power of existing and candidate branches connected to the reference bus); default value
-  is 0.48 as per “Network Code on Demand Connection” – Commission Regulation (EU) 2016/1388.
-- Add to distribution network data structure the key `td_coupling` that contains:
+- Add to distribution network data structure a coupling generator connected to the reference
+  bus; if it already exists, overwrite all its parameters except cost.
+- Define a bound on reactive power exchanged between transmission and distribution networks:
+  it is computed as a fraction `qs_ratio_bound` of the rated power of the distribution
+  network (based on the rated power of existing and candidate branches connected to the
+  reference bus); default value is 0.48 as per “Network Code on Demand Connection” –
+  Commission Regulation (EU) 2016/1388.
+- Add to `dim_prop(d_data, :sub_nw, sub_nw)` the following entries:
   - `d_gen`: the id of the coupling generator of distribution network;
-  - `qs_ratio_bound`: the aforementioned allowable fraction of the rated power;
-  - `sub_nw`: an unique integer identifier of the physical distribution network.
+  - `qs_ratio_bound`: the aforementioned allowable fraction of the rated power.
 
 Return `d_gen`.
 
-This function is intended to be the last that edits distribution single-network data structures: it
-should be called just before `multinetwork_data()`.
+This function is intended to be the last that edits distribution single-network data
+structures: it should be called just before `make_multinetwork`.
 """
 function add_td_coupling_data!(d_data::Dict{String,Any}; sub_nw::Int, qs_ratio_bound::Float64=0.48)
 
@@ -120,9 +122,9 @@ function add_td_coupling_data!(d_data::Dict{String,Any}; sub_nw::Int, qs_ratio_b
     # Get a list of the ids of generators connected to the reference bus
     d_ref_gens = [g for (g,gen) in d_data["gen"] if gen["gen_bus"] == d_ref_bus]
     if length(d_ref_gens) > 1
-        Memento.error(_LOGGER, "Distribution network data must have 0 or 1 generator connected to ref bus, but $(length(d_ref_gens)) are present.")
+        Memento.error(_LOGGER, "Distribution network data must have 0 or 1 generators connected to ref bus, but $(length(d_ref_gens)) are present.")
     end
-    
+
     # Define an upper bound on the rated apparent power based on the rated power of existing and candidate branches connected to the reference bus
     d_s_rate = (
           sum(branch["rate_a"] for (b,branch) in d_data["branch"]    if (branch["f_bus"]==d_ref_bus || branch["t_bus"]==d_ref_bus) && branch["br_status"]==1) # In t_bus here, the t stands for "to" (not for "transmission" as in the rest of the function)
@@ -153,26 +155,25 @@ function add_td_coupling_data!(d_data::Dict{String,Any}; sub_nw::Int, qs_ratio_b
     d_gen["gen_status"] = 1
 
     # Store the T&D coupling parameters
-    d_data["td_coupling"] = Dict{String,Any}()
-    d_data["td_coupling"]["qs_ratio_bound"] = qs_ratio_bound
-    d_data["td_coupling"]["sub_nw"] = sub_nw
-    d_data["td_coupling"]["d_gen"] = d_gen_idx
-
+    dim_prop(d_data, :sub_nw, sub_nw)["qs_ratio_bound"] = qs_ratio_bound
+    dim_prop(d_data, :sub_nw, sub_nw)["d_gen"] = d_gen_idx
 end
 
 """
+    add_td_coupling_data!(t_data, d_data; t_bus, sub_nw, qs_ratio_bound=0.48)
+
 Add to transmission and distribution single-network data structures the data needed for T&D coupling.
 
 In addition to `add_td_coupling_data!(d_data; sub_nw, qs_ratio_bound)`, do the following:
-- Add to transmission network data structure a coupling generator connected to `t_bus`, that is the
-  bus to which the distribution network is to be connected.
-- Add to `td_coupling` dict of distribution network an entry `t_gen` for the id of the coupling
+- Add to transmission network data structure a coupling generator connected to `t_bus`, that
+  is the bus to which the distribution network is to be connected.
+- Add to `dim_prop(d_data, :sub_nw, sub_nw)` an entry `t_gen` for the id of the coupling
   generator of transmission network.
 
 Return `t_gen`.
 
-This function is intended to be the last that edits transmission and distribution single-network
-data structures: it should be called just before `multinetwork_data()`.
+This function is intended to be the last that edits transmission and distribution
+single-network data structures: it should be called just before `make_multinetwork`.
 """
 function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any}; t_bus::Int, sub_nw::Int, qs_ratio_bound::Float64=0.48)
 
@@ -201,8 +202,7 @@ function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any
     )
 
     # Add generator id to T&D coupling parameters
-    d_data["td_coupling"]["t_gen"] = t_gen_idx
-
+    dim_prop(d_data, :sub_nw, sub_nw)["t_gen"] = t_gen_idx
 end
 
 
@@ -210,6 +210,8 @@ end
 ## Solution processors
 
 """
+    sol_td_coupling!(pm, solution)
+
 Add T&D coupling data to solution.
 
 Report in `solution` the active and reactive power that distribution network `pm` exchanges with the
@@ -223,10 +225,11 @@ function sol_td_coupling!(pm::_PM.AbstractBFModel, solution::Dict{String,Any})
     end
 
     for (nw, nw_sol) in nws_sol
-        if !haskey(_PM.ref(pm, parse(Int,nw)), :td_coupling)
-            Memento.error(_LOGGER, "T&D coupling data is missing from the model of nw $nw.")
+        n = parse(Int, nw)
+        if !(haskey(dim_prop(pm), :sub_nw) && haskey(dim_prop(pm, n, :sub_nw), "d_gen"))
+                Memento.error(_LOGGER, "T&D coupling data is missing from the model of nw $nw.")
         end
-        d_gen = _PM.ref(pm, parse(Int,nw), :td_coupling, "d_gen")
+        d_gen = dim_prop(pm, n, :sub_nw, "d_gen")
         nw_sol["td_coupling"] = Dict{String,Any}()
         nw_sol["td_coupling"]["p"] = nw_sol["gen"]["$d_gen"]["pg"]
         nw_sol["td_coupling"]["q"] = nw_sol["gen"]["$d_gen"]["qg"]
@@ -243,18 +246,17 @@ Connect each distribution nw to the corresponding transmission nw and apply coup
 The coupling constraint is applied to the two generators that each distribution nw indicates.
 """
 function constraint_td_coupling(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
-    t_nws = sort(collect(_PM.nw_ids(t_pm)))
+    t_nws = nw_ids(t_pm)
 
-    for (sub_nw, nw_ids) in d_pm.ref[:sub_nw]
-        d_nws = sort(collect(nw_ids))
+    for s in keys(dim_prop(d_pm, :sub_nw))
+        d_nws = nw_ids(d_pm; sub_nw = s)
         for i in 1:length(t_nws)
-            t_nw = t_nws[i] 
+            t_nw = t_nws[i]
             d_nw = d_nws[i]
 
             constraint_td_coupling_power_balance(t_pm, d_pm, t_nw, d_nw)
         end
     end
-
 end
 
 
@@ -265,8 +267,9 @@ end
 State the power conservation between a distribution nw and the corresponding transmission nw.
 """
 function constraint_td_coupling_power_balance(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel, t_nw::Int, d_nw::Int)
-    t_gen = _PM.ref(d_pm, d_nw, :td_coupling, "t_gen") # Note: is defined in dist nw
-    d_gen = _PM.ref(d_pm, d_nw, :td_coupling, "d_gen")
+    sub_nw = dim_prop(d_pm, d_nw, :sub_nw)
+    t_gen = sub_nw["t_gen"]
+    d_gen = sub_nw["d_gen"]
     t_mbase = _PM.ref(t_pm, t_nw, :gen, t_gen, "mbase")
     d_mbase = _PM.ref(d_pm, d_nw, :gen, d_gen, "mbase")
 
@@ -278,9 +281,11 @@ end
 Apply bounds on reactive power exchange at the point of common coupling (PCC) of a distribution nw.
 """
 function constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel; nw::Int=d_pm.cnw)
-    d_gen = _PM.ref(d_pm, nw, :td_coupling, "d_gen")
+    sub_nw = dim_prop(d_pm, nw, :sub_nw)
+    d_gen = sub_nw["d_gen"]
+    qs_ratio_bound = sub_nw["qs_ratio_bound"] # Allowable fraction of rated apparent power
 
-    constraint_td_coupling_power_reactive_bounds(d_pm, nw, d_gen)
+    constraint_td_coupling_power_reactive_bounds(d_pm, nw, d_gen, qs_ratio_bound)
 end
 
 
@@ -306,7 +311,7 @@ function constraint_td_coupling_power_balance_reactive(t_pm::_PM.AbstractActiveP
 end
 
 ""
-function constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel, d_nw::Int, d_gen::Int)
+function constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel, d_nw::Int, d_gen::Int, qs_ratio_bound)
 
     # Compute the rated apparent power of the distribution network, based on the rated power of
     # existing and candidate branches connected to its reference bus. This value depends on the
@@ -322,11 +327,8 @@ function constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel,
         s_rate = sum(branch["rate_a"] for (b,branch) in _PM.ref(d_pm, d_nw, :frb_branch))
     end
 
-    qs_ratio_bound = _PM.ref(d_pm, d_nw, :td_coupling, "qs_ratio_bound") # Allowable fraction of rated apparent power
-
     q = _PM.var(d_pm, d_nw, :qg, d_gen) # Exchanged reactive power (positive if from T to D)
 
     JuMP.@constraint(d_pm.model, q <=  qs_ratio_bound*s_rate)
     JuMP.@constraint(d_pm.model, q >= -qs_ratio_bound*s_rate)
-
 end

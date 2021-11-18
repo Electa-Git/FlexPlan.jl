@@ -55,10 +55,10 @@ mpc.branch = [
     2   3   0.020   0.200   0.00   100  100  100  0  0  1 -60  60;
     2   4   0.040   0.400   0.00   100  100  100  0  0  1 -60  60;
 ];
-%column_names% f_bus    t_bus   br_r    br_x    br_b    rate_a  rate_b  rate_c  tap shift   br_status   angmin  angmax  construction_cost co2_cost
+%column_names% f_bus    t_bus   br_r    br_x    br_b    rate_a  rate_b  rate_c  tap shift   br_status   angmin  angmax  construction_cost co2_cost lifetime
 mpc.ne_branch = [
-  1  3   0.020   0.200   0.00   100  100  100  0  0  1 -60  60 5 0.5;
-  3  4   0.020   0.200   0.00   100  100  100  0  0  1 -60  60 3 0.5;
+  1  3   0.020   0.200   0.00   100  100  100  0  0  1 -60  60 5 0.5 60;
+  3  4   0.020   0.200   0.00   100  100  100  0  0  1 -60  60 3 0.5 60;
 ];
 
 
@@ -97,22 +97,22 @@ mpc.busdc_ne = [
 ];
 
 %% candidate branches
-%column_names%   fbusdc  tbusdc  r      l        c   rateA   rateB   rateC status cost co2_cost
+%column_names%   fbusdc  tbusdc  r      l        c   rateA   rateB   rateC status cost co2_cost lifetime
 mpc.branchdc_ne = [
-    5    6   0.01    0.00    0.00  330.0     0.0     0.0     1.0     2.3 0.5;
-    5    7   0.01    0.00    0.00  330.0     0.0     0.0     1.0     2   0.5;
-    5    8   0.01    0.00    0.00  330.0     0.0     0.0     1.0     3.5 0.5;
+    5    6   0.01    0.00    0.00  330.0     0.0     0.0     1.0     2.3 0.5 40;
+    5    7   0.01    0.00    0.00  330.0     0.0     0.0     1.0     2   0.5 40;
+    5    8   0.01    0.00    0.00  330.0     0.0     0.0     1.0     3.5 0.5 40;
  ];
 
 %% candidate converters
-%column_names%   busdc_i busac_i type_dc type_ac P_g   Q_g  islcc  Vtar rtf xtf  transformer tm   bf filter    rc      xc  reactor   basekVac Vmmax   Vmmin   Imax    status   LossA LossB  LossCrec LossCinv  droop Pdcset    Vdcset  dVdcset Pacmax Pacmin Qacmax Qacmin cost co2_cost
+%column_names%   busdc_i busac_i type_dc type_ac P_g   Q_g  islcc  Vtar rtf xtf  transformer tm   bf filter    rc      xc  reactor   basekVac Vmmax   Vmmin   Imax    status   LossA LossB  LossCrec LossCinv  droop Pdcset    Vdcset  dVdcset Pacmax Pacmin Qacmax Qacmin cost co2_cost lifetime
 mpc.convdc_ne = [
-5       6   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 330 -330 50 -50 3 0.5;
-5       6   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 330 -330 50 -50 3 0.5;
-5       6   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 660 -660 50 -50 5 0.5;
-6       3   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  300         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 330 -330 50 -50 3 0.5;
-7       4   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 330 -330 50 -50 3 0.5;
-8       5   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 330 -330 50 -50 3 0.5;
+5       6   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 330 -330 50 -50 3 0.5 30;
+5       6   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 330 -330 50 -50 3 0.5 30;
+5       6   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 660 -660 50 -50 5 0.5 30;
+6       3   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  300         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 330 -330 50 -50 3 0.5 30;
+7       4   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 330 -330 50 -50 3 0.5 30;
+8       5   1       1       -360    -1.66           0 1.0        0.01  0.01 1 1 0.01 1 0.01   0.01 1  320         1.1     0.9     15     1      1.1033 0.887  2.885    2.885       0.0050    -52.7   1.0079   0 330 -330 50 -50 3 0.5 30;
 ];
 
 % hours
@@ -132,20 +132,20 @@ mpc.storage_extra = [
 
 
 %% storage data
-%column_names%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
+%column_names%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate lifetime
 mpc.ne_storage = [
-     2   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     2.5     0.5     1 2400 0 0 1e-4;
-     5   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     2.5     0.5     1 2400 0 0 1e-4;
+     2   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     2.5     0.5     1 2400 0 0 1e-4 10;
+     5   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     2.5     0.5     1 2400 0 0 1e-4 10;
 ];
 
 
 
 %% load additional data
-%column_names% load_id e_nce_max p_red_max p_shift_up_max p_shift_down_max t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost
+%column_names% load_id e_nce_max p_red_max p_shift_up_max p_shift_down_max t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost lifetime
 mpc.load_extra = [
-1 100 1 0.3 0.3 2 2 0.1 0.00 0.00 10 0.0 1 0.5;
-2 100 1 0.3 0.3 2 2 0.1 0.00 0.00 10 0.0 1 0.5;
-3 100 1 0.3 0.3 2 2 0.1 0.00 0.00 10 0.0 1 0.5;
-4 100 1 0.3 0.3 2 2 0.1 0.00 0.00 10 0.0 1 0.5;
-5 100 1 0.3 0.3 2 2 0.1 0.00 0.00 10 0.0 1 0.5;
+1 100 1 0.3 0.3 2 2 0.1 0.00 0.00 10 0.0 1 0.5 10;
+2 100 1 0.3 0.3 2 2 0.1 0.00 0.00 10 0.0 1 0.5 10;
+3 100 1 0.3 0.3 2 2 0.1 0.00 0.00 10 0.0 1 0.5 10;
+4 100 1 0.3 0.3 2 2 0.1 0.00 0.00 10 0.0 1 0.5 10;
+5 100 1 0.3 0.3 2 2 0.1 0.00 0.00 10 0.0 1 0.5 10;
 ];
