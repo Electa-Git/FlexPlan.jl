@@ -1,6 +1,6 @@
 # Problem types
 
-The FlexPlan.jl package contains following problem types:
+The FlexPlan.jl package contains the following problem types:
 
 ## T(D)NEP problem with storage candidates
 
@@ -18,7 +18,7 @@ t \in T &- \text{Set of planning hours}  \\
 y \in Y &- \text{Set of planning years}  \\
 \end{aligned}
 ```
-Variables \& parameters:
+Variables & parameters:
 
 ```math
 \begin{aligned}
@@ -41,19 +41,24 @@ min~\sum_{y \in Y} \left[ \sum_{bc \in BC} C_{bc}\alpha_{bc, y} + \sum_{dc \in B
 The problem is defined both for transmission networks, using the linearised 'DC' power flow model as well as radial distribution grids using the linearised 'DistFlow' formulation. The problem can be solved using the following function:
 
 ```julia
-result_tnep = FlexPlan.strg_tnep(data, PowerModels.DCPPowerModel, solver; setting = s)
-result_dnep = FlexPlan.strg_tnep(data, PowerModels.AbstractBFModel, solver; setting = s)
+result_tnep = FlexPlan.strg_tnep(data, PowerModels.DCPPowerModel, solver; setting)
+result_dnep = FlexPlan.strg_tnep(data, FlexPlan.BFARadPowerModel, solver; setting)
 ```
 ## TNEP problem with storage candidates and demand flexibility (Flexible T(D)NEP)
 
-This problem solves the AC/DC grid TNEP problem considering existing and candidate storage candidates as well demand flexibility. As such, starting from an AC / (DC) network with existing storage devices, the optmisation problem finds the best AC and DC grid investments as well as storage and demand flexibility investments. The objective function is defined in addition to the TNEP problem with storage candidates follows:
+This problem solves the AC/DC grid TNEP problem considering existing and candidate storage candidates as well demand flexibility. As such, starting from an AC / (DC) network with existing storage devices, the optmisation problem finds the best AC and DC grid investments as well as storage and demand flexibility investments. The objective function is defined in addition to the TNEP problem with storage candidates as follows:
+
+```math
+min~\sum_{y \in Y} \left[ \sum_{bc \in BC} C_{bc}\alpha_{bc, y} + \sum_{dc \in BC} C_{dc}\alpha_{dc, y} + \sum_{cc \in CC} C_{cc}\alpha_{cc, y} + \sum_{sc \in BC} C_{sc}\alpha_{sc, y} + \sum_{t \in T}~ \sum_{g \in G} C_{g,t,y}P_{g,t,y} + \sum_{t \in T}~ \sum_{fc \in FC} \left( C_{fc,t,y}^{up}P_{fc,t,y}^{up} + C_{fc,t,y}^{down}P_{fc,t,y}^{down} + C_{fc,t,y}^{red}P_{fc,t,y}^{red} + C_{fc,t,y}^{curt}P_{fc,t,y}^{curt} \right)\right]
+```
+
 Sets:
 ```math
 \begin{aligned}
 fc \in FC &- \text{Set of demand flexibility investments} \\
 \end{aligned}
 ```
-Variables \& parameters:
+Variables & parameters:
 
 ```math
 \begin{aligned}
@@ -69,21 +74,17 @@ C_{fc}^{curt} &- \text{Cost of involuntary demand curtailment for flexible deman
 \end{aligned}
 ```
 
-```math
-min~\sum_{y \in Y} \left[ \sum_{bc \in BC} C_{bc}\alpha_{bc, y} + \sum_{dc \in BC} C_{dc}\alpha_{dc, y} + \sum_{cc \in CC} C_{cc}\alpha_{cc, y} + \sum_{sc \in BC} C_{sc}\alpha_{sc, y} + \sum_{t \in T}~ \sum_{g \in G} C_{g,t,y}P_{g,t,y} + \sum_{t \in T}~ \sum_{fc \in FC} \left( C_{fc,t,y}^{up}P_{fc,t,y}^{up} + C_{fc,t,y}^{down}P_{fc,t,y}^{down} + C_{fc,t,y}^{red}P_{fc,t,y}^{red} + C_{fc,t,y}^{curt}P_{fc,t,y}^{curt} \right)\right]
-```
-
 The problem is defined both for transmission networks, using the linearised 'DC' power flow model as well as radial distribution grids using the linearised 'DistFlow' formulation. The problem can be solved using the following function:
 
 ```julia
-result_tnep = FlexPlan.flex_tnep(data, PowerModels.DCPPowerModel, solver; setting = s)
-result_dnep = FlexPlan.flex_tnep(data, PowerModels.AbstractBFModel, solver; setting = s)
+result_tnep = FlexPlan.flex_tnep(data, PowerModels.DCPPowerModel, solver; setting)
+result_dnep = FlexPlan.flex_tnep(data, FlexPlan.BFARadPowerModel, solver; setting)
 ```
 
 Additionally, this particular problem can also be solved for both transmission and distribution networks combined, using specific data for both the transmission and the distribution network:
 
 ```julia
-result_t_and_d_nep = FlexPlan.flex_tnep(t_data, d_data, PowerModels.DCPPowerModel, PowerModels.AbstractBFModel, solver; setting = s)
+result_t_and_d_nep = FlexPlan.flex_tnep(t_data, d_data, PowerModels.DCPPowerModel, FlexPlan.BFARadPowerModel, solver; setting)
 ```
 
 ## Stochastic flexbile T(D)NEP
@@ -111,6 +112,6 @@ min~\sum_{s \in S} \pi_{s} \left\{ \sum_{y \in Y} \left[ \sum_{bc \in BC} C_{bc}
 The problem is defined both for transmission networks, using the linearised 'DC' power flow model as well as radial distribution grids using the linearised 'DistFlow' formulation. The problem can be solved using the following function:
 
 ```julia
-result_tnep = FlexPlan.stoch_flex_tnep(data, PowerModels.DCPPowerModel, solver; setting = s)
-result_dnep = FlexPlan.stoch_flex_tnep(data, PowerModels.AbstractBFModel, solver; setting = s)
+result_tnep = FlexPlan.stoch_flex_tnep(data, PowerModels.DCPPowerModel, solver; setting)
+result_dnep = FlexPlan.stoch_flex_tnep(data, FlexPlan.BFARadPowerModel, solver; setting)
 ```
