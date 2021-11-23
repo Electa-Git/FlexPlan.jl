@@ -1,7 +1,7 @@
 name: Documentation
 on:
   push:
-    branches: [main, prepare_relaese]
+    branches: [master]
     tags: '*'
   pull_request:
     types: [opened, synchronize, reopened]
