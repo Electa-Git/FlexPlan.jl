@@ -24,10 +24,5 @@ Documenter.makedocs(
 )
 
 Documenter.deploydocs(
-    target = "build",
-    repo = "github.com/Electa-Git/FlexPlan.jl.git",
-    branch = "gh-pages",
-    devbranch = "master",
-    versions = ["stable" => "v^", "v#.#"],
-    push_preview = false
+    repo = "github.com/Electa-Git/FlexPlan.jl.git"
 )
