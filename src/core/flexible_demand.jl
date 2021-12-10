@@ -20,8 +20,8 @@ function variable_total_flex_demand(pm::_PM.AbstractPowerModel; kwargs...)
     variable_total_flex_demand_reactive(pm; kwargs...)
 end
 
+"Variable for the actual (flexible) real load demand at each load point and each time step"
 function variable_total_flex_demand_active(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # Decision variable for the actual (flexible) real load demand at each load point and each time step, in units MW
     pflex = _PM.var(pm, nw)[:pflex] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pflex",
         lower_bound = 0,
@@ -35,8 +35,8 @@ end
 function variable_total_flex_demand_reactive(pm::_PM.AbstractActivePowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
 end
 
+"Variable for the actual (flexible) reactive load demand at each load point and each time step"
 function variable_total_flex_demand_reactive(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # Decision variable for the actual (flexible) reactive load demand at each load point and each time step, in units Mvar
     qflex = _PM.var(pm, nw)[:qflex] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_qflex",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :load, i), "qd")
@@ -45,10 +45,11 @@ function variable_total_flex_demand_reactive(pm::_PM.AbstractPowerModel; nw::Int
     report && _IM.sol_component_value(pm, nw, :load, :qflex, _PM.ids(pm, nw, :load), qflex)
 end
 
+"Variable for the power not consumed (voluntary load reduction) at each load point and each time step"
 function variable_demand_reduction(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # Decision variable for the power not consumed (voluntary load reduction) at each load point and each time step in units MW;
-    # this is bounded for each time step by a fixed share (0 \geq p_red_max \geq 1) of the reference load demand pd
-    # for that time step. (Thus, while  p_red_max is a scalar input parameter, the variable bounds become a time series.)
+    # This is bounded for each time step by a fixed share (0 ≤ p_red_max ≤ 1) of the
+    # reference load demand pd for that time step. (Thus, while p_red_max is a scalar input
+    # parameter, the variable bounds become a time series.)
     pnce = _PM.var(pm, nw)[:pnce] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pnce",
         lower_bound = 0,
@@ -59,10 +60,11 @@ function variable_demand_reduction(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, b
     report && _IM.sol_component_value(pm, nw, :load, :pnce, _PM.ids(pm, nw, :load), pnce)
 end
 
+"Variable for the upward demand shifting at each load point and each time step"
 function variable_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # Decision variable for the upward demand shifting at each load point and each time step in units MW;
-    # this is bounded for each time step by a fixed share (0 \geq p_shift_up_max \geq 1) of the reference load demand pd
-    # for that time step. (Thus, while p_shift_up_max is a scalar input parameter, the variable bounds become a time series.)
+    # This is bounded for each time step by a fixed share (0 ≤ p_shift_up_max ≤ 1) of the
+    # reference load demand pd for that time step. (Thus, while p_shift_up_max is a scalar
+    # input parameter, the variable bounds become a time series.)
     pshift_up = _PM.var(pm, nw)[:pshift_up] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pshift_up",
         lower_bound = 0,
@@ -73,9 +75,8 @@ function variable_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::Int=pm
     report && _IM.sol_component_value(pm, nw, :load, :pshift_up, _PM.ids(pm, nw, :load), pshift_up)
 end
 
+"Variable for keeping track of the accumulated upward demand shifting over the operational planning horizon at each load point"
 function variable_total_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # Variable for keeping track of the accumulated upward demand shifting over the operational planning horizon at each load point,
-    # in units MWh.
         pshift_up_tot = _PM.var(pm, nw)[:pshift_up_tot] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pshift_up_tot",
         lower_bound = 0,
@@ -86,10 +87,11 @@ function variable_total_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::
     report && _IM.sol_component_value(pm, nw, :load, :pshift_up_tot, _PM.ids(pm, nw, :load), pshift_up_tot)
 end
 
+"Variable for the downward demand shifting at each load point and each time step"
 function variable_demand_shifting_downwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # Decision variable for the downward demand shifting at each load point and each time step, in units MW;
-    # this is bounded for each time step by a fixed share (0 \geq p_shift_down_max \geq 1) of the reference load demand pd
-    # for that time step. (Thus, while p_shift_down_max is a scalar input parameter, the variable bounds become a time series.)
+    # This is bounded for each time step by a fixed share (0 ≤ p_shift_down_max ≤ 1) of the
+    # reference load demand pd for that time step. (Thus, while p_shift_down_max is a scalar
+    # input parameter, the variable bounds become a time series.)
     pshift_down = _PM.var(pm, nw)[:pshift_down] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pshift_down",
         lower_bound = 0,
@@ -100,22 +102,20 @@ function variable_demand_shifting_downwards(pm::_PM.AbstractPowerModel; nw::Int=
     report && _IM.sol_component_value(pm, nw, :load, :pshift_down, _PM.ids(pm, nw, :load), pshift_down)
 end
 
+"Variable for keeping track of the accumulated upward demand shifting over the operational planning horizon at each load point"
 function variable_total_demand_shifting_downwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # Variable for keeping track of the accumulated upward demand shifting over the operational planning horizon at each load point,
-    # in units MWh.
     pshift_down_tot = _PM.var(pm, nw)[:pshift_down_tot] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pshift_down_tot",
         lower_bound = 0,
-        upper_bound =  _PM.ref(pm, nw, :load, i, "p_shift_down_tot_max"),
+        upper_bound = _PM.ref(pm, nw, :load, i, "p_shift_down_tot_max"),
         start = 0
     )
 
     report && _IM.sol_component_value(pm, nw, :load, :pshift_down_tot, _PM.ids(pm, nw, :load), pshift_down_tot)
 end
 
+"Variable for keeping track of the energy not consumed (i.e. the accumulated voluntary load reduction) over the operational planning horizon at each load point"
 function variable_energy_not_consumed(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # Variable for keeping track of the energy not consumed over the operational planning horizon, in units MWh,
-    # i.e. the accumulated voluntary load reduction, at each load point.
     ence = _PM.var(pm, nw)[:ence] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_ence",
         lower_bound = 0,
@@ -126,9 +126,8 @@ function variable_energy_not_consumed(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw
     report && _IM.sol_component_value(pm, nw, :load, :ence, _PM.ids(pm, nw, :load), ence)
 end
 
+"Variable for load curtailment (i.e. involuntary demand reduction) at each load point and each time step"
 function variable_demand_curtailment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # Decision variable for load curtailment (i.e. involuntary demand reduction) at each load point and each time step,
-    # in units MW
     pcurt = _PM.var(pm, nw)[:pcurt] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pcurt",
         lower_bound = 0,
@@ -139,8 +138,8 @@ function variable_demand_curtailment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw,
     report && _IM.sol_component_value(pm, nw, :load, :pcurt, _PM.ids(pm, nw, :load), pcurt)
 end
 
+"Variable: whether flexible demand is enabled at a load point"
 function variable_flexible_demand_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
-    # Integer (boolean) decision variable for investment in enabling flexible demand at a load point.
     first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
@@ -163,6 +162,7 @@ function variable_flexible_demand_indicator(pm::_PM.AbstractPowerModel; nw::Int=
     report && _IM.sol_component_value(pm, nw, :load, :isflex, _PM.ids(pm, nw, :load), z)
 end
 
+"Variable: investment decision to enable flexible demand at a load point"
 function variable_flexible_demand_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
     first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
@@ -343,9 +343,9 @@ function constraint_flex_bounds_ne(pm::_PM.AbstractPowerModel, n::Int, i::Int)
     pnce_max = JuMP.upper_bound(pnce)
 
     # Bounds on the demand flexibility decision variables (demand shifting and voluntary load reduction)
-    JuMP.@constraint(pm.model, pshift_up  <= pshift_up_max * z)
-    JuMP.@constraint(pm.model, pshift_down  <= pshift_down_max * z)
-    JuMP.@constraint(pm.model, pnce  <= pnce_max * z)
+    JuMP.@constraint(pm.model, pshift_up <= pshift_up_max * z)
+    JuMP.@constraint(pm.model, pshift_down <= pshift_down_max * z)
+    JuMP.@constraint(pm.model, pnce <= pnce_max * z)
 
 end
 
