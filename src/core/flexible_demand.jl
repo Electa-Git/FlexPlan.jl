@@ -244,18 +244,18 @@ function constraint_ence_state(pm::_PM.AbstractPowerModel, i::Int, nw_1::Int, nw
     constraint_ence_state(pm, nw_1, nw_2, i, time_elapsed)
 end
 
-function constraint_shift_duration(pm::_PM.AbstractPowerModel, first_hour_nw::Int, nw::Int, i::Int)
-    constraint_shift_duration_up(pm, first_hour_nw, nw, i)
-    constraint_shift_duration_down(pm, first_hour_nw, nw, i)
+function constraint_shift_duration(pm::_PM.AbstractPowerModel, i::Int, first_hour_nw::Int, nw::Int)
+    constraint_shift_duration_up(pm, i, first_hour_nw, nw)
+    constraint_shift_duration_down(pm, i, first_hour_nw, nw)
 end
 
-function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, first_hour_nw::Int, nw::Int, i::Int)
+function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, i::Int, first_hour_nw::Int, nw::Int)
     load = _PM.ref(pm, nw, :load, i)
     start_grace = max(nw-load["t_grace_up"],first_hour_nw)
     constraint_shift_duration_up(pm, nw, i, start_grace, nothing)
 end
 
-function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, first_hour_nw::Int, nw::Int, i::Int)
+function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, i::Int, first_hour_nw::Int, nw::Int)
     load = _PM.ref(pm, nw, :load, i)
     start_grace = max(nw-load["t_grace_down"],first_hour_nw)
     constraint_shift_duration_down(pm, nw, i, start_grace, nothing)
@@ -271,7 +271,7 @@ function constraint_shift_up_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=p
     constraint_shift_up_state_initial(pm, nw, i, time_elapsed)
 end
 
-function constraint_shift_up_state(pm::_PM.AbstractPowerModel, nw_1::Int, nw_2::Int, i::Int)
+function constraint_shift_up_state(pm::_PM.AbstractPowerModel, i::Int, nw_1::Int, nw_2::Int)
     if haskey(_PM.ref(pm, nw_2), :time_elapsed)
         time_elapsed = _PM.ref(pm, nw_2, :time_elapsed)
     else
@@ -291,7 +291,7 @@ function constraint_shift_down_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int
     constraint_shift_down_state_initial(pm, nw, i, time_elapsed)
 end
 
-function constraint_shift_down_state(pm::_PM.AbstractPowerModel, nw_1::Int, nw_2::Int, i::Int)
+function constraint_shift_down_state(pm::_PM.AbstractPowerModel, i::Int, nw_1::Int, nw_2::Int)
     if haskey(_PM.ref(pm, nw_2), :time_elapsed)
         time_elapsed = _PM.ref(pm, nw_2, :time_elapsed)
     else

@@ -220,9 +220,9 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             for i in _PM.ids(pm, :load, nw = n)
                 if _PM.ref(pm, n, :load, i, "flex") == 1
                     constraint_ence_state(pm, i, prev_n, n)
-                    constraint_shift_up_state(pm, prev_n, n, i)
-                    constraint_shift_down_state(pm, prev_n, n, i)
-                    constraint_shift_duration(pm, first_n, n, i)
+                    constraint_shift_up_state(pm, i, prev_n, n)
+                    constraint_shift_down_state(pm, i, prev_n, n)
+                    constraint_shift_duration(pm, i, first_n, n)
                 end
             end
         end
@@ -375,9 +375,9 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
                 for i in _PM.ids(pm, :load, nw = n)
                     if _PM.ref(pm, n, :load, i, "flex") == 1
                         constraint_ence_state(pm, i, prev_n, n)
-                        constraint_shift_up_state(pm, prev_n, n, i)
-                        constraint_shift_down_state(pm, prev_n, n, i)
-                        constraint_shift_duration(pm, first_n, n, i)
+                        constraint_shift_up_state(pm, i, prev_n, n)
+                        constraint_shift_down_state(pm, i, prev_n, n)
+                        constraint_shift_duration(pm, i, first_n, n)
                     end
                 end
             end
