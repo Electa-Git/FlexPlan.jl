@@ -1,6 +1,5 @@
-################################################################################
-## New storage to reference model
-################################################################################
+## Model reference for storage
+
 function add_candidate_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
     for (n, nw_ref) in ref[:nw]
         if haskey(nw_ref, :ne_storage)
@@ -14,9 +13,28 @@ function add_candidate_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any
 end
 
 
-################################################################################
-## Model references for distribution
-################################################################################
+## Model reference for flexible loads
+
+"Compute the accumulated reference demand for each load and store it in the first hour nw"
+function ref_add_flex_load!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
+    for nw in nw_ids(data; hour = 1)
+        if haskey(ref[:nw][nw], :time_elapsed)
+            time_elapsed = ref[:nw][nw][:time_elapsed]
+        else
+            Memento.warn(_LOGGER, "network data should specify time_elapsed, using 1.0 as a default")
+            time_elapsed = 1.0
+        end
+        timeseries_nw_ids = similar_ids(data, nw, hour = 1:dim_length(data,:hour))
+        for (l, load) in ref[:nw][nw][:load]
+            # `ref` instead of `data` must be used to access loads, since the former has
+            # already been filtered to remove inactive loads.
+            load["ed_tot"] = time_elapsed * sum(ref[:nw][n][:load][l]["pd"] for n in timeseries_nw_ids)
+        end
+    end
+end
+
+
+## Model references for distribution networks
 
 "Like ref_add_ne_branch!, but ne_buspairs are built using calc_buspair_parameters_allbranches"
 function ref_add_ne_branch_allbranches!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
