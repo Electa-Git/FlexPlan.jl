@@ -79,7 +79,7 @@ function add_flexible_demand_data!(data)
         # Whether load is flexible (boolean)
         data["load"]["$idx"]["flex"] = load_extra["flex"]
 
-        # Maximum energy not consumed (accumulated voluntary load reduction) (MWh)
+        # Superior bound on energy not consumed as a fraction of the total reference demand (0 ≤ e_nce_max ≤ 1)
         data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
 
         # Expected lifetime of flexibility-enabling equipment (years)
@@ -107,7 +107,6 @@ function add_flexible_demand_data!(data)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_up", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_curtailment", rescale_cost)
-        _PM._apply_func!(data["load"]["$idx"], "e_nce_max", rescale_power)
         if haskey(load_extra, "cost_voll")
             _PM._apply_func!(data["load"]["$idx"], "cost_voll", rescale_cost)
         end

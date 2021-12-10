@@ -116,10 +116,11 @@ end
 
 "Variable for keeping track of the energy not consumed (i.e. the accumulated voluntary load reduction) over the operational planning horizon at each load point"
 function variable_energy_not_consumed(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+    first_nw = first_id(pm, nw, :hour)
     ence = _PM.var(pm, nw)[:ence] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_ence",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :load, i, "e_nce_max"),
+        upper_bound = _PM.ref(pm, nw, :load, i, "e_nce_max") * _PM.ref(pm, first_nw, :load, i, "ed_tot"),
         start = 0
     )
 
