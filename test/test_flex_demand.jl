@@ -43,12 +43,12 @@ result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s)
 
 @testset "Flexible TNEP" begin
     @testset "6-bus all candidates" begin
-        @test isapprox(result_test1["objective"], 25175.0, rtol = 1e-4)
+        @test isapprox(result_test1["objective"], 25166.9, rtol = 1e-4)
         @test isapprox(result_test1["solution"]["nw"]["1"]["ne_storage"]["1"]["isbuilt"], 0, atol = 1e-1)
         @test isapprox(result_test1["solution"]["nw"]["1"]["ne_branch"]["1"]["built"], 0, atol = 1e-1)
         @test isapprox(result_test1["solution"]["nw"]["1"]["convdc_ne"]["6"]["isbuilt"], 1.0, atol = 1e-1)
-        @test isapprox(result_test1["solution"]["nw"]["96"]["load"]["5"]["pshift_up_tot"], 3.1, atol = 1e-1)
+        @test isapprox(result_test1["solution"]["nw"]["96"]["load"]["5"]["pshift_up_tot"], 2.3, atol = 1e-1)
         @test isapprox(result_test1["solution"]["nw"]["17"]["load"]["5"]["pflex"], 0.040889, atol = 1e-2)
-        @test isapprox(result_test1["solution"]["nw"]["56"]["load"]["5"]["ence"], 10.0, atol = 1e-2)
+        @test isapprox(result_test1["solution"]["nw"]["56"]["load"]["5"]["ence"], 10.8, atol = 1e-2)
     end
 end;
