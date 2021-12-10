@@ -77,11 +77,12 @@ end
 
 "Variable for keeping track of the accumulated upward demand shifting over the operational planning horizon at each load point"
 function variable_total_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-        pshift_up_tot = _PM.var(pm, nw)[:pshift_up_tot] = JuMP.@variable(pm.model,
+    first_nw = first_id(pm, nw, :hour)
+    pshift_up_tot = _PM.var(pm, nw)[:pshift_up_tot] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pshift_up_tot",
         lower_bound = 0,
         # The accumulated load shifted up should equal the accumulated load shifted down, so this constraint is probably redundant
-        upper_bound = _PM.ref(pm, nw, :load, i, "p_shift_down_tot_max"),
+        upper_bound = _PM.ref(pm, nw, :load, i, "p_shift_down_tot_max") * _PM.ref(pm, first_nw, :load, i, "ed_tot"),
         start = 0
     )
     report && _IM.sol_component_value(pm, nw, :load, :pshift_up_tot, _PM.ids(pm, nw, :load), pshift_up_tot)
@@ -104,10 +105,11 @@ end
 
 "Variable for keeping track of the accumulated upward demand shifting over the operational planning horizon at each load point"
 function variable_total_demand_shifting_downwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+    first_nw = first_id(pm, nw, :hour)
     pshift_down_tot = _PM.var(pm, nw)[:pshift_down_tot] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pshift_down_tot",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :load, i, "p_shift_down_tot_max"),
+        upper_bound = _PM.ref(pm, nw, :load, i, "p_shift_down_tot_max") * _PM.ref(pm, first_nw, :load, i, "ed_tot"),
         start = 0
     )
 
@@ -261,7 +263,17 @@ function constraint_shift_up_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=p
         Memento.warn(_LOGGER, "network data should specify time_elapsed, using 1.0 as a default")
         time_elapsed = 1.0
     end
-    constraint_shift_up_state_initial(pm, nw, i)
+    constraint_shift_up_state_initial(pm, nw, i, time_elapsed)
+end
+
+function constraint_shift_up_state(pm::_PM.AbstractPowerModel, nw_1::Int, nw_2::Int, i::Int)
+    if haskey(_PM.ref(pm, nw_2), :time_elapsed)
+        time_elapsed = _PM.ref(pm, nw_2, :time_elapsed)
+    else
+        Memento.warn(_LOGGER, "network $(nw_2) should specify time_elapsed, using 1.0 as a default")
+        time_elapsed = 1.0
+    end
+    constraint_shift_up_state(pm, nw_1, nw_2, i, time_elapsed)
 end
 
 function constraint_shift_down_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
@@ -271,7 +283,17 @@ function constraint_shift_down_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int
         Memento.warn(_LOGGER, "network data should specify time_elapsed, using 1.0 as a default")
         time_elapsed = 1.0
     end
-    constraint_shift_down_state_initial(pm, nw, i)
+    constraint_shift_down_state_initial(pm, nw, i, time_elapsed)
+end
+
+function constraint_shift_down_state(pm::_PM.AbstractPowerModel, nw_1::Int, nw_2::Int, i::Int)
+    if haskey(_PM.ref(pm, nw_2), :time_elapsed)
+        time_elapsed = _PM.ref(pm, nw_2, :time_elapsed)
+    else
+        Memento.warn(_LOGGER, "network $(nw_2) should specify time_elapsed, using 1.0 as a default")
+        time_elapsed = 1.0
+    end
+    constraint_shift_down_state(pm, nw_1, nw_2, i, time_elapsed)
 end
 
 function constraint_flexible_demand_activation(pm::_PM.AbstractPowerModel, i::Int, prev_nws::Vector{Int}, nw::Int)
@@ -367,38 +389,38 @@ function constraint_ence_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i
     JuMP.@constraint(pm.model, ence_2 - ence_1 == time_elapsed * pnce)
 end
 
-function constraint_shift_up_state_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int)
+function constraint_shift_up_state_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int, time_elapsed)
     pshift_up = _PM.var(pm, n, :pshift_up, i)
     pshift_up_tot = _PM.var(pm, n, :pshift_up_tot, i)
 
     # Initialization of accumulated upward demand shifting variable
-    JuMP.@constraint(pm.model, pshift_up_tot == pshift_up)
+    JuMP.@constraint(pm.model, pshift_up_tot == time_elapsed * pshift_up)
 end
 
-function constraint_shift_up_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int)
+function constraint_shift_up_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int, time_elapsed)
     pshift_up = _PM.var(pm, n_2, :pshift_up, i)
     pshift_up_tot_2 = _PM.var(pm, n_2, :pshift_up_tot, i)
     pshift_up_tot_1 = _PM.var(pm, n_1, :pshift_up_tot, i)
 
     # Accumulation of upward demand shifting for each time step
-    JuMP.@constraint(pm.model, pshift_up_tot_2 - pshift_up_tot_1 == pshift_up)
+    JuMP.@constraint(pm.model, pshift_up_tot_2 - pshift_up_tot_1 == time_elapsed * pshift_up)
 end
 
-function constraint_shift_down_state_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int)
+function constraint_shift_down_state_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int, time_elapsed)
     pshift_down = _PM.var(pm, n, :pshift_down, i)
     pshift_down_tot = _PM.var(pm, n, :pshift_down_tot, i)
 
     # Initialization of accumulated downward demand shifting variable
-    JuMP.@constraint(pm.model, pshift_down_tot == pshift_down)
+    JuMP.@constraint(pm.model, pshift_down_tot == time_elapsed * pshift_down)
 end
 
-function constraint_shift_down_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int)
+function constraint_shift_down_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int, time_elapsed)
     pshift_down = _PM.var(pm, n_2, :pshift_down, i)
     pshift_down_tot_2 = _PM.var(pm, n_2, :pshift_down_tot, i)
     pshift_down_tot_1 = _PM.var(pm, n_1, :pshift_down_tot, i)
 
     # Accumulation of downward demand shifting for each time step
-    JuMP.@constraint(pm.model, pshift_down_tot_2 - pshift_down_tot_1 == pshift_down)
+    JuMP.@constraint(pm.model, pshift_down_tot_2 - pshift_down_tot_1 == time_elapsed * pshift_down)
 end
 
 function constraint_shift_state_final(pm::_PM.AbstractPowerModel, n::Int, i::Int)

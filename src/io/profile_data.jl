@@ -50,7 +50,7 @@ function add_flexible_demand_data!(data)
         # Superior bound on downward demand shifted as a fraction of the total reference demand (0 ≤ p_shift_down_max ≤ 1)
         data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]
 
-        # Maximum energy (accumulated load) shifted downward during time horizon (MWh)
+        # Superior bound on shifted energy as a fraction of the total reference demand (0 ≤ p_shift_down_tot_max ≤ 1)
         data["load"]["$idx"]["p_shift_down_tot_max"] = load_extra["p_shift_down_tot_max"]
 
         # Compensation for consuming less (i.e. voluntary demand reduction) (€/MWh)
