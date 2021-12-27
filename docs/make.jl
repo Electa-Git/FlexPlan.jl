@@ -1,30 +1,28 @@
-using Documenter, PowerModelsACDC
+using Documenter, FlexPlan
 
 Documenter.makedocs(
-    modules = PowerModelsACDC,
+    modules = FlexPlan,
     format = Documenter.HTML(),
-    sitename = "PowerModelsACDC",
-    authors = "Frederik Geth, Hakan Ergun",
+    sitename = "FlexPlan",
+    authors = "Hakan Ergun, Matteo Rossini, Damien Lapage, Iver Bakken Sperstad, Espen Flo Bødal, Marco Rossi, Merkebu Zenebe Degefa, Reinhilde D'hulst",
     pages = [
-        "Home" => "index.md",
+        "Home" => "index.md"
         "Manual" => [
-            "Getting Started" => "quickguide.md",
-            "Results" => "result-data.md",
-        ],
+            "Getting started" => "quickguide.md"
+            "Example scripts" => "example_scripts.md"
+        ]
         "Library" => [
-            "Network Formulations" => "formulations.md",
-            "Problem Specifications" => "specifications.md",
-            "Problem Types" => "problems.md",
-            "Modeling Components" => [
-                "Objective" => "objective.md",
-                "Variables" => "variables.md",
-                "Constraints" => "constraints.md",
-            ],
-            "File IO" => "parser.md"
-        ],
+            "Problem types" => "problem_types.md"
+            "Network formulations" => "network_formulations.md"
+            "Multi - period, multi-stage modelling" => [
+                "Modelling assumptions" => "modeling_assumptions.md"
+                "Model dimensions" => "dimensions.md"
+            ]
+            "Data model" => "data_model.md"
+        ]
     ]
 )
 
 Documenter.deploydocs(
-    repo = "github.com/hakanergun/PowerModelsACDC.jl.git"
+    repo = "github.com/Electa-Git/FlexPlan.jl.git"
 )

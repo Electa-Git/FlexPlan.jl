@@ -243,11 +243,13 @@ end
 
 """
     similar_ids(pm::PowerModels.AbstractPowerModel, n::Int; kwargs...)
+    similar_ids(data::Dict{String,Any}, n::Int; kwargs...)
+    similar_ids(dim::Dict{Symbol,Any}, n::Int; kwargs...)
 
 Sorted vector containing nw ids that have the same coordinates along dimensions as `n` except for dimensions passed in `kwargs`.
 
 `kwargs` must be of the form `name = <value>` or `name = <interval>` or `name = <subset>`,
-where `name` is the name of a dimension of `pm`.
+where `name` is the name of a dimension of `pm`, `data` or `dim`.
 
 # Examples
 ```julia-repl
@@ -257,8 +259,9 @@ julia> similar_ids(pm, 3; hour = [6,12,18,24])
 julia> similar_ids(pm, 3; hour = 24, scenario = 3)
 ```
 """
-function similar_ids(pm::_PM.AbstractPowerModel, n::Int; kwargs...)::Vector{Int}
-    dim = pm.ref[:dim]
+function similar_ids end
+
+function similar_ids(dim::Dict{Symbol,Any}, n::Int; kwargs...)::Vector{Int}
     names = keys(dim[:pos])
     offset = dim[:offset]
     li = dim[:li]
@@ -267,13 +270,18 @@ function similar_ids(pm::_PM.AbstractPowerModel, n::Int; kwargs...)::Vector{Int}
     ndims(nws) >= 1 ? vec(nws) : [nws]
 end
 
+similar_ids(data::Dict{String,Any}, n::Int; kwargs...) = similar_ids(data["dim"], n; kwargs...)
+similar_ids(pm::_PM.AbstractPowerModel, n::Int; kwargs...) = similar_ids(pm.ref[:dim], n; kwargs...)
+
 """
     similar_id(pm::PowerModels.AbstractPowerModel, n::Int; kwargs...)
+    similar_id(data::Dict{String,Any}, n::Int; kwargs...)
+    similar_id(dim::Dict{Symbol,Any}, n::Int; kwargs...)
 
 Nw id that has the same coordinates along dimensions as `n` except for dimensions passed in `kwargs`.
 
 `kwargs` must be of the form `name = <value>`, where `name` is the name of a dimension of
-`pm`.
+`pm`, `data` or `dim`.
 
 # Examples
 ```julia-repl
@@ -281,8 +289,9 @@ julia> similar_id(pm, 3; hour = 24)
 julia> similar_id(pm, 3; hour = 24, scenario = 3)
 ```
 """
-function similar_id(pm::_PM.AbstractPowerModel, n::Int; kwargs...)::Int
-    dim = pm.ref[:dim]
+function similar_id end
+
+function similar_id(dim::Dict{Symbol,Any}, n::Int; kwargs...)::Int
     names = keys(dim[:pos])
     offset = dim[:offset]
     li = dim[:li]
@@ -290,13 +299,19 @@ function similar_id(pm::_PM.AbstractPowerModel, n::Int; kwargs...)::Int
     li[ntuple(i -> get(kwargs, names[i], ci_n[i])::Int, ndims(li))...]
 end
 
+similar_id(data::Dict{String,Any}, n::Int; kwargs...) = similar_id(data["dim"], n; kwargs...)
+similar_id(pm::_PM.AbstractPowerModel, n::Int; kwargs...) = similar_id(pm.ref[:dim], n; kwargs...)
+
 """
     first_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
+    first_id(data::Dict{String,Any}, n::Int, dimension::Symbol...)
+    first_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
 
-Return the first network in `pm` along `dimension` while keeping the other dimensions fixed.
+Return the first network in `pm`, `data` or `dim` along `dimension` while keeping the other dimensions fixed.
 """
-function first_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
-    dim = pm.ref[:dim]
+function first_id end
+
+function first_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
     names = keys(dim[:pos])
     offset = dim[:offset]
     li = dim[:li]
@@ -304,13 +319,19 @@ function first_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
     li[ntuple(i -> names[i] in dimension ? 1 : ci_n[i], ndims(li))...]
 end
 
+first_id(data::Dict{String,Any}, n::Int, dimension::Symbol...) = first_id(data["dim"], n, dimension...)
+first_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...) = first_id(pm.ref[:dim], n, dimension...)
+
 """
     last_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
+    last_id(data::Dict{String,Any}, n::Int, dimension::Symbol...)
+    last_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
 
-Return the last network in `pm` along `dimension` while keeping the other dimensions fixed.
+Return the last network in `pm`, `data` or `dim` along `dimension` while keeping the other dimensions fixed.
 """
-function last_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
-    dim = pm.ref[:dim]
+function last_id end
+
+function last_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
     names = keys(dim[:pos])
     offset = dim[:offset]
     li = dim[:li]
@@ -318,13 +339,19 @@ function last_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
     li[ntuple(i -> names[i] in dimension ? size(li,i) : ci_n[i], ndims(li))...]
 end
 
+last_id(data::Dict{String,Any}, n::Int, dimension::Symbol...) = last_id(data["dim"], n, dimension...)
+last_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...) = last_id(pm.ref[:dim], n, dimension...)
+
 """
     prev_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
+    prev_id(data::Dict{String,Any}, n::Int, dimension::Symbol)
+    prev_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)
 
-Return the previous network in `pm` along `dimension` while keeping the other dimensions fixed.
+Return the previous network in `pm`, `data` or `dim` along `dimension` while keeping the other dimensions fixed.
 """
-function prev_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Int
-    dim = pm.ref[:dim]
+function prev_id end
+
+function prev_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)::Int
     pos_d = dim[:pos][dimension]
     offset = dim[:offset]
     li = dim[:li]
@@ -332,13 +359,19 @@ function prev_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Int
     li[ntuple(i -> i == pos_d ? ci_n[i]-1 : ci_n[i], ndims(li))...]
 end
 
+prev_id(data::Dict{String,Any}, n::Int, dimension::Symbol) = prev_id(data["dim"], n, dimension)
+prev_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = prev_id(pm.ref[:dim], n, dimension)
+
 """
     prev_ids(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
+    prev_ids(data::Dict{String,Any}, n::Int, dimension::Symbol)
+    prev_ids(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)
 
-Return the previous networks in `pm` along `dimension` while keeping the other dimensions fixed.
+Return the previous networks in `pm`, `data` or `dim` along `dimension` while keeping the other dimensions fixed.
 """
-function prev_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Vector{Int}
-    dim = pm.ref[:dim]
+function prev_ids end
+
+function prev_ids(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)::Vector{Int}
     pos_d = dim[:pos][dimension]
     offset = dim[:offset]
     li = dim[:li]
@@ -346,13 +379,19 @@ function prev_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Vector
     li[CartesianIndex(ci_n[1:pos_d-1]), CartesianIndices((1:ci_n[pos_d]-1,)), CartesianIndex(ci_n[pos_d+1:end])]
 end
 
+prev_ids(data::Dict{String,Any}, n::Int, dimension::Symbol) = prev_ids(data["dim"], n, dimension)
+prev_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = prev_ids(pm.ref[:dim], n, dimension)
+
 """
     next_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
+    next_id(data::Dict{String,Any}, n::Int, dimension::Symbol)
+    next_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)
 
-Return the next network in `pm` along `dimension` while keeping the other dimensions fixed.
+Return the next network in `pm`, `data` or `dim` along `dimension` while keeping the other dimensions fixed.
 """
-function next_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Int
-    dim = pm.ref[:dim]
+function next_id end
+
+function next_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)::Int
     pos_d = dim[:pos][dimension]
     offset = dim[:offset]
     li = dim[:li]
@@ -360,13 +399,19 @@ function next_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Int
     li[ntuple(i -> i == pos_d ? ci_n[i]+1 : ci_n[i], ndims(li))...]
 end
 
+next_id(data::Dict{String,Any}, n::Int, dimension::Symbol) = next_id(data["dim"], n, dimension)
+next_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = next_id(pm.ref[:dim], n, dimension)
+
 """
     next_ids(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
+    next_ids(data::Dict{String,Any}, n::Int, dimension::Symbol)
+    next_ids(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)
 
-Return the next networks in `pm` along `dimension` while keeping the other dimensions fixed.
+Return the next networks in `pm`, `data` or `dim` along `dimension` while keeping the other dimensions fixed.
 """
-function next_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Vector{Int}
-    dim = pm.ref[:dim]
+function next_ids end
+
+function next_ids(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)::Vector{Int}
     pos_d = dim[:pos][dimension]
     offset = dim[:offset]
     li = dim[:li]
@@ -374,42 +419,58 @@ function next_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)::Vector
     li[CartesianIndex(ci_n[1:pos_d-1]), CartesianIndices((ci_n[pos_d]+1:size(li,pos_d),)), CartesianIndex(ci_n[pos_d+1:end])]
 end
 
+next_ids(data::Dict{String,Any}, n::Int, dimension::Symbol) = next_ids(data["dim"], n, dimension)
+next_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = next_ids(pm.ref[:dim], n, dimension)
+
 
 ## Query properties of nw ids
 
 """
     coord(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)
+    coord(data::Dict{String,Any}, n::Int, dimension::Symbol)
+    coord(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)
 
-Return the coordinate along `dimension` of nw `n` of `pm`.
+Return the coordinate along `dimension` of nw `n` of `pm`, `data` or `dim`.
 """
-function coord(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol)
-    dim = pm.ref[:dim]
+function coord end
+
+function coord(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)
     pos = dim[:pos]
     offset = dim[:offset]
     ci_n = dim[:ci][n-offset]
     ci_n[pos[dimension]]
 end
 
+coord(data::Dict{String,Any}, args...) = coord(data["dim"], args...)
+coord(pm::_PM.AbstractPowerModel, args...) = coord(pm.ref[:dim], args...)
+
 """
     is_first_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
+    is_first_id(data::Dict{String,Any}, n::Int, dimension::Symbol...)
+    is_first_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
 
-Return whether the network `n` is the first along `dimension` in `pm`.
+Return whether the network `n` is the first along `dimension` in `pm`, `data` or `dim`.
 """
-function is_first_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
-    dim = pm.ref[:dim]
+function is_first_id end
+
+function is_first_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
     pos = dim[:pos]
     offset = dim[:offset]
     ci_n = dim[:ci][n-offset]
     all(ci_n[pos[d]] == 1 for d in dimension)
 end
 
+is_first_id(data::Dict{String,Any}, args...) = is_first_id(data["dim"], args...)
+is_first_id(pm::_PM.AbstractPowerModel, args...) = is_first_id(pm.ref[:dim], args...)
+
 """
     is_last_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
+    is_last_id(data::Dict{String,Any}, n::Int, dimension::Symbol...)
+    is_last_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
 
-Return whether the network `n` is the last along `dimension` in `pm`.
+Return whether the network `n` is the last along `dimension` in `pm`, `data` or `dim`.
 """
-function is_last_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
-    dim = pm.ref[:dim]
+function is_last_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
     pos = dim[:pos]
     offset = dim[:offset]
     li = dim[:li]
@@ -417,27 +478,40 @@ function is_last_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...)
     all(ci_n[pos[d]] == size(li,pos[d]) for d in dimension)
 end
 
+is_last_id(data::Dict{String,Any}, args...) = is_last_id(data["dim"], args...)
+is_last_id(pm::_PM.AbstractPowerModel, args...) = is_last_id(pm.ref[:dim], args...)
+
 
 ## Access data relating to dimensions
 
 """
-    dim_prop(dim::dict{Symbol,Any}[, dimension[, id[, key]]])
-    dim_prop(data::dict{String,Any}[, dimension[, id[, key]]])
+    dim_prop(dim::Dict{Symbol,Any}[, dimension[, id[, key]]])
+    dim_prop(data::Dict{String,Any}[, dimension[, id[, key]]])
     dim_prop(pm::PowerModels.AbstractPowerModel[, dimension[, id[, key]]])
 
 Properties associated to the `id`s of `dimension`.
+
+    dim_prop(dim::Dict{Symbol,Any}, n, dimension[, key])
+    dim_prop(data::Dict{String,Any}, n, dimension[, key])
+    dim_prop(pm::PowerModels.AbstractPowerModel, n, dimension[, key])
+
+Properties associated to `dimension` of a network `n`.
 """
 function dim_prop end
 dim_prop(dim::Dict{Symbol,Any}) = dim[:prop]
 dim_prop(dim::Dict{Symbol,Any}, dimension::Symbol) = dim[:prop][dimension]
 dim_prop(dim::Dict{Symbol,Any}, dimension::Symbol, id::Int) = dim[:prop][dimension][id]
 dim_prop(dim::Dict{Symbol,Any}, dimension::Symbol, id::Int, key::String) = dim[:prop][dimension][id][key]
+
+dim_prop(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol) = dim[:prop][dimension][coord(dim,n,dimension)]
+dim_prop(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol, key::String) = dim[:prop][dimension][coord(dim,n,dimension)][key]
+
 dim_prop(data::Dict{String,Any}, args...) = dim_prop(data["dim"], args...)
 dim_prop(pm::_PM.AbstractPowerModel, args...) = dim_prop(pm.ref[:dim], args...)
 
 """
-    dim_meta(dim::dict{Symbol,Any}[, dimension[, key]])
-    dim_meta(data::dict{String,Any}[, dimension[, key]])
+    dim_meta(dim::Dict{Symbol,Any}[, dimension[, key]])
+    dim_meta(data::Dict{String,Any}[, dimension[, key]])
     dim_meta(pm::PowerModels.AbstractPowerModel[, dimension[, key]])
 
 Metadata associated to `dimension`.
@@ -450,8 +524,8 @@ dim_meta(data::Dict{String,Any}, args...) = dim_meta(data["dim"], args...)
 dim_meta(pm::_PM.AbstractPowerModel, args...) = dim_meta(pm.ref[:dim], args...)
 
 """
-    dim_length(dim::dict{Symbol,Any}[, dimension])
-    dim_length(data::dict{String,Any}[, dimension])
+    dim_length(dim::Dict{Symbol,Any}[, dimension])
+    dim_length(data::Dict{String,Any}[, dimension])
     dim_length(pm::PowerModels.AbstractPowerModel[, dimension])
 
 Return the number of networks or, if `dimension` is specified, return its size.
