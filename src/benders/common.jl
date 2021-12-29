@@ -47,10 +47,10 @@ function run_benders_decomposition end
 
 ## Utility functions
 
-function combine_sol_dict!(d::AbstractDict, other::AbstractDict, atol=1e-6, path="")
+function combine_sol_dict!(d::AbstractDict, other::AbstractDict, atol=1e-5, path="")
     for (k,v) in other
         if haskey(d, k)
-            combine_sol_dict!(d[k], other[k], atol, "$path : $k")
+            combine_sol_dict!(d[k], other[k], atol, "$path.$k")
         else
             d[k] = v
         end
@@ -58,19 +58,19 @@ function combine_sol_dict!(d::AbstractDict, other::AbstractDict, atol=1e-6, path
     return d
 end
 
-function combine_sol_dict!(d::Number, other::Number, atol=1e-6, path="")
+function combine_sol_dict!(d::Number, other::Number, atol=1e-5, path="")
     if isapprox(d, other; atol)
         return d
     else
-        Memento.error(_LOGGER, "Different values found while combining dicts at path \"$(path[4:end])\": $d, $other.")
+        Memento.error(_LOGGER, "Different values found while combining dicts at path \"$(path[2:end])\": $d, $other.")
     end
 end
 
-function combine_sol_dict!(d, other, atol=1e-6, path="")
+function combine_sol_dict!(d, other, atol=1e-5, path="")
     if d == other
         return d
     else
-        Memento.error(_LOGGER, "Different values found while combining dicts at path \"$(path[4:end])\": $d, $other.")
+        Memento.error(_LOGGER, "Different values found while combining dicts at path \"$(path[2:end])\": $d, $other.")
     end
 end
 
