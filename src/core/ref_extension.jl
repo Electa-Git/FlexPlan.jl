@@ -1,4 +1,4 @@
-## Model reference for storage
+## Storage
 
 function add_candidate_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
     for (n, nw_ref) in ref[:nw]
@@ -13,7 +13,7 @@ function add_candidate_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any
 end
 
 
-## Model reference for flexible loads
+## Flexible loads
 
 "Compute the accumulated reference demand for each load and store it in the first hour nw"
 function ref_add_flex_load!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
@@ -34,7 +34,7 @@ function ref_add_flex_load!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
 end
 
 
-## Model references for distribution networks
+## Distribution networks
 
 "Like ref_add_ne_branch!, but ne_buspairs are built using calc_buspair_parameters_allbranches"
 function ref_add_ne_branch_allbranches!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
