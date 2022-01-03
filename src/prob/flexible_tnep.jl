@@ -150,13 +150,12 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             end
         end
 
-        for i in _PM.ids(pm, :load, nw = n)
-            if _PM.ref(pm, n, :load, i, "flex") == 0
-                constraint_fixed_demand(pm, i; nw = n)
-            else
-                constraint_flex_bounds_ne(pm, i; nw = n)
-            end
+        for i in _PM.ids(pm, n, :flex_load)
             constraint_total_flexible_demand(pm, i; nw = n)
+            constraint_flex_bounds_ne(pm, i; nw = n)
+        end
+        for i in _PM.ids(pm, n, :fixed_load)
+            constraint_total_fixed_demand(pm, i; nw = n)
         end
 
         for i in _PM.ids(pm, :storage, nw=n)
@@ -182,12 +181,10 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
                 constraint_maximum_absorption_ne(pm, i, nw = n)
             end
 
-            for i in _PM.ids(pm, :load, nw = n)
-                if _PM.ref(pm, n, :load, i, "flex") == 1
-                    constraint_ence_state(pm, i, nw = n)
-                    constraint_shift_up_state(pm, i, nw = n)
-                    constraint_shift_down_state(pm, i, nw = n)
-                end
+            for i in _PM.ids(pm, :flex_load, nw = n)
+                constraint_ence_state(pm, i, nw = n)
+                constraint_shift_up_state(pm, i, nw = n)
+                constraint_shift_down_state(pm, i, nw = n)
             end
         else
             if is_last_id(pm, n, :hour)
@@ -199,10 +196,8 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
                     constraint_storage_state_final_ne(pm, i, nw = n)
                 end
 
-                for i in _PM.ids(pm, :load, nw = n)
-                    if _PM.ref(pm, n, :load, i, "flex") == 1
-                        constraint_shift_state_final(pm, i, nw = n)
-                    end
+                for i in _PM.ids(pm, :flex_load, nw = n)
+                    constraint_shift_state_final(pm, i, nw = n)
                 end
             end
 
@@ -217,13 +212,11 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
                 constraint_storage_state_ne(pm, i, prev_n, n)
                 constraint_maximum_absorption_ne(pm, i, prev_n, n)
             end
-            for i in _PM.ids(pm, :load, nw = n)
-                if _PM.ref(pm, n, :load, i, "flex") == 1
-                    constraint_ence_state(pm, i, prev_n, n)
-                    constraint_shift_up_state(pm, i, prev_n, n)
-                    constraint_shift_down_state(pm, i, prev_n, n)
-                    constraint_shift_duration(pm, i, first_n, n)
-                end
+            for i in _PM.ids(pm, :flex_load, nw = n)
+                constraint_ence_state(pm, i, prev_n, n)
+                constraint_shift_up_state(pm, i, prev_n, n)
+                constraint_shift_down_state(pm, i, prev_n, n)
+                constraint_shift_duration(pm, i, first_n, n)
             end
         end
 
@@ -243,10 +236,8 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             for i in _PM.ids(pm, :ne_storage; nw = n)
                 constraint_ne_storage_activation(pm, i, prev_nws, n)
             end
-            for i in _PM.ids(pm, :load; nw = n)
-                if _PM.ref(pm, n, :load, i, "flex") == 1
-                    constraint_flexible_demand_activation(pm, i, prev_nws, n)
-                end
+            for i in _PM.ids(pm, :flex_load; nw = n)
+                constraint_flexible_demand_activation(pm, i, prev_nws, n)
             end
         end
     end
@@ -304,13 +295,12 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
             constraint_dist_ne_branch_tnep(pm, i; nw = n)
         end
 
-        for i in _PM.ids(pm, :load, nw = n)
-            if _PM.ref(pm, n, :load, i, "flex") == 0
-                constraint_fixed_demand(pm, i; nw = n)
-            else
-                constraint_flex_bounds_ne(pm, i; nw = n)
-            end
+        for i in _PM.ids(pm, n, :flex_load)
             constraint_total_flexible_demand(pm, i; nw = n)
+            constraint_flex_bounds_ne(pm, i; nw = n)
+        end
+        for i in _PM.ids(pm, n, :fixed_load)
+            constraint_total_fixed_demand(pm, i; nw = n)
         end
 
         for i in _PM.ids(pm, :storage, nw=n)
@@ -337,12 +327,10 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
                     constraint_maximum_absorption_ne(pm, i, nw = n)
                 end
 
-                for i in _PM.ids(pm, :load, nw = n)
-                    if _PM.ref(pm, n, :load, i, "flex") == 1
-                        constraint_ence_state(pm, i, nw = n)
-                        constraint_shift_up_state(pm, i, nw = n)
-                        constraint_shift_down_state(pm, i, nw = n)
-                    end
+                for i in _PM.ids(pm, :flex_load, nw = n)
+                    constraint_ence_state(pm, i, nw = n)
+                    constraint_shift_up_state(pm, i, nw = n)
+                    constraint_shift_down_state(pm, i, nw = n)
                 end
             else
                 if is_last_id(pm, n, :hour)
@@ -354,10 +342,8 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
                         constraint_storage_state_final_ne(pm, i, nw = n)
                     end
 
-                    for i in _PM.ids(pm, :load, nw = n)
-                        if _PM.ref(pm, n, :load, i, "flex") == 1
-                            constraint_shift_state_final(pm, i, nw = n)
-                        end
+                    for i in _PM.ids(pm, :flex_load, nw = n)
+                        constraint_shift_state_final(pm, i, nw = n)
                     end
                 end
 
@@ -372,13 +358,11 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
                     constraint_storage_state_ne(pm, i, prev_n, n)
                     constraint_maximum_absorption_ne(pm, i, prev_n, n)
                 end
-                for i in _PM.ids(pm, :load, nw = n)
-                    if _PM.ref(pm, n, :load, i, "flex") == 1
-                        constraint_ence_state(pm, i, prev_n, n)
-                        constraint_shift_up_state(pm, i, prev_n, n)
-                        constraint_shift_down_state(pm, i, prev_n, n)
-                        constraint_shift_duration(pm, i, first_n, n)
-                    end
+                for i in _PM.ids(pm, :flex_load, nw = n)
+                    constraint_ence_state(pm, i, prev_n, n)
+                    constraint_shift_up_state(pm, i, prev_n, n)
+                    constraint_shift_down_state(pm, i, prev_n, n)
+                    constraint_shift_duration(pm, i, first_n, n)
                 end
             end
         end
@@ -399,10 +383,8 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
             for i in _PM.ids(pm, :ne_storage; nw = n)
                 constraint_ne_storage_activation(pm, i, prev_nws, n)
             end
-            for i in _PM.ids(pm, :load; nw = n)
-                if _PM.ref(pm, n, :load, i, "flex") == 1
-                    constraint_flexible_demand_activation(pm, i, prev_nws, n)
-                end
+            for i in _PM.ids(pm, :flex_load; nw = n)
+                constraint_flexible_demand_activation(pm, i, prev_nws, n)
             end
         end
     end
