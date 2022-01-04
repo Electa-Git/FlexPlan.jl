@@ -37,7 +37,7 @@ function ref_add_flex_load!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
         for (l, load) in ref[:nw][nw][:flex_load]
             # `ref` instead of `data` must be used to access loads, since the former has
             # already been filtered to remove inactive loads.
-            load["ed_tot"] = time_elapsed * sum(ref[:nw][n][:load][l]["pd"] for n in timeseries_nw_ids)
+            load["ed"] = time_elapsed * sum(ref[:nw][n][:load][l]["pd"] for n in timeseries_nw_ids)
         end
     end
 end

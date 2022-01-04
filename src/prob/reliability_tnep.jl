@@ -166,7 +166,7 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
 
         for i in _PM.ids(pm, :load, nw = n_1)
             if _PM.ref(pm, n_1, :load, i, "flex") == 1
-                constraint_ence_state(pm, i, nw = n_1)
+                constraint_red_state(pm, i, nw = n_1)
                 constraint_shift_up_state(pm, i, nw = n_1)
                 constraint_shift_down_state(pm, i, nw = n_1)
             end
@@ -198,7 +198,7 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             end
             for i in _PM.ids(pm, :load, nw = n_2)
                 if _PM.ref(pm, n_2, :load, i, "flex") == 1
-                    constraint_ence_state(pm, i, n_1, n_2)
+                    constraint_red_state(pm, i, n_1, n_2)
                     constraint_shift_up_state(pm, i, n_1, n_2)
                     constraint_shift_down_state(pm, i, n_1, n_2)
                     constraint_shift_duration(pm, i, network_ids[1], n_2)

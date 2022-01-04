@@ -39,8 +39,8 @@ function variable_flexible_demand_indicator(pm::_PM.AbstractPowerModel; nw::Int=
         z = _PM.var(pm, nw)[:z_flex] = _PM.var(pm, first_n)[:z_flex]
     end
     if report
-        _IM.sol_component_value(pm, nw, :load, :isflex, _PM.ids(pm, nw, :flex_load), z)
-        _IM.sol_component_fixed(pm, nw, :load, :isflex, _PM.ids(pm, nw, :fixed_load), 0.0)
+        _IM.sol_component_value(pm, nw, :load, :flex, _PM.ids(pm, nw, :flex_load), z)
+        _IM.sol_component_fixed(pm, nw, :load, :flex, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
 
@@ -81,7 +81,7 @@ function variable_total_flex_demand_active(pm::_PM.AbstractPowerModel; nw::Int=p
     pflex = _PM.var(pm, nw)[:pflex] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_pflex",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * (1 + get(_PM.ref(pm, nw, :load, i), "p_shift_up_max", 0.0)), # Not strictly necessary: redundant due to other bounds
+        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * (1 + get(_PM.ref(pm, nw, :load, i), "pshift_up_rel_max", 0.0)), # Not strictly necessary: redundant due to other bounds
         start = _PM.comp_start_value(_PM.ref(pm, nw, :load, i), "pd")
     )
     report && _IM.sol_component_value(pm, nw, :load, :pflex, _PM.ids(pm, nw, :load), pflex)
@@ -112,45 +112,45 @@ end
 
 "Variable for the power not consumed (voluntary load reduction) at each flex load point and each time step"
 function variable_demand_reduction(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # This is bounded for each time step by a fixed share (0 ≤ p_red_max ≤ 1) of the
-    # reference load demand pd for that time step. (Thus, while p_red_max is a scalar input
-    # parameter, the variable bounds become a time series.)
-    pnce = _PM.var(pm, nw)[:pnce] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :flex_load)], base_name="$(nw)_pnce",
+    # This is bounded for each time step by a fixed share (0 ≤ pred_rel_max ≤ 1) of the
+    # reference load demand pd for that time step. (Thus, while pred_rel_max is a scalar
+    # input parameter, the variable bounds become a time series.)
+    pred = _PM.var(pm, nw)[:pred] = JuMP.@variable(pm.model,
+        [i in _PM.ids(pm, nw, :flex_load)], base_name="$(nw)_pred",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :flex_load, i, "p_red_max"),
+        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :flex_load, i, "pred_rel_max"),
         start = 0
     )
     if report
-        _IM.sol_component_value(pm, nw, :load, :pnce, _PM.ids(pm, nw, :flex_load), pnce)
-        _IM.sol_component_fixed(pm, nw, :load, :pnce, _PM.ids(pm, nw, :fixed_load), 0.0)
+        _IM.sol_component_value(pm, nw, :load, :pred, _PM.ids(pm, nw, :flex_load), pred)
+        _IM.sol_component_fixed(pm, nw, :load, :pred, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
 
 "Variable for keeping track of the energy not consumed (i.e. the accumulated voluntary load reduction) over the operational planning horizon at each flex load point"
 function variable_energy_not_consumed(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
     first_nw = first_id(pm, nw, :hour)
-    ence = _PM.var(pm, nw)[:ence] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :flex_load)], base_name="$(nw)_ence",
+    ered = _PM.var(pm, nw)[:ered] = JuMP.@variable(pm.model,
+        [i in _PM.ids(pm, nw, :flex_load)], base_name="$(nw)_ered",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :flex_load, i, "e_nce_max") * _PM.ref(pm, first_nw, :flex_load, i, "ed_tot"),
+        upper_bound = _PM.ref(pm, nw, :flex_load, i, "ered_rel_max") * _PM.ref(pm, first_nw, :flex_load, i, "ed"),
         start = 0
     )
     if report
-        _IM.sol_component_value(pm, nw, :load, :ence, _PM.ids(pm, nw, :flex_load), ence)
-        _IM.sol_component_fixed(pm, nw, :load, :ence, _PM.ids(pm, nw, :fixed_load), 0.0)
+        _IM.sol_component_value(pm, nw, :load, :ered, _PM.ids(pm, nw, :flex_load), ered)
+        _IM.sol_component_fixed(pm, nw, :load, :ered, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
 
 "Variable for the upward demand shifting at each flex load point and each time step"
 function variable_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # This is bounded for each time step by a fixed share (0 ≤ p_shift_up_max ≤ 1) of the
-    # reference load demand pd for that time step. (Thus, while p_shift_up_max is a scalar
-    # input parameter, the variable bounds become a time series.)
+    # This is bounded for each time step by a fixed share (0 ≤ pshift_up_rel_max ≤ 1) of the
+    # reference load demand pd for that time step. (Thus, while pshift_up_rel_max is a
+    # scalar input parameter, the variable bounds become a time series.)
     pshift_up = _PM.var(pm, nw)[:pshift_up] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :flex_load)], base_name="$(nw)_pshift_up",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :flex_load, i, "p_shift_up_max"),
+        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :flex_load, i, "pshift_up_rel_max"),
         start = 0
     )
     if report
@@ -162,28 +162,28 @@ end
 "Variable for keeping track of the accumulated upward demand shifting over the operational planning horizon at each flex_load point"
 function variable_total_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
     first_nw = first_id(pm, nw, :hour)
-    pshift_up_tot = _PM.var(pm, nw)[:pshift_up_tot] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :flex_load)], base_name="$(nw)_pshift_up_tot",
+    eshift_up = _PM.var(pm, nw)[:eshift_up] = JuMP.@variable(pm.model,
+        [i in _PM.ids(pm, nw, :flex_load)], base_name="$(nw)_eshift_up",
         lower_bound = 0,
         # The accumulated load shifted up should equal the accumulated load shifted down, so this constraint is probably redundant
-        upper_bound = _PM.ref(pm, nw, :flex_load, i, "p_shift_down_tot_max") * _PM.ref(pm, first_nw, :flex_load, i, "ed_tot"),
+        upper_bound = _PM.ref(pm, nw, :flex_load, i, "eshift_rel_max") * _PM.ref(pm, first_nw, :flex_load, i, "ed"),
         start = 0
     )
     if report
-        _IM.sol_component_value(pm, nw, :load, :pshift_up_tot, _PM.ids(pm, nw, :flex_load), pshift_up_tot)
-        _IM.sol_component_fixed(pm, nw, :load, :pshift_up_tot, _PM.ids(pm, nw, :fixed_load), 0.0)
+        _IM.sol_component_value(pm, nw, :load, :eshift_up, _PM.ids(pm, nw, :flex_load), eshift_up)
+        _IM.sol_component_fixed(pm, nw, :load, :eshift_up, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
 
 "Variable for the downward demand shifting at each flex load point and each time step"
 function variable_demand_shifting_downwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    # This is bounded for each time step by a fixed share (0 ≤ p_shift_down_max ≤ 1) of the
-    # reference load demand pd for that time step. (Thus, while p_shift_down_max is a scalar
-    # input parameter, the variable bounds become a time series.)
+    # This is bounded for each time step by a fixed share (0 ≤ pshift_down_rel_max ≤ 1) of
+    # the reference load demand pd for that time step. (Thus, while pshift_down_rel_max is a
+    # scalar input parameter, the variable bounds become a time series.)
     pshift_down = _PM.var(pm, nw)[:pshift_down] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :flex_load)], base_name="$(nw)_pshift_down",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :flex_load, i, "p_shift_down_max"),
+        upper_bound = _PM.ref(pm, nw, :load, i, "pd") * _PM.ref(pm, nw, :flex_load, i, "pshift_down_rel_max"),
         start = 0
     )
     if report
@@ -195,15 +195,15 @@ end
 "Variable for keeping track of the accumulated upward demand shifting over the operational planning horizon at each flex load point"
 function variable_total_demand_shifting_downwards(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
     first_nw = first_id(pm, nw, :hour)
-    pshift_down_tot = _PM.var(pm, nw)[:pshift_down_tot] = JuMP.@variable(pm.model,
-        [i in _PM.ids(pm, nw, :flex_load)], base_name="$(nw)_pshift_down_tot",
+    eshift_down = _PM.var(pm, nw)[:eshift_down] = JuMP.@variable(pm.model,
+        [i in _PM.ids(pm, nw, :flex_load)], base_name="$(nw)_eshift_down",
         lower_bound = 0,
-        upper_bound = _PM.ref(pm, nw, :flex_load, i, "p_shift_down_tot_max") * _PM.ref(pm, first_nw, :flex_load, i, "ed_tot"),
+        upper_bound = _PM.ref(pm, nw, :flex_load, i, "eshift_rel_max") * _PM.ref(pm, first_nw, :flex_load, i, "ed"),
         start = 0
     )
     if report
-        _IM.sol_component_value(pm, nw, :load, :pshift_down_tot, _PM.ids(pm, nw, :flex_load), pshift_down_tot)
-        _IM.sol_component_fixed(pm, nw, :load, :pshift_down_tot, _PM.ids(pm, nw, :fixed_load), 0.0)
+        _IM.sol_component_value(pm, nw, :load, :eshift_down, _PM.ids(pm, nw, :flex_load), eshift_down)
+        _IM.sol_component_fixed(pm, nw, :load, :eshift_down, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
 
@@ -221,7 +221,8 @@ function constraint_flexible_demand_activation(pm::_PM.AbstractPowerModel, i::In
 end
 
 function constraint_flex_bounds_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
-    constraint_flex_bounds_ne(pm, nw, i)
+    load = _PM.ref(pm, nw, :load, i)
+    constraint_flex_bounds_ne(pm, nw, i, load["pd"], load["pshift_up_rel_max"], load["pshift_down_rel_max"], load["pred_rel_max"])
 end
 
 function constraint_total_flexible_demand(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
@@ -238,29 +239,24 @@ function constraint_total_fixed_demand(pm::_PM.AbstractPowerModel, i::Int; nw::I
     constraint_total_fixed_demand(pm, nw, i, pd, pf_angle)
 end
 
-function constraint_ence_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
-    load = _PM.ref(pm, nw, :load, i)
-
+function constraint_red_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
     if haskey(_PM.ref(pm, nw), :time_elapsed)
         time_elapsed = _PM.ref(pm, nw, :time_elapsed)
     else
         Memento.warn(_LOGGER, "network data should specify time_elapsed, using 1.0 as a default")
         time_elapsed = 1.0
     end
-    constraint_ence_state_initial(pm, nw, i, time_elapsed)
+    constraint_red_state_initial(pm, nw, i, time_elapsed)
 end
 
-function constraint_ence_state(pm::_PM.AbstractPowerModel, i::Int, nw_1::Int, nw_2::Int)
-    load = _PM.ref(pm, nw_2, :load, i)
-
+function constraint_red_state(pm::_PM.AbstractPowerModel, i::Int, nw_1::Int, nw_2::Int)
     if haskey(_PM.ref(pm, nw_2), :time_elapsed)
         time_elapsed = _PM.ref(pm, nw_2, :time_elapsed)
     else
         Memento.warn(_LOGGER, "network $(nw_2) should specify time_elapsed, using 1.0 as a default")
         time_elapsed = 1.0
     end
-
-    constraint_ence_state(pm, nw_1, nw_2, i, time_elapsed)
+    constraint_red_state(pm, nw_1, nw_2, i, time_elapsed)
 end
 
 function constraint_shift_duration(pm::_PM.AbstractPowerModel, i::Int, first_hour_nw::Int, nw::Int)
@@ -269,15 +265,15 @@ function constraint_shift_duration(pm::_PM.AbstractPowerModel, i::Int, first_hou
 end
 
 function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, i::Int, first_hour_nw::Int, nw::Int)
-    load = _PM.ref(pm, nw, :load, i)
-    start_grace = max(nw-load["t_grace_up"],first_hour_nw)
-    constraint_shift_duration_up(pm, nw, i, start_grace, nothing)
+    load         = _PM.ref(pm, nw, :load, i)
+    start_period = max(nw-load["tshift_up"], first_hour_nw)
+    constraint_shift_duration_up(pm, nw, i, load["pd"], load["pshift_up_rel_max"], start_period)
 end
 
 function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, i::Int, first_hour_nw::Int, nw::Int)
-    load = _PM.ref(pm, nw, :load, i)
-    start_grace = max(nw-load["t_grace_down"],first_hour_nw)
-    constraint_shift_duration_down(pm, nw, i, start_grace, nothing)
+    load         = _PM.ref(pm, nw, :load, i)
+    start_period = max(nw-load["tshift_down"], first_hour_nw)
+    constraint_shift_duration_down(pm, nw, i, load["pd"], load["pshift_down_rel_max"], start_period)
 end
 
 function constraint_shift_up_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
@@ -336,33 +332,28 @@ function constraint_flexible_demand_activation(pm::_PM.AbstractPowerModel, n::In
     JuMP.@constraint(pm.model, indicator == sum(investments))
 end
 
-function constraint_flex_bounds_ne(pm::_PM.AbstractPowerModel, n::Int, i::Int)
-    pshift_up = _PM.var(pm, n, :pshift_up, i)
+function constraint_flex_bounds_ne(pm::_PM.AbstractPowerModel, n::Int, i::Int, pd, pshift_up_rel_max, pshift_down_rel_max, pred_rel_max)
+    pshift_up   = _PM.var(pm, n, :pshift_up, i)
     pshift_down = _PM.var(pm, n, :pshift_down, i)
-    pnce = _PM.var(pm, n, :pnce, i)
-    z = _PM.var(pm, n, :z_flex, i)
-
-    pshift_up_max = JuMP.upper_bound(pshift_up)
-    pshift_down_max = JuMP.upper_bound(pshift_down)
-    pnce_max = JuMP.upper_bound(pnce)
+    pred        = _PM.var(pm, n, :pred, i)
+    z           = _PM.var(pm, n, :z_flex, i)
 
     # Bounds on the demand flexibility decision variables (demand shifting and voluntary load reduction)
-    JuMP.@constraint(pm.model, pshift_up <= pshift_up_max * z)
-    JuMP.@constraint(pm.model, pshift_down <= pshift_down_max * z)
-    JuMP.@constraint(pm.model, pnce <= pnce_max * z)
-
+    JuMP.@constraint(pm.model, pshift_up   <=   pshift_up_rel_max * pd * z)
+    JuMP.@constraint(pm.model, pshift_down <= pshift_down_rel_max * pd * z)
+    JuMP.@constraint(pm.model, pred        <=        pred_rel_max * pd * z)
 end
 
 function constraint_total_flexible_demand(pm::_PM.AbstractPowerModel, n::Int, i, pd, pf_angle)
     pflex       = _PM.var(pm, n, :pflex, i)
     qflex       = _PM.var(pm, n, :qflex, i)
     pcurt       = _PM.var(pm, n, :pcurt, i)
-    pnce        = _PM.var(pm, n, :pnce, i)
+    pred        = _PM.var(pm, n, :pred, i)
     pshift_up   = _PM.var(pm, n, :pshift_up, i)
     pshift_down = _PM.var(pm, n, :pshift_down, i)
 
     # Active power demand is the reference demand `pd` plus the contributions from all the demand flexibility decision variables
-    JuMP.@constraint(pm.model, pflex == pd - pcurt - pnce + pshift_up - pshift_down)
+    JuMP.@constraint(pm.model, pflex == pd - pcurt - pred + pshift_up - pshift_down)
 
     # Reactive power demand is given by the active power demand and the power factor angle of the load
     JuMP.@constraint(pm.model, qflex == tan(pf_angle) * pflex)
@@ -371,18 +362,18 @@ end
 function constraint_total_flexible_demand(pm::_PM.AbstractActivePowerModel, n::Int, i, pd, pf_angle)
     pflex       = _PM.var(pm, n, :pflex, i)
     pcurt       = _PM.var(pm, n, :pcurt, i)
-    pnce        = _PM.var(pm, n, :pnce, i)
+    pred        = _PM.var(pm, n, :pred, i)
     pshift_up   = _PM.var(pm, n, :pshift_up, i)
     pshift_down = _PM.var(pm, n, :pshift_down, i)
 
     # Active power demand is the reference demand `pd` plus the contributions from all the demand flexibility decision variables
-    JuMP.@constraint(pm.model, pflex == pd - pcurt - pnce + pshift_up - pshift_down)
+    JuMP.@constraint(pm.model, pflex == pd - pcurt - pred + pshift_up - pshift_down)
 end
 
 function constraint_total_fixed_demand(pm::_PM.AbstractPowerModel, n::Int, i, pd, pf_angle)
-    pflex       = _PM.var(pm, n, :pflex, i)
-    qflex       = _PM.var(pm, n, :qflex, i)
-    pcurt       = _PM.var(pm, n, :pcurt, i)
+    pflex = _PM.var(pm, n, :pflex, i)
+    qflex = _PM.var(pm, n, :qflex, i)
+    pcurt = _PM.var(pm, n, :pcurt, i)
 
     # Active power demand is the difference between reference demand `pd` and involuntary curtailment
     JuMP.@constraint(pm.model, pflex == pd - pcurt)
@@ -392,87 +383,79 @@ function constraint_total_fixed_demand(pm::_PM.AbstractPowerModel, n::Int, i, pd
 end
 
 function constraint_total_fixed_demand(pm::_PM.AbstractActivePowerModel, n::Int, i, pd, pf_angle)
-    pflex       = _PM.var(pm, n, :pflex, i)
-    pcurt       = _PM.var(pm, n, :pcurt, i)
+    pflex = _PM.var(pm, n, :pflex, i)
+    pcurt = _PM.var(pm, n, :pcurt, i)
 
     # Active power demand is the difference between reference demand `pd` and involuntary curtailment
     JuMP.@constraint(pm.model, pflex == pd - pcurt)
 end
 
-function constraint_ence_state_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int, time_elapsed)
-    pnce = _PM.var(pm, n, :pnce, i)
-    ence = _PM.var(pm, n, :ence, i)
+function constraint_red_state_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int, time_elapsed)
+    pred = _PM.var(pm, n, :pred, i)
+    ered = _PM.var(pm, n, :ered, i)
 
     # Initialization of not consumed energy variable (accumulated voluntary load reduction)
-    JuMP.@constraint(pm.model, ence == time_elapsed * pnce)
+    JuMP.@constraint(pm.model, ered == time_elapsed * pred)
 end
 
-function constraint_ence_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int, time_elapsed)
-    pnce = _PM.var(pm, n_2, :pnce, i)
-    ence_2 = _PM.var(pm, n_2, :ence, i)
-    ence_1 = _PM.var(pm, n_1, :ence, i)
+function constraint_red_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int, time_elapsed)
+    pred   = _PM.var(pm, n_2, :pred, i)
+    ered_2 = _PM.var(pm, n_2, :ered, i)
+    ered_1 = _PM.var(pm, n_1, :ered, i)
 
     # Accumulation of not consumed energy (accumulation of voluntary load reduction for each time step)
-    JuMP.@constraint(pm.model, ence_2 - ence_1 == time_elapsed * pnce)
+    JuMP.@constraint(pm.model, ered_2 - ered_1 == time_elapsed * pred)
 end
 
-function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, n::Int, i::Int, start_grace::Int, placeholder::Nothing) # Placeholder is to distinguish constraint template and constraint implementation through multiple dispatch
-    pshift_up = _PM.var(pm, n, :pshift_up, i)
-    pshift_up_max = JuMP.upper_bound(pshift_up)
-
-    # Applying grace/recovery period for upward demand shifting: Demand shifted for one time step reduced the demand that can
-    # be shifted in subsequent time steps
-    JuMP.@constraint(pm.model, pshift_up <= pshift_up_max - sum(_PM.var(pm, t, :pshift_up, i) for t in start_grace:n-1))
+function constraint_shift_duration_up(pm::_PM.AbstractPowerModel, n::Int, i::Int, pd, pshift_up_rel_max, start_period::Int)
+    # Apply an upper bound to the demand shifted upward during the recovery period
+    JuMP.@constraint(pm.model, sum(_PM.var(pm, t, :pshift_up, i) for t in start_period:n) <= pshift_up_rel_max * pd)
 end
 
-function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, n::Int, i::Int, start_grace::Int, placeholder::Nothing) # Placeholder is to distinguish constraint template and constraint implementation through multiple dispatch
-    pshift_down = _PM.var(pm, n, :pshift_down, i)
-    pshift_down_max = JuMP.upper_bound(pshift_down)
-
-    # Applying grace/recovery period for downward demand shifting: Demand shifted for one time step reduced the demand that can
-    # be shifted in subsequent time steps
-    JuMP.@constraint(pm.model, pshift_down <= pshift_down_max - sum(_PM.var(pm, t, :pshift_down, i) for t in start_grace:n-1))
+function constraint_shift_duration_down(pm::_PM.AbstractPowerModel, n::Int, i::Int, pd, pshift_down_rel_max, start_period::Int)
+    # Apply an upper bound to the demand shifted downward during the recovery period
+    JuMP.@constraint(pm.model, sum(_PM.var(pm, t, :pshift_down, i) for t in start_period:n) <= pshift_down_rel_max * pd)
 end
 
 function constraint_shift_up_state_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int, time_elapsed)
     pshift_up = _PM.var(pm, n, :pshift_up, i)
-    pshift_up_tot = _PM.var(pm, n, :pshift_up_tot, i)
+    eshift_up = _PM.var(pm, n, :eshift_up, i)
 
     # Initialization of accumulated upward demand shifting variable
-    JuMP.@constraint(pm.model, pshift_up_tot == time_elapsed * pshift_up)
+    JuMP.@constraint(pm.model, eshift_up == time_elapsed * pshift_up)
 end
 
 function constraint_shift_up_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int, time_elapsed)
-    pshift_up = _PM.var(pm, n_2, :pshift_up, i)
-    pshift_up_tot_2 = _PM.var(pm, n_2, :pshift_up_tot, i)
-    pshift_up_tot_1 = _PM.var(pm, n_1, :pshift_up_tot, i)
+    pshift_up   = _PM.var(pm, n_2, :pshift_up, i)
+    eshift_up_2 = _PM.var(pm, n_2, :eshift_up, i)
+    eshift_up_1 = _PM.var(pm, n_1, :eshift_up, i)
 
     # Accumulation of upward demand shifting for each time step
-    JuMP.@constraint(pm.model, pshift_up_tot_2 - pshift_up_tot_1 == time_elapsed * pshift_up)
+    JuMP.@constraint(pm.model, eshift_up_2 - eshift_up_1 == time_elapsed * pshift_up)
 end
 
 function constraint_shift_down_state_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int, time_elapsed)
     pshift_down = _PM.var(pm, n, :pshift_down, i)
-    pshift_down_tot = _PM.var(pm, n, :pshift_down_tot, i)
+    eshift_down = _PM.var(pm, n, :eshift_down, i)
 
     # Initialization of accumulated downward demand shifting variable
-    JuMP.@constraint(pm.model, pshift_down_tot == time_elapsed * pshift_down)
+    JuMP.@constraint(pm.model, eshift_down == time_elapsed * pshift_down)
 end
 
 function constraint_shift_down_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int, time_elapsed)
-    pshift_down = _PM.var(pm, n_2, :pshift_down, i)
-    pshift_down_tot_2 = _PM.var(pm, n_2, :pshift_down_tot, i)
-    pshift_down_tot_1 = _PM.var(pm, n_1, :pshift_down_tot, i)
+    pshift_down   = _PM.var(pm, n_2, :pshift_down, i)
+    eshift_down_2 = _PM.var(pm, n_2, :eshift_down, i)
+    eshift_down_1 = _PM.var(pm, n_1, :eshift_down, i)
 
     # Accumulation of downward demand shifting for each time step
-    JuMP.@constraint(pm.model, pshift_down_tot_2 - pshift_down_tot_1 == time_elapsed * pshift_down)
+    JuMP.@constraint(pm.model, eshift_down_2 - eshift_down_1 == time_elapsed * pshift_down)
 end
 
 function constraint_shift_state_final(pm::_PM.AbstractPowerModel, n::Int, i::Int)
-    pshift_up_tot = _PM.var(pm, n, :pshift_up_tot, i)
-    pshift_down_tot = _PM.var(pm, n, :pshift_down_tot, i)
+    eshift_up   = _PM.var(pm, n, :eshift_up, i)
+    eshift_down = _PM.var(pm, n, :eshift_down, i)
 
     # The accumulated upward demand shifting over the operational planning horizon should equal the accumulated downward
     # demand shifting (since this is demand shifted and not reduced or curtailed)
-    JuMP.@constraint(pm.model, pshift_up_tot == pshift_down_tot)
+    JuMP.@constraint(pm.model, eshift_up == eshift_down)
 end
