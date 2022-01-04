@@ -4,7 +4,7 @@ export reliability_tnep
 function reliability_tnep(data::Dict{String,Any}, model_type::Type, solver; kwargs...)
     return _PM.run_model(
         data, model_type, solver, post_reliability_tnep;
-        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
         kwargs...
     )
 end
@@ -199,9 +199,9 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
             for i in _PM.ids(pm, :load, nw = n_2)
                 if _PM.ref(pm, n_2, :load, i, "flex") == 1
                     constraint_ence_state(pm, i, n_1, n_2)
-                    constraint_shift_up_state(pm, n_1, n_2, i)
-                    constraint_shift_down_state(pm, n_1, n_2, i)
-                    constraint_shift_duration(pm, network_ids[1], n_2, i)
+                    constraint_shift_up_state(pm, i, n_1, n_2)
+                    constraint_shift_down_state(pm, i, n_1, n_2)
+                    constraint_shift_duration(pm, i, network_ids[1], n_2)
                 end
             end
             n_1 = n_2

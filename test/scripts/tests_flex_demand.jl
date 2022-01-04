@@ -1,5 +1,5 @@
 #%%
-# Import relevant pakcages:
+# Import relevant packages:
 # FlexPlan uses PowerModelsACDC for the multi-period transmission expansion optimisation & DC grid
 # PowerModelsACDC uses PowerModels for the AC grid, and the optimisation create_profile_data
 # InfrastructureModels is needed for data manipulation and common functions
@@ -37,10 +37,11 @@ cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
 # TEST SCRIPT to run multi-period optimisation of demand flexibility, AC & DC lines and storage investments
 
 # Input parameters:
-number_of_hours = 96        # Number of time steps
-start_hour = 1              # First time step
-n_loads = 5                 # Number of load points
-i_load_mod = 5              # The load point on which we modify the demand profile
+number_of_hours = 96               # Number of time steps
+start_hour = 1                     # First time step
+n_loads = 5                        # Number of load points
+i_load_mod = 5                     # The load point on which we modify the demand profile
+out_dir = "test/data/output_files" # Output directory
 
 file = "./test/data/case6_flex.m" # Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines, flexible demand and candidate storage
 
@@ -60,14 +61,14 @@ day = 3
 loadprofile[mins[day-1]:mins[day]] *= 2.5
 
 # Data manipulation (per unit conversions and matching data models)
-data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
-_PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
-_FP.add_flexible_demand_data!(data) # Add flexible data model
+data = _FP.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
+_FP.add_dimension!(data, :hour, number_of_hours)
+_FP.add_dimension!(data, :year, 1)
 
 
 extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
-mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+mn_data = _FP.make_multinetwork(data, extradata)
 
 # Add PowerModels(ACDC) settings
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
@@ -80,12 +81,12 @@ result_test1 = _FP.flex_tnep(mn_data, _PM.DCPPowerModel, cbc; setting = s)
 # Plot branch flows to bus 5
 p_flow_1 = plot_branch_flow(result_test1,1,data,"branchdc")
 p_flow_2 = plot_branch_flow(result_test1,2,data,"branchdc")
-savefig(p_flow_1,"branch_flow_1")
-savefig(p_flow_2,"branch_flow_2")
+savefig(p_flow_1, joinpath(out_dir,"branch_flow_1.png"))
+savefig(p_flow_2, joinpath(out_dir,"branch_flow_2.png"))
 
 # Check if new DC branch is built and plot flow
 p_flow_ne = plot_branch_flow(result_test1,3,data,"branchdc_ne")
-savefig(p_flow_ne,"ne_branch_flow")
+savefig(p_flow_ne, joinpath(out_dir,"ne_branch_flow.png"))
 
 # Check if new AC branch is built
 plot_branch_flow(result_test1,1,data,"ne_branch")
@@ -93,7 +94,7 @@ plot_branch_flow(result_test1,1,data,"ne_branch")
 # Plot exemplary (flexible) load
 p_flex = plot_flex_demand(result_test1,5,data,extradata)
 plot!(title = "max energy not served: 1000 MWh and max energy reduction: 100 MWh")
-savefig(p_flex,"flex_demand_e_nce_1000MWh_p_red_100MWh")
+savefig(p_flex, joinpath(out_dir,"flex_demand_e_nce_1000MWh_p_red_100MWh.png"))
 
 ## Espen
 
@@ -149,7 +150,7 @@ plot!(t_vec, load5_input, color=:red, width=3.0, label="base demand", line=:dash
 plot_res!(result_test1, "load", string(bus_nr),"pflex", label="flexible demand",
           ylabel="power (p.u.)", color=:blue, width=3.0, line=:dash, gridalpha=0.5)
 #... save figure
-savefig(stacked_plot, "bus5_balance.png")
+savefig(stacked_plot, joinpath(out_dir,"bus5_balance.png"))
 
 # Plot energy not served
 plot_not_served = plot_res(result_test1, "load", "5", "ence", color=:black, width=3.0,
@@ -168,7 +169,7 @@ plot!([0], label = "total energy not served", color=:black, width=3.0, showaxis=
 #   and the legend on the side (with a given width -> .2w)
 vertical_plot = plot(stacked_plot, plot_not_served, v1legend, layout = @layout([[A; B] C{.22w}]),
                      size=(700, 400))
-savefig(vertical_plot, "bus5_balance_vertical.png")
+savefig(vertical_plot, joinpath(out_dir,"bus5_balance_vertical.png"))
 
 # Plot the shifted demand
 stack_series = select(load5, :pshift_up)
@@ -191,7 +192,7 @@ stackedarea!([0],[0], showaxis=false, grid=false, label="load shift down", legen
 #   and the legend on the side (with a given width -> .2w)
 vshift_plot = plot(stacked_plot, plot_energy_shift, v2legend, layout = @layout([[A; B] C{.2w}]),
                    size=(700, 400))
-savefig(vshift_plot, "bus5_balance_vshift.png")
+savefig(vshift_plot, joinpath(out_dir,"bus5_balance_vshift.png"))
 
 # Plot all variables of unit
 plot_res(result_test1, "load", "5")
@@ -229,7 +230,7 @@ end
 m_cost = sort(m_cost)
 ma_linecost = plot(m_cost)
 scatter!(m_cost, ylabel="Objective value", xaxis=ax_type, legend=false)
-savefig(ma_linecost, "ma_linecost.png")
+savefig(ma_linecost, joinpath(out_dir,"ma_linecost.png"))
 
 #res_var_1 = get_res(m_res[100], m_utype, m_unit)
 #res_var_1_10 = get_res(m_res[300], m_utype, m_unit)
@@ -253,7 +254,7 @@ new_dcbranches = plot_var(isbuilt, :pval, xaxis=ax_type, seriestype=:scatter,
 
 dcbranch_inv_plot = plot(ma_linecost, new_dcbranches, layout = @layout([A; B]),
          size=(700, 400))
-savefig(dcbranch_inv_plot, "branch_inv_plot.png")
+savefig(dcbranch_inv_plot, joinpath(out_dir,"branch_inv_plot.png"))
 
 
 ## Plot results
@@ -278,7 +279,7 @@ plot!(t_vec, load5_input, color=:red, width=3.0, label="base demand", line=:dash
 plot_res!(res_plot, "load", string(bus_nr),"pflex", label="flexible demand",
           ylabel="power (p.u.)", color=:blue, width=3.0, line=:dash, gridalpha=0.5)
 #... save figure
-savefig(stacked_plot, "bus5_balance.png")
+savefig(stacked_plot, joinpath(out_dir,"bus5_balance.png"))
 
 # Plot energy not served
 plot_not_served = plot_res(res_plot, "load", "5", "ence", color=:black, width=3.0,
@@ -297,7 +298,7 @@ plot!([0], label = "total energy not served", color=:black, width=3.0, showaxis=
 #   and the legend on the side (with a given width -> .2w)
 vertical_plot = plot(stacked_plot, plot_not_served, v1legend, layout = @layout([[A; B] C{.22w}]),
                      size=(700, 400))
-savefig(vertical_plot, join(["bus5_balance_", pval, ".png"]))
+savefig(vertical_plot, joinpath(out_dir,"bus5_balance_$pval.png"))
 
 # Plot the shifted demand
 stack_series = select(load5, :pshift_up)
@@ -320,4 +321,4 @@ stackedarea!([0],[0], showaxis=false, grid=false, label="load shift down", legen
 #   and the legend on the side (with a given width -> .2w)
 vshift_plot = plot(stacked_plot, plot_energy_shift, v2legend, layout = @layout([[A; B] C{.2w}]),
                    size=(700, 400))
-savefig(vshift_plot, join(["bus5_balance_shift_", pval, ".png"]))
+savefig(vshift_plot, joinpath(out_dir,"bus5_balance_shift_$pval.png"))

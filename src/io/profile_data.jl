@@ -41,16 +41,16 @@ function add_flexible_demand_data!(data)
         # ID of load point
         idx = load_extra["load_id"]
 
-        # Superior bound on not consumed power (voluntary load reduction) (p.u., 0 \leq p_shift_up_max \leq 1)
+        # Superior bound on not consumed power (voluntary load reduction) as a fraction of the total reference demand (0 ≤ p_shift_up_max ≤ 1)
         data["load"]["$idx"]["p_red_max"] = load_extra["p_red_max"]
 
-        # Superior bound on upward demand shifted (p.u., 0 \leq p_shift_up_max \leq 1)
+        # Superior bound on upward demand shifted as a fraction of the total reference demand (0 ≤ p_shift_up_max ≤ 1)
         data["load"]["$idx"]["p_shift_up_max"] = load_extra["p_shift_up_max"]
 
-        # Superior bound on downward demand shifted (p.u., 0 \leq p_shift_up_max \leq 1)
+        # Superior bound on downward demand shifted as a fraction of the total reference demand (0 ≤ p_shift_down_max ≤ 1)
         data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]
 
-        # Maximum energy (accumulated load) shifted downward during time horizon (MWh)
+        # Superior bound on shifted energy as a fraction of the total reference demand (0 ≤ p_shift_down_tot_max ≤ 1)
         data["load"]["$idx"]["p_shift_down_tot_max"] = load_extra["p_shift_down_tot_max"]
 
         # Compensation for consuming less (i.e. voluntary demand reduction) (€/MWh)
@@ -79,7 +79,7 @@ function add_flexible_demand_data!(data)
         # Whether load is flexible (boolean)
         data["load"]["$idx"]["flex"] = load_extra["flex"]
 
-        # Maximum energy not consumed (accumulated voluntary load reduction) (MWh)
+        # Superior bound on energy not consumed as a fraction of the total reference demand (0 ≤ e_nce_max ≤ 1)
         data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
 
         # Expected lifetime of flexibility-enabling equipment (years)
@@ -107,7 +107,6 @@ function add_flexible_demand_data!(data)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_up", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_curtailment", rescale_cost)
-        _PM._apply_func!(data["load"]["$idx"], "e_nce_max", rescale_power)
         if haskey(load_extra, "cost_voll")
             _PM._apply_func!(data["load"]["$idx"], "cost_voll", rescale_cost)
         end
