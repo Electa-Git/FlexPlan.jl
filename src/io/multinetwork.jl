@@ -181,9 +181,9 @@ function _add_mn_global_values!(mn_data, sn_data, global_keys)
     get!(mn_data, "name", "multinetwork")
 end
 
-# Make a deep copy of `data` and remove global keys
+# Make a copy of `data` and remove global keys
 function _make_template_nw(sn_data, global_keys)
-    template_nw = deepcopy(sn_data)
+    template_nw = copy(sn_data)
     for k in global_keys
         delete!(template_nw, k)
     end
@@ -207,7 +207,7 @@ function _build_nw(template_nw, time_series, idx)
             nw[key] = copy(template_nw[key])
             for (l, element) in time_series[key]
                 if haskey(nw[key], l)
-                    nw[key][l] = deepcopy(template_nw[key][l])
+                    nw[key][l] = copy(template_nw[key][l])
                     for (m, property) in time_series[key][l]
                         if haskey(nw[key][l], m)
                             nw[key][l][m] = property[idx]
