@@ -209,11 +209,7 @@ function _build_nw(template_nw, time_series, idx)
                 if haskey(nw[key], l)
                     nw[key][l] = copy(template_nw[key][l])
                     for (m, property) in time_series[key][l]
-                        if haskey(nw[key][l], m)
-                            nw[key][l][m] = property[idx]
-                        else
-                            Memento.warn(_LOGGER, "Property $m for $key $l not found, will be ignored.")
-                        end
+                        nw[key][l][m] = property[idx]
                     end
                 else
                     Memento.warn(_LOGGER, "Key $l not found, will be ignored.")
