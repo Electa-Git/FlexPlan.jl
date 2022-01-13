@@ -161,7 +161,7 @@ function get_energy_contribution_at_bus(data::Dict, bus::Int)
          "load" => Dict("load_bus" =>Dict("pl" =>-1,
                                       #"pflex" => -1,
                                       "pd" => -1,
-                                      "pnce" => 1,
+                                      "pred" => 1,
                                       "pcurt" => 1,
                                       "pinter" => 1,
                                       "pshift_up" => -1,

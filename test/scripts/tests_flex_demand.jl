@@ -94,7 +94,7 @@ plot_branch_flow(result_test1,1,data,"ne_branch")
 # Plot exemplary (flexible) load
 p_flex = plot_flex_demand(result_test1,5,data,extradata)
 plot!(title = "max energy not served: 1000 MWh and max energy reduction: 100 MWh")
-savefig(p_flex, joinpath(out_dir,"flex_demand_e_nce_1000MWh_p_red_100MWh.png"))
+savefig(p_flex, joinpath(out_dir,"flex_demand_ered_1000MWh_pred_100MWh.png"))
 
 ## Espen
 
@@ -140,7 +140,7 @@ branchdc_ne_3 = get_res(result_test1, "branchdc_ne", "3")
 
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
-stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pnce) select(load5, :pcurt)]
+stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pred) select(load5, :pcurt)]
 stack_labels = ["dc branch 2" "new dc branch 3" "dc branch 1"  "reduced load" "curtailed load"]
 stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
 #... lines for base and flexible demand
@@ -153,7 +153,7 @@ plot_res!(result_test1, "load", string(bus_nr),"pflex", label="flexible demand",
 savefig(stacked_plot, joinpath(out_dir,"bus5_balance.png"))
 
 # Plot energy not served
-plot_not_served = plot_res(result_test1, "load", "5", "ence", color=:black, width=3.0,
+plot_not_served = plot_res(result_test1, "load", "5", "ered", color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
                            ylabel="energy (p.u.)", legend=false, gridalpha=0.5)
 
@@ -198,8 +198,7 @@ savefig(vshift_plot, joinpath(out_dir,"bus5_balance_vshift.png"))
 plot_res(result_test1, "load", "5")
 
 # Plot specified list of variables of unit
-shift_vars = ["pshift_down","pshift_down_tot","pshift_up","pshift_up_tot",
-              "pnce", "pcurt", "pflex"]
+shift_vars = ["pshift_down", "eshift_down", "pshift_up", "eshift_up", "pred", "pcurt", "pflex"]
 plot_res(result_test1, "load", "5", shift_vars)
 
 
@@ -209,8 +208,8 @@ include("../../test/io/get_marginal_analysis_results.jl")
 
 m_utype = "load"
 m_unit = "5"
-m_param = "cost_investment"
-inv_var = "isflex"
+m_param = "cost_inv"
+inv_var = "flex"
 #inv_var = "isbuilt"
 data["branchdc_ne"]["3"]["cost"] = 3.5
 marginal_param = Dict((m_utype, m_unit, m_param) => [1 10 100 1000 10000])
@@ -269,7 +268,7 @@ branchdc_ne_3 = get_res(res_plot, "branchdc_ne", "3")
 
 # Plot combined stacked area and line plot for energy balance in bus 5
 #... plot areas for power contribution from different sources
-stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pnce) select(load5, :pcurt)]
+stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pred) select(load5, :pcurt)]
 stack_labels = ["dc branch 2" "new dc branch 3" "dc branch 1"  "reduced load" "curtailed load"]
 stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
 #... lines for base and flexible demand
@@ -282,7 +281,7 @@ plot_res!(res_plot, "load", string(bus_nr),"pflex", label="flexible demand",
 savefig(stacked_plot, joinpath(out_dir,"bus5_balance.png"))
 
 # Plot energy not served
-plot_not_served = plot_res(res_plot, "load", "5", "ence", color=:black, width=3.0,
+plot_not_served = plot_res(res_plot, "load", "5", "ered", color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
                            ylabel="energy (p.u.)", legend=false, gridalpha=0.5)
 

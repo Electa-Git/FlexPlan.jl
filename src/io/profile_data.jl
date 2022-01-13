@@ -41,26 +41,26 @@ function add_flexible_demand_data!(data)
         # ID of load point
         idx = load_extra["load_id"]
 
-        # Superior bound on not consumed power (voluntary load reduction) as a fraction of the total reference demand (0 ≤ p_shift_up_max ≤ 1)
-        data["load"]["$idx"]["p_red_max"] = load_extra["p_red_max"]
+        # Superior bound on voluntary load reduction (not consumed power) as a fraction of the total reference demand (0 ≤ pred_rel_max ≤ 1)
+        data["load"]["$idx"]["pred_rel_max"] = load_extra["pred_rel_max"]
 
-        # Superior bound on upward demand shifted as a fraction of the total reference demand (0 ≤ p_shift_up_max ≤ 1)
-        data["load"]["$idx"]["p_shift_up_max"] = load_extra["p_shift_up_max"]
+        # Superior bound on upward demand shifted as a fraction of the total reference demand (0 ≤ pshift_up_rel_max ≤ 1)
+        data["load"]["$idx"]["pshift_up_rel_max"] = load_extra["pshift_up_rel_max"]
 
-        # Superior bound on downward demand shifted as a fraction of the total reference demand (0 ≤ p_shift_down_max ≤ 1)
-        data["load"]["$idx"]["p_shift_down_max"] = load_extra["p_shift_down_max"]
+        # Superior bound on downward demand shifted as a fraction of the total reference demand (0 ≤ pshift_down_rel_max ≤ 1)
+        data["load"]["$idx"]["pshift_down_rel_max"] = load_extra["pshift_down_rel_max"]
 
-        # Superior bound on shifted energy as a fraction of the total reference demand (0 ≤ p_shift_down_tot_max ≤ 1)
-        data["load"]["$idx"]["p_shift_down_tot_max"] = load_extra["p_shift_down_tot_max"]
+        # Superior bound on shifted energy as a fraction of the total reference demand (0 ≤ eshift_rel_max ≤ 1)
+        data["load"]["$idx"]["eshift_rel_max"] = load_extra["eshift_rel_max"]
 
         # Compensation for consuming less (i.e. voluntary demand reduction) (€/MWh)
-        data["load"]["$idx"]["cost_reduction"] = load_extra["cost_reduction"]
+        data["load"]["$idx"]["cost_red"] = load_extra["cost_red"]
 
         # Recovery period for upward demand shifting (h)
-        data["load"]["$idx"]["t_grace_up"] = load_extra["t_grace_up"]
+        data["load"]["$idx"]["tshift_up"] = load_extra["tshift_up"]
 
         # Recovery period for downward demand shifting (h)
-        data["load"]["$idx"]["t_grace_down"] = load_extra["t_grace_down"]
+        data["load"]["$idx"]["tshift_down"] = load_extra["tshift_down"]
 
         # Compensation for downward demand shifting (€/MWh)
         data["load"]["$idx"]["cost_shift_down"] = load_extra["cost_shift_down"]
@@ -71,16 +71,16 @@ function add_flexible_demand_data!(data)
         data["load"]["$idx"]["cost_shift_up"] = load_extra["cost_shift_up"]
 
         # Compensation for load curtailment (i.e. involuntary demand reduction) (€/MWh)
-        data["load"]["$idx"]["cost_curtailment"] = load_extra["cost_curt"]
+        data["load"]["$idx"]["cost_curt"] = load_extra["cost_curt"]
 
         # Investment costs for enabling flexible demand (€)
-        data["load"]["$idx"]["cost_investment"] = load_extra["cost_inv"]
+        data["load"]["$idx"]["cost_inv"] = load_extra["cost_inv"]
 
         # Whether load is flexible (boolean)
         data["load"]["$idx"]["flex"] = load_extra["flex"]
 
-        # Superior bound on energy not consumed as a fraction of the total reference demand (0 ≤ e_nce_max ≤ 1)
-        data["load"]["$idx"]["e_nce_max"] = load_extra["e_nce_max"]
+        # Superior bound on voluntary energy reduction as a fraction of the total reference demand (0 ≤ ered_rel_max ≤ 1)
+        data["load"]["$idx"]["ered_rel_max"] = load_extra["ered_rel_max"]
 
         # Expected lifetime of flexibility-enabling equipment (years)
         data["load"]["$idx"]["lifetime"] = load_extra["lifetime"]
@@ -103,10 +103,10 @@ function add_flexible_demand_data!(data)
         # Rescale cost and power input values to the p.u. values used internally in the model
         rescale_cost = x -> x*data["baseMVA"]
         rescale_power = x -> x/data["baseMVA"]
-        _PM._apply_func!(data["load"]["$idx"], "cost_reduction", rescale_cost)
+        _PM._apply_func!(data["load"]["$idx"], "cost_red", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_up", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift_down", rescale_cost)
-        _PM._apply_func!(data["load"]["$idx"], "cost_curtailment", rescale_cost)
+        _PM._apply_func!(data["load"]["$idx"], "cost_curt", rescale_cost)
         if haskey(load_extra, "cost_voll")
             _PM._apply_func!(data["load"]["$idx"], "cost_voll", rescale_cost)
         end
@@ -201,10 +201,10 @@ function _scale_operational_cost_data!(data, number_of_hours, year_scale_factor,
         _PM._apply_func!(gen, "cost", rescale)
     end
     for (l, load) in data["load"]
-        _PM._apply_func!(load, "cost_shift_up", rescale)     # Compensation for demand shifting
-        _PM._apply_func!(load, "cost_shift_down", rescale)   # Compensation for demand shifting
-        _PM._apply_func!(load, "cost_curtailment", rescale)  # Compensation for load curtailment (i.e. involuntary demand reduction)
-        _PM._apply_func!(load, "cost_reduction", rescale)    # Compensation for consuming less (i.e. voluntary demand reduction)
+        _PM._apply_func!(load, "cost_shift_up", rescale)   # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_shift_down", rescale) # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_curt", rescale)       # Compensation for load curtailment (i.e. involuntary demand reduction)
+        _PM._apply_func!(load, "cost_red", rescale)        # Compensation for not consumed energy (i.e. voluntary demand reduction)
     end
     _PM._apply_func!(data, "co2_emission_cost", rescale)
 end
@@ -245,7 +245,7 @@ function _scale_investment_cost_data!(data, number_of_years, year_idx, cost_scal
     end
     for (l, load) in data["load"]
         rescale = x -> min(remaining_years/load["lifetime"], 1.0) * cost_scale_factor * x
-        _PM._apply_func!(load, "cost_investment", rescale)
+        _PM._apply_func!(load, "cost_inv", rescale)
         _PM._apply_func!(load, "co2_cost", rescale)
     end
 end

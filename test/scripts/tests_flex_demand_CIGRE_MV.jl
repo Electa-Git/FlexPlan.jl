@@ -124,7 +124,7 @@ branch_new = get_res(result, "ne_branch","2")
 # Extract results for load points to monitor
 # (this code got quite ugly but I do not want to re-write/extend the get_vars functions right now...)
 pflex_load_mon = zeros(number_of_hours,1)
-pnce_load_mon = zeros(number_of_hours,1)
+pred_load_mon = zeros(number_of_hours,1)
 pcurt_load_mon = zeros(number_of_hours,1)
 pd_load_mon = zeros(number_of_hours,1)
 ence_load_mon = zeros(number_of_hours,1)
@@ -133,9 +133,9 @@ pshift_down_load_mon = zeros(number_of_hours,1)
 for i_load_mon in I_load_mon
       load_mon = get_res(result, "load", string(i_load_mon))
       global pflex_load_mon += _IT.select(load_mon, :pflex)
-      global pnce_load_mon += _IT.select(load_mon, :pnce)
+      global pred_load_mon += _IT.select(load_mon, :pred)
       global pcurt_load_mon += _IT.select(load_mon, :pcurt)
-      global ence_load_mon += _IT.select(load_mon, :ence)
+      global ered_load_mon += _IT.select(load_mon, :ered)
       global pshift_up_load_mon += _IT.select(load_mon, :pshift_up)
       global pshift_down_load_mon += _IT.select(load_mon, :pshift_down)
       global pd_load_mon += transpose(extradata["load"][string(i_load_mon)]["pd"])
@@ -168,7 +168,7 @@ else
       branch_new_flow = _IT.select(branch_new, :pt)*-1
 end
 bus_mod_balance = branch_congest_flow - pflex_load_other
-stack_series = [bus_mod_balance branch_new_flow pnce_load_mon pcurt_load_mon]
+stack_series = [bus_mod_balance branch_new_flow pred_load_mon pcurt_load_mon]
 stack_labels = ["branch flow old branch" "branch flow new branch" "reduced load at buses" "curtailed load at buses"]
 stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false, ylabel = "load (MW)")
 load_input = pd_load_mon + pd_load_other
@@ -177,8 +177,8 @@ load_flex = pflex_load_mon + pflex_load_other
 plot!(t_vec, load_flex, color=:blue, width=3.0, label="flexible demand", line=:dash)
 savefig(stacked_plot, joinpath(out_dir,"load_mod_balance.png"))
 
-# Plot energy not served (i.e. energy not consumed according to the nomenclature in D1.2)
-plot_not_served = plot(t_vec, ence_load_mon, color=:black, width=3.0,
+# Plot energy not served (i.e. energy not consumed according to the nomeredlature in D1.2)
+plot_not_served = plot(t_vec, ered_load_mon, color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
                            ylabel="energy (MWh)", legend=false, gridalpha=0.5)
 
