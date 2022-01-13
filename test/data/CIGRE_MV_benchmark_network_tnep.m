@@ -28,6 +28,9 @@ mpc.version = '2';
 %% system MVA base
 mpc.baseMVA = 1.0;
 
+%% conversion ratio between energy and power
+mpc.time_elapsed = 1.0
+
 %% bus data
 % bus_i type      pd       qd   gs   bs bus_area   vm   va base_kv zone    vmax    vmin
 mpc.bus = [

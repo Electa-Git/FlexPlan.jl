@@ -3,6 +3,7 @@
 function mpc = case67acdc_scopf
 mpc.version = '2';
 mpc.baseMVA = 100.0;
+mpc.time_elapsed = 1.0;
 
 %% area data
 %	area	refbus
@@ -287,6 +288,3 @@ mpc.branchdc = [
 					5       7       0.0012   0   0   1575    1575    1575     1;
 					3       9       0.0012   0   0   1575    1575    1575     1;
  ];
-
-
- 
