@@ -13,8 +13,11 @@
 
 ## Import packages and choose a solver
 
+using Memento
+_LOGGER = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script, also used by included files.
+
 import FlexPlan; const _FP = FlexPlan
-include("../io/create_profile.jl")
+include("../io/load_case.jl")
 include("../io/t-d_decoupling.jl")
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
@@ -22,53 +25,28 @@ optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
 ## Input parameters
 
-planning_horizon     =    10 # In years, to scale costs
-number_of_hours      =    24 # Number of hourly optimization periods
-start_period         =     1 # First period of profile data to use
-d_file               = "test/data/combined_td_model/d_cigre_more_storage.m" # Input case for distribution network
-energy_cost          =  50.0 # Cost of energy exchanged with transmission network [€/MWh]
-scale_gen            =   1.0 # Scaling factor of all generators
-scale_wind           =   6.0 # Scaling factor of wind generator
-scale_load           =   1.0 # Scaling factor of loads
-flex_load            = false # Toggles flexibility of loads
-ne_storage           =  true # Toggles candidate storage
-number_of_candidates =     4 # Number of flexibility candidates for each distribution network to be returned
-out_dir              = "./test/data/output_files/td_decoupling/" # Directory of output files
-plot                 =  true # Toggles plotting of results
+# Test case parameters
+flex_load         = false # Toggles flexibility of loads
+ne_storage        =  true # Toggles candidate storage
+scale_gen         =   1.0 # Scaling factor of all generators, wind included
+scale_wind        =   6.0 # Further scaling factor of wind generator
+scale_load        =   1.0 # Scaling factor of loads
+energy_cost       =  50.0 # Cost of energy exchanged with transmission network [€/MWh]
+year_scale_factor =    10 # How many years a representative year should represent
+number_of_hours   =    24 # Number of hourly optimization periods
+start_period      =     1 # First period of profile data to use
+
+# Procedure parameters
+number_of_candidates = 4 # Number of flexibility candidates for each distribution network to be returned
+
+# Script parameters
+out_dir = "./test/data/output_files/td_decoupling/" # Directory of output files
+plot = true # Toggles plotting of results
 
 
-## Distribution network instance
+## Load distribution network instance
 
-d_data = _FP.parse_file(d_file)
-_FP.add_dimension!(d_data, :hour, number_of_hours)
-_FP.add_dimension!(d_data, :scenario, Dict(1 => Dict{String,Any}("probability"=>1)), metadata = Dict{String,Any}("mc"=>true))
-_FP.add_dimension!(d_data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>planning_horizon))
-_FP.add_dimension!(d_data, :sub_nw, 1)
-
-# Set cost of energy exchanged with transmission network
-d_data["gen"]["14"]["ncost"] = 2
-d_data["gen"]["14"]["cost"] = [energy_cost, 0.0]
-
-# Scale wind generation
-d_data["gen"]["6"]["pmin"] *= scale_wind
-d_data["gen"]["6"]["pmax"] *= scale_wind
-d_data["gen"]["6"]["qmin"] *= scale_wind
-d_data["gen"]["6"]["qmax"] *= scale_wind
-
-# Toggle flexible demand
-for (l, load) in d_data["load"]
-    load["flex"] = flex_load ? 1 : 0
-end
-
-# Toggle candidate storage
-if !ne_storage
-    d_data["ne_storage"] = Dict{String,Any}()
-end
-
-_FP.scale_data!(d_data)
-_FP.add_td_coupling_data!(d_data; sub_nw = 1)
-d_time_series = create_profile_data_cigre(d_data, number_of_hours; start_period, scale_load, scale_gen) # Generate hourly time profiles for loads and generators, based on CIGRE benchmark distribution network.
-d_mn_data = _FP.make_multinetwork(d_data, d_time_series)
+d_mn_data = load_cigre_mv_eu(; flex_load, ne_storage, scale_gen, scale_wind, scale_load, energy_cost, year_scale_factor, number_of_hours, start_period)
 
 
 ## Solve problem
