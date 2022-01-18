@@ -37,14 +37,6 @@ out_dir              = "./test/data/output_files/td_decoupling/" # Directory of 
 plot                 =  true # Toggles plotting of results
 
 
-## Scenario
-
-scenario = Dict{String, Any}(
-    "hours" => number_of_hours,
-    "planning_horizon" => planning_horizon
-)
-
-
 ## Distribution network instance
 
 d_data = _FP.parse_file(d_file)
@@ -95,7 +87,7 @@ mkpath(out_dir)
 #import Plots
 #Plots.plotlyjs()
 
-# Kwargs: `plot_ext` can be used to set plot file extension; also all Plots kwargs are accepted. Example: plot_ext="png", dpi=300
+# Kwargs: `plot_ext` can be used to set plot file extension; also all Plots kwargs are accepted. Example: `plot_ext="png", dpi=300`
 report_dist_candidates_pcc_power(dist_candidates, out_dir; plot, candidate_ids)
 report_dist_candidates_branch(dist_candidates, out_dir, d_data; plot, candidate_ids)
 report_dist_candidates_storage(dist_candidates, out_dir; plot, candidate_ids)

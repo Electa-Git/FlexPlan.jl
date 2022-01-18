@@ -30,7 +30,7 @@ function run_td_coupling_model(data::Dict{String,Any}, build_function::Function,
     Memento.info(_LOGGER, "running $(String(nameof(build_function)))...")
     result = _PM.run_model(
         data, BFARadPowerModel, optimizer, build_function;
-        ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+        ref_extensions = [add_candidate_storage!, ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
         solution_processors = [_PM.sol_data_model!, sol_td_coupling!],
         multinetwork = true,
         kwargs...
@@ -406,7 +406,7 @@ function add_dist_candidate!(dist_candidates::Dict{String,Any}, name::String, r_
             built = _isbuilt(r_export, comp, built_keyword)
             for res in ctrl_res
                 if built ≠ _isbuilt(res, comp, built_keyword)
-                    Memento.error(_LOGGER, "Results of flex candidate \"$name\" have different $comp investment descisions.")
+                    Memento.error(_LOGGER, "Results of flex candidate \"$name\" have different $comp investment decisions.")
                 end
             end
             investment[comp] = Dict{String,Any}(ids[comp] .=> built)
