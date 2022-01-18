@@ -73,7 +73,7 @@ d_mn_data = _FP.make_multinetwork(d_data, d_time_series)
 
 ## Solve problem
 
-dist_candidates = _FP.solve_td_coupling_distribution(d_data, d_mn_data; optimizer, number_of_candidates)
+dist_candidates = _FP.solve_td_coupling_distribution(d_mn_data; optimizer, number_of_candidates)
 
 
 ## Result analysis and output
@@ -89,7 +89,7 @@ mkpath(out_dir)
 
 # Kwargs: `plot_ext` can be used to set plot file extension; also all Plots kwargs are accepted. Example: `plot_ext="png", dpi=300`
 report_dist_candidates_pcc_power(dist_candidates, out_dir; plot, candidate_ids)
-report_dist_candidates_branch(dist_candidates, out_dir, d_data; plot, candidate_ids)
+report_dist_candidates_branch(dist_candidates, out_dir, d_mn_data; plot, candidate_ids)
 report_dist_candidates_storage(dist_candidates, out_dir; plot, candidate_ids)
 
 report_dist_candidates_investment(dist_candidates, out_dir; candidate_ids)

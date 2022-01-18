@@ -84,13 +84,14 @@ end
 function report_dist_candidates_branch(
         dist_candidates::Dict{String,Any},
         out_dir::String,
-        sn_data::Dict{String,Any};
+        mn_data::Dict{String,Any};
         filename::String = "branch",
         candidate_ids::Vector{String} = sort(collect(keys(dist_candidates))),
         plot::Bool = true,
         plot_ext::String = "pdf",
         plot_kwargs...
     )
+    sn_data = mn_data["nw"]["$(first(_FP.nw_ids(mn_data; hour=1, scenario=1)))"]
     function _calc_p_rel(p, q, rated)
         p = abs(p)
         q = abs(q)

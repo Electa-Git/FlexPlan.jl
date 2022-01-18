@@ -1,5 +1,5 @@
 "Return some planning options for a dist network that also provide flexibility to transmission."
-function solve_td_coupling_distribution(sn_data::Dict{String,Any}, mn_data::Dict{String,Any}; optimizer, setting=Dict{String,Any}(), number_of_candidates)
+function solve_td_coupling_distribution(mn_data::Dict{String,Any}; optimizer, setting=Dict{String,Any}(), number_of_candidates)
     require_dim(mn_data, :sub_nw)
     if dim_length(mn_data, :sub_nw) > 1
         Memento.error(_LOGGER, "A single distribution network is required ($(dim_length(mn_data, :sub_nw)) found)")
@@ -13,7 +13,7 @@ function solve_td_coupling_distribution(sn_data::Dict{String,Any}, mn_data::Dict
     add_dist_candidate!(candidates, min_investments(mn_data, optimizer, setting)...)
     if number_of_candidates >= 2
         add_dist_candidate!(candidates, max_power(mn_data, optimizer, setting)...)
-        add_dist_candidates_cost!(candidates, sn_data)
+        add_dist_candidates_cost!(candidates, mn_data)
         if number_of_candidates > 2
             intermediate_costs = collect(range(candidates["min"]["cost"], candidates["max"]["cost"], length = number_of_candidates)[2:end-1])
             for i in 1:number_of_candidates-2
@@ -21,7 +21,7 @@ function solve_td_coupling_distribution(sn_data::Dict{String,Any}, mn_data::Dict
             end
         end
     end
-    add_dist_candidates_cost!(candidates, sn_data)
+    add_dist_candidates_cost!(candidates, mn_data)
     return candidates
 end
 
@@ -414,18 +414,29 @@ function add_dist_candidate!(dist_candidates::Dict{String,Any}, name::String, r_
     end
 end
 
-function add_dist_candidates_cost!(dist_candidates::Dict{String,Any}, sn_data::Dict{String,Any})
-    cost_lookup = Dict{String,Any}()
-    cl_ne_branch = cost_lookup["ne_branch"] = Dict{String,Any}()
-    for (b, branch) in sn_data["ne_branch"]
-        cl_ne_branch[b] = branch["construction_cost"]
-    end
-    cl_ne_storage = cost_lookup["ne_storage"] = Dict{String,Any}()
-    for (s, storage) in sn_data["ne_storage"]
-        cl_ne_storage[s] = storage["eq_cost"] + storage["inst_cost"]
+function add_dist_candidates_cost!(dist_candidates::Dict{String,Any}, mn_data::Dict{String,Any})
+
+    # Store investment cost of each network component regardless of whether it is built or not (it depends on dist candidate)
+    cost_lookup = Dict{Int,Any}()
+    for n in nw_ids(mn_data; hour=1, scenario=1)
+        sn_data = mn_data["nw"]["$n"]
+        cl_n = cost_lookup[n] = Dict{String,Any}()
+        if haskey(sn_data, "ne_branch")
+            cl_n_comp = cl_n["ne_branch"] = Dict{String,Float64}()
+            for (i,comp) in sn_data["ne_branch"]
+                cl_n_comp[i] = comp["construction_cost"]
+            end
+        end
+        if haskey(sn_data, "ne_storage")
+            cl_n_comp = cl_n["ne_storage"] = Dict{String,Float64}()
+            for (i,comp) in sn_data["ne_storage"]
+                cl_n_comp[i] = comp["eq_cost"] + comp["inst_cost"]
+            end
+        end
     end
 
+    # Compute the cost of each dist candidate
     for candidate in values(dist_candidates)
-        candidate["cost"] = sum( sum( cost_lookup[comp_name][id] * length(candidate["ids"]["nw"]) * built for (id, built) in comp_inv ) for (comp_name, comp_inv) in candidate["investment"])
+        candidate["cost"] = sum( sum( sum( cost_lookup[n][comp_name][id] * built for (id, built) in comp_inv) for (comp_name, comp_inv) in candidate["investment"]) for n in nw_ids(mn_data; hour=1, scenario=1))
     end
 end
