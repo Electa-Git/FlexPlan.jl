@@ -51,7 +51,7 @@ d_mn_data = load_cigre_mv_eu(; flex_load, ne_storage, scale_gen, scale_wind, sca
 
 ## Solve problem
 
-dist_candidates = _FP.solve_td_coupling_distribution(d_mn_data; optimizer, number_of_candidates)
+dist_candidates = _FP.solve_td_decoupling_distribution(d_mn_data; optimizer, number_of_candidates)
 
 
 ## Result analysis and output
