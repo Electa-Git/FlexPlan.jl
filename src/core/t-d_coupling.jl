@@ -127,8 +127,10 @@ function add_td_coupling_data!(d_data::Dict{String,Any}; sub_nw::Int, qs_ratio_b
 
     # Define an upper bound on the rated apparent power based on the rated power of existing and candidate branches connected to the reference bus
     d_s_rate = (
-          sum(branch["rate_a"] for (b,branch) in d_data["branch"]    if (branch["f_bus"]==d_ref_bus || branch["t_bus"]==d_ref_bus) && branch["br_status"]==1) # In t_bus here, the t stands for "to" (not for "transmission" as in the rest of the function)
-        + sum(branch["rate_a"] for (b,branch) in d_data["ne_branch"] if (branch["f_bus"]==d_ref_bus || branch["t_bus"]==d_ref_bus) && branch["br_status"]==1) # In t_bus here, the t stands for "to" (not for "transmission" as in the rest of the function)
+        # `Float64[...]` is to prevent `ArgumentError: reducing over an empty collection is not allowed` in case at least one of the following collections is empty.
+        # TODO: when dropping support for Julia < 1.6, remove `Float64[...]` and use `init=0.0` keyword argument of `sum`.
+          sum(Float64[branch["rate_a"] for (b,branch) in d_data["branch"]    if (branch["f_bus"]==d_ref_bus || branch["t_bus"]==d_ref_bus) && branch["br_status"]==1]) # In t_bus here, the t stands for "to" (not for "transmission" as in the rest of the function)
+        + sum(Float64[branch["rate_a"] for (b,branch) in d_data["ne_branch"] if (branch["f_bus"]==d_ref_bus || branch["t_bus"]==d_ref_bus) && branch["br_status"]==1]) # In t_bus here, the t stands for "to" (not for "transmission" as in the rest of the function)
     )
 
     # Add a coupling generator connected to d_ref_bus (or use existing one) to model the transmission network
