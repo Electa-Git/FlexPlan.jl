@@ -18,7 +18,7 @@ _LOGGER = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script, also 
 
 import FlexPlan; const _FP = FlexPlan
 include("../io/load_case.jl")
-include("../io/t-d_decoupling.jl")
+include("../io/td_decoupling.jl")
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
