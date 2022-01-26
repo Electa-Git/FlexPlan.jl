@@ -1,8 +1,8 @@
 function mpc = CIGRE_MV_benchmark_network_with_costs
 % CIGRE_MV_BENCHMARK_NETWORK_WITH_COSTS Returns MATPOWER case for the CIGRE medium-voltage benchmark network with generator cost
-% 
+%
 % References:
-% [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed 
+% [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed
 % Energy Resources", CIGRE, Technical Brochure 575, 2014.
 %
 % EDITS:
@@ -18,6 +18,9 @@ mpc.version = '2';
 %%-----  Power Flow Data  -----%%
 %% system MVA base
 mpc.baseMVA = 1;
+
+%% conversion ratio between energy and power
+mpc.time_elapsed = 1.0
 
 %% bus data
 % bus_i type      pd       qd   gs   bs bus_area   vm   va base_kv zone    vmax    vmin

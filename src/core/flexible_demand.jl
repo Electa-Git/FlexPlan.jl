@@ -214,7 +214,7 @@ end
 function constraint_flexible_demand_activation(pm::_PM.AbstractPowerModel, i::Int, prev_nws::Vector{Int}, nw::Int)
     investment_horizon = [nw]
     lifetime = _PM.ref(pm, nw, :load, i, "lifetime")
-    for n in Iterators.reverse(prev_nws[1:min(lifetime-1,length(prev_nws))])
+    for n in Iterators.reverse(prev_nws[max(end-lifetime+2,1):end])
         i in _PM.ids(pm, n, :load) ? push!(investment_horizon, n) : break
     end
     constraint_flexible_demand_activation(pm, nw, i, investment_horizon)
