@@ -144,12 +144,10 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
         end
 
         for i in _PM.ids(pm, :storage, nw=n)
-            constraint_storage_excl_slack(pm, i, nw = n)
             _PM.constraint_storage_thermal_limit(pm, i, nw = n)
             _PM.constraint_storage_losses(pm, i, nw = n)
         end
         for i in _PM.ids(pm, :ne_storage, nw=n)
-            constraint_storage_excl_slack_ne(pm, i, nw = n)
             constraint_storage_thermal_limit_ne(pm, i, nw = n)
             constraint_storage_losses_ne(pm, i, nw = n)
             constraint_storage_bounds_ne(pm, i, nw = n)
@@ -287,12 +285,10 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel)
         end
 
         for i in _PM.ids(pm, :storage, nw=n)
-            constraint_storage_excl_slack(pm, i, nw = n)
             _PM.constraint_storage_thermal_limit(pm, i, nw = n)
             _PM.constraint_storage_losses(pm, i, nw = n)
         end
         for i in _PM.ids(pm, :ne_storage, nw=n)
-            constraint_storage_excl_slack_ne(pm, i, nw = n)
             constraint_storage_thermal_limit_ne(pm, i, nw = n)
             constraint_storage_losses_ne(pm, i, nw = n)
             constraint_storage_bounds_ne(pm, i, nw = n)
