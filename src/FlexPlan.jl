@@ -28,9 +28,10 @@ __init__() = Memento.register(_LOGGER)
 
 
 include("prob/dist.jl")
+include("prob/storage_tnep.jl")
 include("prob/flexible_tnep.jl")
 include("prob/stochastic_flexible_tnep.jl")
-include("prob/storage_tnep.jl")
+include("prob/simple_stochastic_flexible_tnep.jl")
 include("prob/reliability_tnep.jl")
 
 include("io/common.jl")
