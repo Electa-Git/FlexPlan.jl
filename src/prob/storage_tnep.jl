@@ -5,7 +5,7 @@ function strg_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs..
     require_dim(data, :hour, :year)
     return _PM.run_model(
         data, model_type, optimizer, post_strg_tnep;
-        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, ref_add_storage!, ref_add_ne_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
         multinetwork = true,
         kwargs...
     )
@@ -16,7 +16,7 @@ function strg_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFMode
     require_dim(data, :hour, :year)
     return _PM.run_model(
         data, model_type, optimizer, post_strg_tnep;
-        ref_extensions = [add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+        ref_extensions = [ref_add_storage!, ref_add_ne_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
         solution_processors = [_PM.sol_data_model!],
         multinetwork = true,
         kwargs...
@@ -150,11 +150,15 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
         if is_first_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, nw = n)
+            end
+            for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption(pm, i, nw = n)
             end
 
             for i in _PM.ids(pm, :ne_storage, nw = n)
                 constraint_storage_state_ne(pm, i, nw = n)
+            end
+            for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption_ne(pm, i, nw = n)
             end
         else
@@ -172,10 +176,14 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
             prev_n = prev_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, prev_n, n)
+            end
+            for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption(pm, i, prev_n, n)
             end
             for i in _PM.ids(pm, :ne_storage, nw = n)
                 constraint_storage_state_ne(pm, i, prev_n, n)
+            end
+            for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption_ne(pm, i, prev_n, n)
             end
         end
@@ -264,11 +272,15 @@ function post_strg_tnep(pm::_PM.AbstractBFModel)
         if is_first_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, nw = n)
+            end
+            for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption(pm, i, nw = n)
             end
 
             for i in _PM.ids(pm, :ne_storage, nw = n)
                 constraint_storage_state_ne(pm, i, nw = n)
+            end
+            for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption_ne(pm, i, nw = n)
             end
         else
@@ -286,10 +298,14 @@ function post_strg_tnep(pm::_PM.AbstractBFModel)
             prev_n = prev_id(pm, n, :hour)
             for i in _PM.ids(pm, :storage, nw = n)
                 constraint_storage_state(pm, i, prev_n, n)
+            end
+            for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption(pm, i, prev_n, n)
             end
             for i in _PM.ids(pm, :ne_storage, nw = n)
                 constraint_storage_state_ne(pm, i, prev_n, n)
+            end
+            for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption_ne(pm, i, prev_n, n)
             end
         end

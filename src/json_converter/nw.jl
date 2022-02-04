@@ -375,7 +375,6 @@ function make_storage(source::AbstractDict, index::Int, source_id::Vector{String
         "qmin"                  => source["minReactivePowerExchange"][y],
         "qmax"                  => source["maxReactivePowerExchange"][y],
         "self_discharge_rate"   => source["selfDischargeRate"][y],
-        "max_energy_absorption" => source["maxEnergyYear"][y],
         "r"                     => 0.0, # JSON API does not support `r`. Neither Flexplan.jl does (in lossless models), however a value is required by the constraint templates `_PM.constraint_storage_losses` and `_FP.constraint_storage_losses_ne`.
         "x"                     => 0.0, # JSON API does not support `x`. Neither Flexplan.jl does (in lossless models), however a value is required by the constraint templates `_PM.constraint_storage_losses` and `_FP.constraint_storage_losses_ne`.
         "p_loss"                => 0.0, # JSON API does not support `p_loss`. Neither Flexplan.jl does, however a value is required by the constraint templates `_PM.constraint_storage_losses` and `_FP.constraint_storage_losses_ne`.
@@ -386,5 +385,6 @@ function make_storage(source::AbstractDict, index::Int, source_id::Vector{String
     # limiting active or reactive power, even in the case of octagonal approximation of
     # apparent power.
     target["thermal_rating"] = 2 * max(target["charge_rating"], target["discharge_rating"], target["qmax"], -target["qmin"])
+    optional_value(target, "max_energy_absorption", source, "maxEnergyYear", y)
     return target
 end

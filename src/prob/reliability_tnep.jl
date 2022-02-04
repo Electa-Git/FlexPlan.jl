@@ -4,7 +4,7 @@ export reliability_tnep
 function reliability_tnep(data::Dict{String,Any}, model_type::Type, solver; kwargs...)
     return _PM.run_model(
         data, model_type, solver, post_reliability_tnep;
-        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, add_candidate_storage!, ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
         kwargs...
     )
 end
@@ -156,12 +156,16 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
         # NW = 1
         for i in _PM.ids(pm, :storage, nw = n_1)
             constraint_storage_state(pm, i, nw = n_1)
+        end
+        for i in _PM.ids(pm, :storage_bounded_absorption, nw = n_1)
             constraint_maximum_absorption(pm, i, nw = n_1)
         end
 
         for i in _PM.ids(pm, :ne_storage, nw = n_1)
             constraint_storage_state_ne(pm, i, nw = n_1)
-            constraint_maximum_absorption_ne(pm, i, nw = n_1)
+        end
+        for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
+            constraint_maximum_absorption_ne(pm, i, nw = n)
         end
 
         for i in _PM.ids(pm, :load, nw = n_1)
@@ -190,10 +194,14 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
         for n_2 in network_ids[2:end]
             for i in _PM.ids(pm, :storage, nw = n_2)
                 constraint_storage_state(pm, i, n_1, n_2)
+            end
+            for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption(pm, i, n_1, n_2)
             end
             for i in _PM.ids(pm, :ne_storage, nw = n_2)
                 constraint_storage_state_ne(pm, i, n_1, n_2)
+            end
+            for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption_ne(pm, i, n_1, n_2)
             end
             for i in _PM.ids(pm, :load, nw = n_2)
