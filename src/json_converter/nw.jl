@@ -17,6 +17,7 @@ function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::Abstr
         "shunt"        => Dict{String,Any}(),
         "storage"      => Dict{String,Any}(),
         "switch"       => Dict{String,Any}(),
+        "dcpol"        => 2, # Assumption: DC grid has 2 poles.
         "per_unit"     => true,
         "time_elapsed" => 1.0, # Assumption: each period lasts 1 hour.
     )
@@ -260,6 +261,7 @@ function make_branchdc(source::AbstractDict, index::Int, source_id::Vector{Strin
         "status"    => 1, # Assumption: all branches defined in JSON file are in service.
         "rateA"     => source["ratedActivePower"][y],
         "rateC"     => source["emergencyRating"],
+        "r"         => 0.0, # Assumption: zero resistance (the parameter is required by PowerModelsACDC but unused in lossless models).
     )
     return target
 end
@@ -293,6 +295,7 @@ function make_busdc(source::AbstractDict, index::Int, source_id::Vector{String})
         "Vdc"       => source["nominalVoltageMagnitude"],
         "Vdcmin"    => 0.9, # Assumption: minimum DC voltage is 0.9 p.u. for every DC bus
         "Vdcmax"    => 1.1, # Assumption: maximum DC voltage is 1.1 p.u. for every DC bus
+        "Pdc"       => 0.0, # Assumption: power withdrawn from DC bus is 0.0 p.u.
     )
     optional_value(target, "basekVdc", source, "baseVoltage")
     return target
@@ -300,18 +303,32 @@ end
 
 function make_convdc(source::AbstractDict, index::Int, source_id::Vector{String}, busac::Int, busdc::Int, typeac::Int, y::Int)
     target = Dict{String,Any}(
-        "index"     => index,
-        "source_id" => source_id,
-        "status"    => 1, # Assumption: all converters defined in JSON file are in service.
-        "busac_i"   => busac,
-        "busdc_i"   => busdc,
-        "type_ac"   => typeac,
-        "type_dc"   => 3, # Assumption: all converters defined in JSON file have DC droop.
-        "Vmmin"     => 0.9, # Required by PowerModelsACDC, but not relevant, since we use an approximation where voltage magnitude is 1.0 p.u. at each AC transmission network bus
-        "Vmmax"     => 1.1, # Required by PowerModelsACDC, but not relevant, since we use an approximation where voltage magnitude is 1.0 p.u. at each AC transmission network bus
-        "Pacrated"  => source["ratedActivePowerAC"][y],
-        "Pacmin"    => -source["ratedActivePowerAC"][y],
-        "Pacmax"    => source["ratedActivePowerAC"][y],
+        "index"       => index,
+        "source_id"   => source_id,
+        "status"      => 1, # Assumption: all converters defined in JSON file are in service.
+        "busac_i"     => busac,
+        "busdc_i"     => busdc,
+        "type_ac"     => typeac,
+        "type_dc"     => 3, # Assumption: all converters defined in JSON file have DC droop.
+        "Vmmin"       => 0.9, # Required by PowerModelsACDC, but not relevant, since we use an approximation where voltage magnitude is 1.0 p.u. at each AC transmission network bus
+        "Vmmax"       => 1.1, # Required by PowerModelsACDC, but not relevant, since we use an approximation where voltage magnitude is 1.0 p.u. at each AC transmission network bus
+        "Pacrated"    => source["ratedActivePowerAC"][y],
+        "Pacmin"      => -source["ratedActivePowerAC"][y],
+        "Pacmax"      => source["ratedActivePowerAC"][y],
+        "LossA"       => source["auxiliaryLosses"][y],
+        "LossB"       => source["linearLosses"][y],
+        "LossCinv"    => 0.0,
+        "Imax"        => 0.0, # Required by PowerModelsACDC, but unused in lossless models.
+        "transformer" => false, # Assumption: the converter is not a transformer.
+        "tm"          => 0.0, # Required by PowerModelsACDC, but unused, provided that the converter is not a transformer.
+        "rtf"         => 0.0, # Required by PowerModelsACDC, but unused, provided that the converter is not a transformer.
+        "xtf"         => 0.0, # Required by PowerModelsACDC, but unused, provided that the converter is not a transformer.
+        "reactor"     => false, # Assumption: the converter is not a reactor.
+        "rc"          => 0.0, # Required by PowerModelsACDC, but unused, provided that the converter is not a reactor.
+        "xc"          => 0.0, # Required by PowerModelsACDC, but unused, provided that the converter is not a reactor.
+        "filter"      => false, # Required by PowerModelsACDC, but unused, provided that the model is lossless.
+        "bf"          => 0.0, # Required by PowerModelsACDC, but unused, provided that the model is lossless.
+        "islcc"       => 0.0, # Required by PowerModelsACDC, but unused, provided that the model is DC.
     )
     return target
 end
