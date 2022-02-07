@@ -30,6 +30,6 @@ juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver" => ipopt
     include("dimensions.jl")
     include("bfarad.jl")
     include("flex_demand.jl")
-    include("test_unit_strg.jl")
+    include("storage.jl")
 
 end;
