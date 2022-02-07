@@ -14,41 +14,69 @@ end
 
 ""
 function post_reliability_tnep(pm::_PM.AbstractPowerModel)
-# VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code: flexible_demand.jl
+    # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code
     base_nw = [parse(Int, i) for i in keys(pm.ref[:contingency]["0"])] # reliability specific - networks (times) in base scenario without contingencies
     for n in nw_ids(pm)
-        _PM.variable_bus_voltage(pm; nw = n)
-        _PM.variable_gen_power(pm; nw = n)
-        _PM.variable_branch_power(pm; nw = n)
-        _PM.variable_storage_power(pm; nw = n)
 
-        _PMACDC.variable_voltage_slack(pm; nw = n)
-        _PMACDC.variable_active_dcbranch_flow(pm; nw = n)
-        _PMACDC.variable_dc_converter(pm; nw = n)
-        _PMACDC.variable_dcbranch_current(pm; nw = n)
+        # AC Bus
+        _PM.variable_bus_voltage(pm; nw = n)
+
+        # AC branch
+        _PM.variable_branch_power(pm; nw = n)
+
+        # DC bus
         _PMACDC.variable_dcgrid_voltage_magnitude(pm; nw = n)
+
+        # DC branch
+        _PMACDC.variable_active_dcbranch_flow(pm; nw = n)
+        _PMACDC.variable_dcbranch_current(pm; nw = n)
+
+        # AC-DC converter
+        _PMACDC.variable_dc_converter(pm; nw = n)
+
+        # Generator
+        _PM.variable_gen_power(pm; nw = n)
+
+        # Storage
+        _PM.variable_storage_power(pm; nw = n)
         variable_absorbed_energy(pm; nw = n)
-        variable_absorbed_energy_ne(pm; nw = n)
-        variable_flexible_demand(pm; nw = n)
-        if n ∉ base_nw
-            variable_demand_interruption(pm; nw = n) # reliability specific
-        end
-        # new variables for TNEP problem
-        variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
+
+        # Candidate AC branch
         variable_ne_branch_investment(pm; nw = n)
+        variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
         _PM.variable_ne_branch_power(pm; nw = n)
         _PM.variable_ne_branch_voltage(pm; nw = n)
-        variable_storage_power_ne(pm; nw = n)
-        _PMACDC.variable_active_dcbranch_flow_ne(pm; nw = n)
-        variable_ne_branchdc_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PMACDC.variable_branch_ne().
-        variable_ne_branchdc_investment(pm; nw = n)
-        variable_dc_converter_ne(pm; nw = n) # FlexPlan version: replaces _PMACDC.variable_dc_converter_ne().
-        _PMACDC.variable_dcbranch_current_ne(pm; nw = n)
+
+        # Candidate DC bus
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
+
+        # Candidate DC branch
+        variable_ne_branchdc_investment(pm; nw = n)
+        variable_ne_branchdc_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PMACDC.variable_branch_ne().
+        _PMACDC.variable_active_dcbranch_flow_ne(pm; nw = n)
+        _PMACDC.variable_dcbranch_current_ne(pm; nw = n)
+
+        # Candidate AC-DC converter
+        variable_dc_converter_ne(pm; nw = n) # FlexPlan version: replaces _PMACDC.variable_dc_converter_ne().
+        _PMACDC.variable_voltage_slack(pm; nw = n)
+
+        # Candidate storage
+        variable_storage_power_ne(pm; nw = n)
+        variable_absorbed_energy_ne(pm; nw = n)
+
+        # Flexible demand
+        variable_flexible_demand(pm; nw = n)
+
+        # Reliability
+        if n ∉ base_nw
+            variable_demand_interruption(pm; nw = n)
+        end
     end
-#OBJECTIVE see objective.jl
+
+    # OBJECTIVE: see objective.jl
     objective_reliability(pm) # reliability specific
-#CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code: flexible_demand.jl
+
+    # CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code
     for n in nw_ids(pm)
         _PM.constraint_model_voltage(pm; nw = n)
         _PM.constraint_ne_model_voltage(pm; nw = n)

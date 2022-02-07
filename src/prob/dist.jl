@@ -16,11 +16,17 @@ function opf_rad(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel}
 end
 
 function build_opf_rad(pm::_PM.AbstractBFModel)
+
+    # AC Bus
     _PM.variable_bus_voltage(pm)
-    _PM.variable_gen_power(pm)
+
+    # AC branch
     _PM.variable_branch_power(pm)
     _PM.variable_branch_current(pm)
     variable_oltc_branch_transform(pm)
+
+    # Generator
+    _PM.variable_gen_power(pm)
 
     _PM.objective_min_fuel_and_flow_cost(pm)
 
@@ -68,12 +74,19 @@ function tnep_rad(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel
 end
 
 function build_tnep_rad(pm::_PM.AbstractBFModel)
+
+    # AC bus
     _PM.variable_bus_voltage(pm)
-    _PM.variable_gen_power(pm)
+
+    # AC branch
     _PM.variable_branch_power(pm)
     _PM.variable_branch_current(pm)
     variable_oltc_branch_transform(pm)
 
+    # Generator
+    _PM.variable_gen_power(pm)
+
+    # Candidate AC branch
     _PM.variable_ne_branch_indicator(pm)
     _PM.variable_ne_branch_power(pm, bounded = false) # Bounds computed here would be too limiting in the case of ne_branches added in parallel
     variable_ne_branch_current(pm)
