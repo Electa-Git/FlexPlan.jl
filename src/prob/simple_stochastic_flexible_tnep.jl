@@ -194,7 +194,6 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             end
 
             for i in _PM.ids(pm, :flex_load, nw = n)
-                constraint_red_state(pm, i, nw = n)
                 constraint_shift_up_state(pm, i, nw = n)
                 constraint_shift_down_state(pm, i, nw = n)
             end
@@ -229,7 +228,6 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
                 constraint_maximum_absorption_ne(pm, i, prev_n, n)
             end
             for i in _PM.ids(pm, :flex_load, nw = n)
-                constraint_red_state(pm, i, prev_n, n)
                 constraint_shift_up_state(pm, i, prev_n, n)
                 constraint_shift_down_state(pm, i, prev_n, n)
                 constraint_shift_duration(pm, i, first_n, n)
@@ -354,7 +352,6 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel)
             end
 
             for i in _PM.ids(pm, :flex_load, nw = n)
-                constraint_red_state(pm, i, nw = n)
                 constraint_shift_up_state(pm, i, nw = n)
                 constraint_shift_down_state(pm, i, nw = n)
             end
@@ -390,7 +387,6 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel)
                 constraint_maximum_absorption_ne(pm, i, prev_n, n)
             end
             for i in _PM.ids(pm, :flex_load, nw = n)
-                constraint_red_state(pm, i, prev_n, n)
                 constraint_shift_up_state(pm, i, prev_n, n)
                 constraint_shift_down_state(pm, i, prev_n, n)
                 constraint_shift_duration(pm, i, first_n, n)

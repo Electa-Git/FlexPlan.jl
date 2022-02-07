@@ -80,7 +80,9 @@ function add_flexible_demand_data!(data)
         data["load"]["$idx"]["flex"] = load_extra["flex"]
 
         # Superior bound on voluntary energy reduction as a fraction of the total reference demand (0 ≤ ered_rel_max ≤ 1)
-        data["load"]["$idx"]["ered_rel_max"] = load_extra["ered_rel_max"]
+        if haskey(load_extra, "ered_rel_max")
+            data["load"]["$idx"]["ered_rel_max"] = load_extra["ered_rel_max"]
+        end
 
         # Expected lifetime of flexibility-enabling equipment (years)
         data["load"]["$idx"]["lifetime"] = load_extra["lifetime"]

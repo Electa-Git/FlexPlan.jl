@@ -7,7 +7,6 @@
 function variable_flexible_demand(pm::_PM.AbstractPowerModel; kwargs...)
     variable_total_flex_demand(pm; kwargs...)
     variable_demand_reduction(pm; kwargs...)
-    variable_energy_not_consumed(pm; kwargs...)
     variable_demand_shifting_upwards(pm; kwargs...)
     variable_total_demand_shifting_upwards(pm; kwargs...)
     variable_demand_shifting_downwards(pm; kwargs...)
