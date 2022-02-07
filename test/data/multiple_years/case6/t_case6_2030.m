@@ -141,17 +141,17 @@ mpc.storage = [
 ];
 
 %% storage additional data
-%column_names% max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
+%column_names% stationary_energy_inflow stationary_energy_outflow self_discharge_rate
 mpc.storage_extra = [
-                             2190000                        0                         0               0.001;
+                                      0                         0               0.001;
 ];
 
 %% storage data
 % Cost of battery storage: 350 k€/MWh; lifetime: 10 years
-%column_names% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating    qmin   qmax    r    x p_loss q_loss status max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate    eq_cost inst_cost co2_cost lifetime
+%column_names% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating    qmin   qmax    r    x p_loss q_loss status stationary_energy_inflow stationary_energy_outflow self_discharge_rate    eq_cost inst_cost co2_cost lifetime
 mpc.ne_storage = [
-                         2  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1               2190000                        0                         0               0.001  350000000         0      0.0       10;
-                         5  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1               2190000                        0                         0               0.001  350000000         0      0.0       10;
+                         2  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1                        0                         0               0.001  350000000         0      0.0       10;
+                         5  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1                        0                         0               0.001  350000000         0      0.0       10;
 ];
 
 

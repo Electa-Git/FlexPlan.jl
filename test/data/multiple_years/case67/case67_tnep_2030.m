@@ -318,22 +318,21 @@ mpc.storage = [
 ];
 
 %% storage additional data
-%column_names%  max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
+%column_names% stationary_energy_inflow stationary_energy_outflow self_discharge_rate
 mpc.storage_extra = [
-2400 0 0 1e-4;
+0 0 1e-4;
 ];
 
 
 %% storage data
-%column_names%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status eq_cost inst_cost co2_cost max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate lifetime
+%column_names%   storage_bus ps qs energy  energy_rating charge_rating  discharge_rating  charge_efficiency  discharge_efficiency  thermal_rating  qmin  qmax  r  x  p_loss  q_loss  status eq_cost inst_cost co2_cost stationary_energy_inflow stationary_energy_outflow self_discharge_rate lifetime
 mpc.ne_storage = [
-     26   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     250000000     50000000     1 2400 0 0 0.001 10;
-     42   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     250000000     50000000     1 2400 0 0 0.001 10;
-	 45   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     250000000     50000000     1 2400 0 0 0.001 10;
-	 51   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     250000000     50000000     1 2400 0 0 0.001 10;
-	 62   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     250000000     50000000     1 2400 0 0 0.001 10;
+     26   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     250000000     50000000     1 0 0 0.001 10;
+     42   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     250000000     50000000     1 0 0 0.001 10;
+	 45   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     250000000     50000000     1 0 0 0.001 10;
+	 51   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     250000000     50000000     1 0 0 0.001 10;
+	 62   0.0     0.0     0.0     1000.0  200.0   250.0   0.9     0.9     250     -50.0   70.0    0.1     0.0     0.0     0.0      1     250000000     50000000     1 0 0 0.001 10;
 ];
-
 
 
 %% load additional data
