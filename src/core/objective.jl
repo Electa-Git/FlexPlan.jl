@@ -205,8 +205,7 @@ function calc_load_operational_cost(pm::_PM.AbstractPowerModel, n::Int)
     flex_load = _PM.ref(pm, n, :flex_load)
     if !isempty(flex_load)
         cost += sum(
-            l["cost_shift_up"]*_PM.var(pm, n, :pshift_up, i)
-            + l["cost_shift_down"]*_PM.var(pm, n, :pshift_down, i)
+            l["cost_shift"]*_PM.var(pm, n, :pshift_up, i) # Do not add `:pshift_down`: would result in double counting.
             + l["cost_red"]*_PM.var(pm, n, :pred, i)
             + l["cost_curt"]*_PM.var(pm, n, :pcurt, i)
             for (i,l) in flex_load

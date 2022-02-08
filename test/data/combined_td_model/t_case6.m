@@ -157,11 +157,11 @@ mpc.ne_storage = [
 
 %% load additional data
 % Investment cost: 1 k€/MW; lifetime: 10 years
-%column_names% load_id ered_rel_max pred_rel_max pshift_up_rel_max pshift_down_rel_max eshift_rel_max tshift_up tshift_down cost_red cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost lifetime
+%column_names% load_id ered_rel_max pred_rel_max pshift_up_rel_max pshift_down_rel_max eshift_rel_max tshift_up tshift_down cost_red cost_shift cost_curt cost_inv flex co2_cost lifetime
 mpc.load_extra = [
-                     1         0.01          0.3               0.3                 1.0            0.1        10          10    100.0           0.0            10.0   10000.0    80000    1      0.0       10;
-                     2         0.01          0.3               0.3                 1.0            0.1        10          10    100.0           0.0            10.0   10000.0   240000    1      0.0       10;
-                     3         0.01          0.3               0.3                 1.0            0.1        10          10    100.0           0.0            10.0   10000.0    40000    1      0.0       10;
-                     4         0.01          0.3               0.3                 1.0            0.1        10          10    100.0           0.0            10.0   10000.0   160000    1      0.0       10;
-                     5         0.01          0.3               0.3                 1.0            0.1        10          10    100.0           0.0            10.0   10000.0   240000    1      0.0       10;
+                     1         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0    80000    1      0.0       10;
+                     2         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0   240000    1      0.0       10;
+                     3         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0    40000    1      0.0       10;
+                     4         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0   160000    1      0.0       10;
+                     5         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0   240000    1      0.0       10;
 ];

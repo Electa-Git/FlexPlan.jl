@@ -354,10 +354,7 @@ function make_load(source::AbstractDict, index::Int, source_id::Vector{String}, 
     optional_value(target, "eshift_rel_max",      source, "maxEnergyShifted",        y)
     optional_value(target, "cost_curt",           source, "valueOfLossLoad",         y)
     optional_value(target, "cost_red",            source, "compensationConsumeLess", y)
-    if haskey(source, "compensationDemandShift") && !isempty(source["compensationDemandShift"])
-        target["cost_shift_down"] = source["compensationDemandShift"][y]
-        target["cost_shift_up"] = 0.0 # To avoid double counting. An alternative would be to split `compensationDemandShift` equally between `cost_shift_down` and `cost_shift_up`.
-    end
+    optional_value(target, "cost_shift",          source, "compensationDemandShift", y)
     return target
 end
 

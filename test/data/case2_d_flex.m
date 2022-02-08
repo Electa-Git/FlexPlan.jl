@@ -28,7 +28,7 @@ mpc.branch = [
 ];
 
 %% load additional data
-%column_names% load_id pf_angle pshift_up_rel_max pshift_down_rel_max tshift_up tshift_down eshift_rel_max pred_rel_max ered_rel_max cost_shift_up cost_shift_down cost_red cost_curt  cost_inv flex co2_cost lifetime
+%column_names% load_id pf_angle pshift_up_rel_max pshift_down_rel_max tshift_up tshift_down eshift_rel_max pred_rel_max ered_rel_max cost_shift cost_red cost_curt  cost_inv flex co2_cost lifetime
 mpc.load_extra = [
-                     1   0.1974               0.5                 1.0         4           4            1.0         0.25         0.05           0.0            10.0    100.0   10000.0  100000.0    1      0.0       10;
+                     1   0.1974               0.5                 1.0         4           4            1.0         0.25         0.05       10.0    100.0   10000.0  100000.0    1      0.0       10;
 ];

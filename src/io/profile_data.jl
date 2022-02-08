@@ -68,13 +68,8 @@ function add_flexible_demand_data!(data)
             data["load"]["$idx"]["tshift_down"] = load_extra["tshift_down"]
         end
 
-        # Compensation for downward demand shifting (€/MWh)
-        data["load"]["$idx"]["cost_shift_down"] = load_extra["cost_shift_down"]
-
-        # Compensation for upward demand shifting (€/MWh); usually, the c_shift_up parameter should be set to zero
-        # to avoid double-counting of the flexibility activation cost, since demand shifted downwards at some point
-        # needs to be shifted upwards again
-        data["load"]["$idx"]["cost_shift_up"] = load_extra["cost_shift_up"]
+        # Compensation for demand shifting (€/MWh), applied only to the power shifted upward to avoid double counting
+        data["load"]["$idx"]["cost_shift"] = load_extra["cost_shift"]
 
         # Compensation for load curtailment (i.e. involuntary demand reduction) (€/MWh)
         data["load"]["$idx"]["cost_curt"] = load_extra["cost_curt"]
@@ -112,8 +107,7 @@ function add_flexible_demand_data!(data)
         rescale_cost = x -> x*data["baseMVA"]
         rescale_power = x -> x/data["baseMVA"]
         _PM._apply_func!(data["load"]["$idx"], "cost_red", rescale_cost)
-        _PM._apply_func!(data["load"]["$idx"], "cost_shift_up", rescale_cost)
-        _PM._apply_func!(data["load"]["$idx"], "cost_shift_down", rescale_cost)
+        _PM._apply_func!(data["load"]["$idx"], "cost_shift", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_curt", rescale_cost)
         if haskey(load_extra, "cost_voll")
             _PM._apply_func!(data["load"]["$idx"], "cost_voll", rescale_cost)
@@ -209,10 +203,9 @@ function _scale_operational_cost_data!(data, number_of_hours, year_scale_factor,
         _PM._apply_func!(gen, "cost", rescale)
     end
     for (l, load) in data["load"]
-        _PM._apply_func!(load, "cost_shift_up", rescale)   # Compensation for demand shifting
-        _PM._apply_func!(load, "cost_shift_down", rescale) # Compensation for demand shifting
-        _PM._apply_func!(load, "cost_curt", rescale)       # Compensation for load curtailment (i.e. involuntary demand reduction)
-        _PM._apply_func!(load, "cost_red", rescale)        # Compensation for not consumed energy (i.e. voluntary demand reduction)
+        _PM._apply_func!(load, "cost_shift", rescale) # Compensation for demand shifting
+        _PM._apply_func!(load, "cost_curt", rescale)  # Compensation for load curtailment (i.e. involuntary demand reduction)
+        _PM._apply_func!(load, "cost_red", rescale)   # Compensation for not consumed energy (i.e. voluntary demand reduction)
     end
     _PM._apply_func!(data, "co2_emission_cost", rescale)
 end
