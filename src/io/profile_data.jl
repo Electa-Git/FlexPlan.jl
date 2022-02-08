@@ -118,13 +118,10 @@ function add_flexible_demand_data!(data)
 end
 
 function add_generation_emission_data!(data)
-    for (e, em) in data["generator_emission_factors"]
-        idx = em["gen_id"]
-        data["gen"]["$idx"]["emission_factor"] = em["emission_factor"]
-        rescale_emission = x -> x * data["baseMVA"]
-        _PM._apply_func!(data["gen"]["$idx"], "emission_factor", rescale_emission)
+    rescale_emission = x -> x * data["baseMVA"]
+    for (g, gen) in data["gen"]
+        _PM._apply_func!(gen, "emission_factor", rescale_emission)
     end
-    delete!(data, "load_extra")
     return data
 end
 

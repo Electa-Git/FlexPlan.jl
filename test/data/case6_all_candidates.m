@@ -27,14 +27,14 @@ mpc.gen = [
     6    0.0     -4  183.0   -10.0   0.9         100.0   1   240.0   0.0     0.0     0.0     0.0     0.0     0.0     0.0     0.0     0.0     0.0     0.0     0.0;
 ];
 
-%column_names% gen_id emission_factor
-mpc.generator_emission_factors = [
-    1 0.1;
-    2 0.1;
-    3 0.0;
-    4 0.1;
-    5 0.0;
-    6 0.0;
+%column_names% emission_factor
+mpc.gen_extra = [
+                           0.1;
+                           0.1;
+                           0.0;
+                           0.1;
+                           0.0;
+                           0.0;
 ]
 
 mpc.gencost = [
