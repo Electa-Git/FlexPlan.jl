@@ -62,7 +62,7 @@ function add_one_year!(my_data, case, data, year_idx)
     else
         error("Case \"$(case)\" not (yet) supported.")
     end
-    time_series = _FP.create_profile_data(number_of_nws, data, loadprofile, genprofile)
+    time_series = create_profile_data(number_of_nws, data, loadprofile, genprofile)
     mn_data = _FP.make_multinetwork(data, time_series; number_of_nws, nw_id_offset)
     _FP.import_nws!(my_data, mn_data)
     return my_data

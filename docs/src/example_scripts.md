@@ -38,7 +38,7 @@ _FP.add_dimension!(t_data, :year, 1; metadata = Dict{String,Any}("scale_factor"=
 _FP.add_dimension!(t_data, :sub_nw, 1) # Add dimension, e.g. underlying networks
 _FP.scale_data!(t_data) # Scale investment & operational cost data based on planning years & hours
 t_data, t_loadprofile, t_genprofile = create_profile_data_italy!(t_data) # Load time series data based demand and RES profiles of the six market zones in Italy from the data folder
-t_time_series = _FP.create_profile_data(number_of_hours, t_data, t_loadprofile, t_genprofile) # Create time series data to be passed to the data dictionay
+t_time_series = create_profile_data(number_of_hours, t_data, t_loadprofile, t_genprofile) # Create time series data to be passed to the data dictionay
 ```
 
 ### Coupling of transmission and distribution networks

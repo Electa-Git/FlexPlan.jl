@@ -2,6 +2,79 @@ import CSV
 import DataFrames
 import JSON
 
+function create_profile_data(number_of_periods, data, loadprofile = ones(length(data["load"]), number_of_periods), genprofile = ones(length(data["gen"]), number_of_periods))
+    extradata = Dict{String,Any}()
+    extradata["load"] = Dict{String,Any}()
+    extradata["gen"] = Dict{String,Any}()
+    for (l, load) in data["load"]
+        extradata["load"][l] = Dict{String,Any}()
+        extradata["load"][l]["pd"] = Array{Float64,2}(undef, 1, number_of_periods)
+        for d in 1:number_of_periods
+            extradata["load"][l]["pd"][1, d] = data["load"][l]["pd"] * loadprofile[parse(Int, l), d]
+        end
+    end
+
+    for (g, gen) in data["gen"]
+        extradata["gen"][g] = Dict{String,Any}()
+        extradata["gen"][g]["pmax"] = Array{Float64,2}(undef, 1, number_of_periods)
+        for d in 1:number_of_periods
+            extradata["gen"][g]["pmax"][1, d] = data["gen"][g]["pmax"] * genprofile[parse(Int, g), d]
+        end
+    end
+    return extradata
+end
+
+function create_contingency_data(number_of_hours, data, contingency_profiles=Dict(), loadprofile = ones(length(data["load"]), number_of_hours),
+    genprofile = ones(length(data["gen"]), number_of_hours))
+    extradata = Dict{String,Any}()
+    extradata["dim"] = Dict{String,Any}()
+    extradata["dim"] = number_of_hours
+    extradata["load"] = Dict{String,Any}()
+    extradata["gen"] = Dict{String,Any}()
+
+    for (l, load) in data["load"]
+        extradata["load"][l] = Dict{String,Any}()
+        extradata["load"][l]["pd"] = Array{Float64,2}(undef, 1, number_of_hours)
+        for d in 1:number_of_hours
+            extradata["load"][l]["pd"][1, d] = data["load"][l]["pd"] * loadprofile[parse(Int, l), d]
+        end
+    end
+
+    for (g, gen) in data["gen"]
+        extradata["gen"][g] = Dict{String,Any}()
+        extradata["gen"][g]["pmax"] = Array{Float64,2}(undef, 1, number_of_hours)
+        for d in 1:number_of_hours
+            extradata["gen"][g]["pmax"][1, d] = data["gen"][g]["pmax"] * genprofile[parse(Int, g), d]
+        end
+    end
+
+    for (utype, profiles) in contingency_profiles
+        extradata[utype] = Dict{String,Any}()
+        for (u, unit) in data[utype]
+            extradata[utype][u] = Dict{String,Any}()
+            if "br_status" in keys(unit)
+                state_str = "br_status"
+            elseif "status" in keys(unit)
+                state_str = "status"
+            end
+            if "rate_a" in keys(unit)
+                rate_str = "rate_a"
+            else "rateA" in keys(unit)
+                rate_str = "rateA"
+            end
+            rate = unit[rate_str]
+            extradata[utype][u][state_str] = Array{Float64,2}(undef, 1, number_of_hours)
+            extradata[utype][u][rate_str] = Array{Float64,2}(undef, 1, number_of_hours)
+            for d in 1:number_of_hours
+                state = profiles[parse(Int, u), d]
+                extradata[utype][u][state_str][1, d] = state
+                extradata[utype][u][rate_str][1, d] = state*rate
+            end
+        end
+    end
+    return extradata
+end
+
 function create_profile_data_italy!(data)
 
     hours = _FP.dim_length(data, :hour)

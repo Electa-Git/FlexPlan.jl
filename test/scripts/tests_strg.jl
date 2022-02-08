@@ -43,7 +43,7 @@ _FP.add_storage_data!(data) # Add addtional storage data model
 loadprofile = ones(5, dim) # Create a load profile: In this case there are 5 loads in the test case
 
 
-extradata = _FP.create_profile_data(dim, data, loadprofile) # create a dictionary to pass time series data to data dictionary
+extradata = create_profile_data(dim, data, loadprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
 
@@ -63,7 +63,7 @@ loadprofile = ones(5, dim) # Create a load profile: In this case there are 5 loa
 loadprofile[end, :] = repeat([100 100 100 240] / 240, 1 , Int(dim /4))
 
 
-extradata = _FP.create_profile_data(dim, data, loadprofile) # create a dictionary to pass time series data to data dictionary
+extradata = create_profile_data(dim, data, loadprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
 
@@ -83,7 +83,7 @@ loadprofile = ones(5, dim) # Create a load profile: In this case there are 5 loa
 loadprofile[end, :] = repeat([100 100 100 240] / 240, 1 , Int(dim /4))
 
 
-extradata = _FP.create_profile_data(dim, data, loadprofile) # create a dictionary to pass time series data to data dictionary
+extradata = create_profile_data(dim, data, loadprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
 

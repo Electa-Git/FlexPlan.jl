@@ -34,10 +34,10 @@ include("prob/stochastic_flexible_tnep.jl")
 include("prob/simple_stochastic_flexible_tnep.jl")
 include("prob/reliability_tnep.jl")
 
-include("io/common.jl")
+include("io/parse.jl")
+include("io/scale.jl")
 include("io/multinetwork.jl")
 include("io/plot_geo_data.jl")
-include("io/profile_data.jl")
 
 include("core/types.jl")
 include("core/dimensions.jl")
