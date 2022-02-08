@@ -2,7 +2,8 @@
 
 # - Model: `_FP.BFARadPowerModel` is used to be able to test loads in both active and
 #   reactive power, while keeping the model linear. It requires a distribution network.
-# - Problem: `flex_tnep` is the simplest problem that implement flexible loads.
+# - Problems: both `flex_tnep` and `simple_stoch_flex_tnep` are used because they have
+#   different flexible load models.
 
 ## Settings
 
@@ -11,7 +12,7 @@ number_of_hours = 24 # Number of time periods
 
 ## Plot function
 
-# Uncomment this part and the commented lines further down to see a nice plot when manually editing a testset
+# Uncomment this part and the commented lines further down to display a nice plot when manually editing a testset
 #=
 using StatsPlots
 function plot_flex_load(mn_data, result)
@@ -22,6 +23,7 @@ function plot_flex_load(mn_data, result)
     plt = groupedbar(load_matrix;
         yguide = "Power [p.u.]",
         xguide = "Time [h]",
+        framestyle = :zerolines,
         bar_position = :stack,
         bar_width = 1,
         linecolor = HSLA(0,0,1,0),
@@ -140,6 +142,46 @@ end
             @test result["solution"]["nw"]["$n"]["load"]["1"]["qflex"]       ≈   2.0     rtol=1e-3
         end
         @test result["objective"]                                            ≈ 231.8     rtol=1e-3
+    end
+
+    # Same case as "Flex load - active", with different load model:
+    # - there are no integral (energy) bounds on voluntary reduction and on demand shifting;
+    # - demand shifting has a periodic constraint that imposes a balance between upward and
+    #   downward shifts.
+    @testset "Flex load - shifting periodic balance" begin
+        data = _FP.parse_file(file)
+        _FP.add_dimension!(data, :hour, number_of_hours)
+        _FP.add_dimension!(data, :scenario, Dict(1 => Dict{String,Any}("probability"=>1)))
+        _FP.add_dimension!(data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>1))
+        _FP.scale_data!(data; cost_scale_factor=1e-6)
+        loadprofile = collect(range(0,2;length=number_of_hours))' # Create a load profile: ramp from 0 to 2 times the rated value of load
+        time_series = _FP.create_profile_data(number_of_hours, data, loadprofile) # Compute time series by multiplying the rated value by the profile
+        mn_data = _FP.make_multinetwork(data, time_series)
+        setting = Dict("demand_shifting_balance_period" => 9) # Not a divisor of 24, to verify that the balance constraint is also applied to the last period, which is not full length.
+        result = _FP.simple_stoch_flex_tnep(mn_data, _FP.BFARadPowerModel, cbc; setting)
+        #plot_flex_load(mn_data, result)
+
+        @test result["solution"]["nw"][ "1"]["load"]["1"]["flex"]            ≈   1.0     atol=1e-3
+        for n in 1 : number_of_hours÷2
+            @test result["solution"]["nw"]["$n"]["load"]["1"]["pshift_down"] ≈   0.0     atol=1e-3
+            @test result["solution"]["nw"]["$n"]["load"]["1"]["pred"]        ≈   0.0     atol=1e-3
+            @test result["solution"]["nw"]["$n"]["load"]["1"]["pcurt"]       ≈   0.0     atol=1e-3
+        end
+        for n in number_of_hours÷2+1 : number_of_hours
+            @test result["solution"]["nw"]["$n"]["load"]["1"]["pshift_up"]   ≈   0.0     atol=1e-3
+            @test result["solution"]["nw"]["$n"]["load"]["1"]["pflex"]       ≈  10.0     rtol=1e-3
+            @test result["solution"]["nw"]["$n"]["load"]["1"]["qflex"]       ≈   2.0     rtol=1e-3
+        end
+        for n in 1 : 9
+            @test result["solution"]["nw"]["$n"]["load"]["1"]["pshift_up"]   ≈   0.0     atol=1e-3
+        end
+        @test result["solution"]["nw"]["10"]["load"]["1"]["pshift_up"]       ≈   2.174   rtol=1e-3
+        @test result["solution"]["nw"]["11"]["load"]["1"]["pshift_up"]       ≈   1.304   rtol=1e-3
+        @test result["solution"]["nw"]["12"]["load"]["1"]["pshift_up"]       ≈   0.4348  rtol=1e-3
+        for n in 19 : number_of_hours
+            @test result["solution"]["nw"]["$n"]["load"]["1"]["pshift_up"]   ≈   0.0     atol=1e-3
+        end
+        @test result["objective"]                                            ≈  78.53    rtol=1e-3
     end
 
 end;

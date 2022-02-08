@@ -192,11 +192,6 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption_ne(pm, i, nw = n)
             end
-
-            for i in _PM.ids(pm, :flex_load, nw = n)
-                constraint_shift_up_state(pm, i, nw = n)
-                constraint_shift_down_state(pm, i, nw = n)
-            end
         else
             if is_last_id(pm, n, :hour)
                 for i in _PM.ids(pm, :storage, nw = n)
@@ -208,7 +203,7 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
                 end
 
                 for i in _PM.ids(pm, :flex_load, nw = n)
-                    constraint_shift_state_final(pm, i, nw = n)
+                    constraint_shift_balance_periodic(pm, i, get(pm.setting, "demand_shifting_balance_period", 24), nw = n)
                 end
             end
 
@@ -226,11 +221,6 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
             end
             for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption_ne(pm, i, prev_n, n)
-            end
-            for i in _PM.ids(pm, :flex_load, nw = n)
-                constraint_shift_up_state(pm, i, prev_n, n)
-                constraint_shift_down_state(pm, i, prev_n, n)
-                constraint_shift_duration(pm, i, first_n, n)
             end
         end
 
@@ -350,12 +340,6 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel)
             for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption_ne(pm, i, nw = n)
             end
-
-            for i in _PM.ids(pm, :flex_load, nw = n)
-                constraint_shift_up_state(pm, i, nw = n)
-                constraint_shift_down_state(pm, i, nw = n)
-            end
-
         else
             if is_last_id(pm, n, :hour)
                 for i in _PM.ids(pm, :storage, nw = n)
@@ -367,7 +351,7 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel)
                 end
 
                 for i in _PM.ids(pm, :flex_load, nw = n)
-                    constraint_shift_state_final(pm, i, nw = n)
+                    constraint_shift_balance_periodic(pm, i, get(pm.setting, "demand_shifting_balance_period", 24), nw = n)
                 end
             end
 
@@ -385,11 +369,6 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel)
             end
             for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption_ne(pm, i, prev_n, n)
-            end
-            for i in _PM.ids(pm, :flex_load, nw = n)
-                constraint_shift_up_state(pm, i, prev_n, n)
-                constraint_shift_down_state(pm, i, prev_n, n)
-                constraint_shift_duration(pm, i, first_n, n)
             end
         end
 

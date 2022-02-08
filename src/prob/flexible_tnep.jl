@@ -94,6 +94,8 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         # Flexible demand
         variable_flexible_demand(pm; nw = n)
         variable_energy_not_consumed(pm; nw = n)
+        variable_total_demand_shifting_upwards(pm; nw = n)
+        variable_total_demand_shifting_downwards(pm; nw = n)
     end
 
     # OBJECTIVE: see objective.jl
@@ -311,6 +313,8 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
         # Flexible demand
         variable_flexible_demand(pm; nw = n)
         variable_energy_not_consumed(pm; nw = n)
+        variable_total_demand_shifting_upwards(pm; nw = n)
+        variable_total_demand_shifting_downwards(pm; nw = n)
     end
 
     if objective

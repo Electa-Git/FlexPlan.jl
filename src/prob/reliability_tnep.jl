@@ -67,6 +67,8 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
         # Flexible demand
         variable_flexible_demand(pm; nw = n)
         variable_energy_not_consumed(pm; nw = n)
+        variable_total_demand_shifting_upwards(pm; nw = n)
+        variable_total_demand_shifting_downwards(pm; nw = n)
 
         # Reliability
         if n ∉ base_nw

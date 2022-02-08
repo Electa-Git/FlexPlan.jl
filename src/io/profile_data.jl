@@ -51,16 +51,22 @@ function add_flexible_demand_data!(data)
         data["load"]["$idx"]["pshift_down_rel_max"] = load_extra["pshift_down_rel_max"]
 
         # Superior bound on shifted energy as a fraction of the total reference demand (0 ≤ eshift_rel_max ≤ 1)
-        data["load"]["$idx"]["eshift_rel_max"] = load_extra["eshift_rel_max"]
+        if haskey(load_extra, "eshift_rel_max")
+            data["load"]["$idx"]["eshift_rel_max"] = load_extra["eshift_rel_max"]
+        end
 
         # Compensation for consuming less (i.e. voluntary demand reduction) (€/MWh)
         data["load"]["$idx"]["cost_red"] = load_extra["cost_red"]
 
         # Recovery period for upward demand shifting (h)
-        data["load"]["$idx"]["tshift_up"] = load_extra["tshift_up"]
+        if haskey(load_extra, "tshift_up")
+            data["load"]["$idx"]["tshift_up"] = load_extra["tshift_up"]
+        end
 
         # Recovery period for downward demand shifting (h)
-        data["load"]["$idx"]["tshift_down"] = load_extra["tshift_down"]
+        if haskey(load_extra, "tshift_down")
+            data["load"]["$idx"]["tshift_down"] = load_extra["tshift_down"]
+        end
 
         # Compensation for downward demand shifting (€/MWh)
         data["load"]["$idx"]["cost_shift_down"] = load_extra["cost_shift_down"]

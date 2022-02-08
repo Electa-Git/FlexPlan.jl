@@ -81,6 +81,8 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
         # Flexible demand
         variable_flexible_demand(pm; nw = n)
         variable_energy_not_consumed(pm; nw = n)
+        variable_total_demand_shifting_upwards(pm; nw = n)
+        variable_total_demand_shifting_downwards(pm; nw = n)
     end
 
     # OBJECTIVE: see objective.jl
@@ -296,6 +298,8 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel)
         # Flexible demand
         variable_flexible_demand(pm; nw = n)
         variable_energy_not_consumed(pm; nw = n)
+        variable_total_demand_shifting_upwards(pm; nw = n)
+        variable_total_demand_shifting_downwards(pm; nw = n)
     end
 
     objective_stoch_flex(pm)

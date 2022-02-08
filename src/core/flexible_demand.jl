@@ -8,9 +8,7 @@ function variable_flexible_demand(pm::_PM.AbstractPowerModel; kwargs...)
     variable_total_flex_demand(pm; kwargs...)
     variable_demand_reduction(pm; kwargs...)
     variable_demand_shifting_upwards(pm; kwargs...)
-    variable_total_demand_shifting_upwards(pm; kwargs...)
     variable_demand_shifting_downwards(pm; kwargs...)
-    variable_total_demand_shifting_downwards(pm; kwargs...)
     variable_demand_curtailment(pm; kwargs...)
     variable_flexible_demand_indicator(pm; kwargs..., relax=true)
     variable_flexible_demand_investment(pm; kwargs...)
@@ -319,6 +317,22 @@ function constraint_shift_state_final(pm::_PM.AbstractPowerModel, i::Int; nw::In
     constraint_shift_state_final(pm, nw, i)
 end
 
+# This way of enforcing a balance between power shifted upward and power shifted downward:
+# - does not use `eshift_up` and `eshift_down` variables;
+# - is alternative to `constraint_shift_up_state`, `constraint_shift_down_state`, and
+#   `constraint_shift_state_final`.
+# It must be called only on last hour nws.
+function constraint_shift_balance_periodic(pm::_PM.AbstractPowerModel, i::Int, period::Int; nw::Int=pm.cnw)
+    timeseries_nw_ids = similar_ids(pm, nw, hour = 1:dim_length(pm,:hour))
+    time_elapsed = Int(_PM.ref(pm, nw, :time_elapsed))
+    if period % time_elapsed ≠ 0
+        Memento.error(_LOGGER, "\"period\" must be a multiple of \"time_elapsed\".")
+    end
+    for horizon in Iterators.partition(timeseries_nw_ids, period÷time_elapsed)
+        constraint_shift_balance_periodic(pm, horizon, i)
+    end
+end
+
 
 
 ## Constraint implementations
@@ -457,4 +471,11 @@ function constraint_shift_state_final(pm::_PM.AbstractPowerModel, n::Int, i::Int
     # The accumulated upward demand shifting over the operational planning horizon should equal the accumulated downward
     # demand shifting (since this is demand shifted and not reduced or curtailed)
     JuMP.@constraint(pm.model, eshift_up == eshift_down)
+end
+
+function constraint_shift_balance_periodic(pm::_PM.AbstractPowerModel, horizon::AbstractVector{Int}, i::Int)
+    pshift_up   = _PM.var.(Ref(pm), horizon, :pshift_up, i)
+    pshift_down = _PM.var.(Ref(pm), horizon, :pshift_down, i)
+
+    JuMP.@constraint(pm.model, sum(pshift_up) == sum(pshift_down))
 end
