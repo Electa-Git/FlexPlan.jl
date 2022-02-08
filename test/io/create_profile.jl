@@ -2,26 +2,9 @@ import CSV
 import DataFrames
 import JSON
 
-function create_profile_data(number_of_periods, data, loadprofile = ones(length(data["load"]), number_of_periods), genprofile = ones(length(data["gen"]), number_of_periods))
-    extradata = Dict{String,Any}()
-    extradata["load"] = Dict{String,Any}()
-    extradata["gen"] = Dict{String,Any}()
-    for (l, load) in data["load"]
-        extradata["load"][l] = Dict{String,Any}()
-        extradata["load"][l]["pd"] = Array{Float64,2}(undef, 1, number_of_periods)
-        for d in 1:number_of_periods
-            extradata["load"][l]["pd"][1, d] = data["load"][l]["pd"] * loadprofile[parse(Int, l), d]
-        end
-    end
-
-    for (g, gen) in data["gen"]
-        extradata["gen"][g] = Dict{String,Any}()
-        extradata["gen"][g]["pmax"] = Array{Float64,2}(undef, 1, number_of_periods)
-        for d in 1:number_of_periods
-            extradata["gen"][g]["pmax"][1, d] = data["gen"][g]["pmax"] * genprofile[parse(Int, g), d]
-        end
-    end
-    return extradata
+# Kept for compatibility with legacy code.
+function create_profile_data(number_of_periods, data, loadprofile = ones(length(data["load"]),number_of_periods), genprofile = ones(length(data["gen"]),number_of_periods))
+    _FP.make_time_series(data, number_of_periods; loadprofile = permutedims(loadprofile), genprofile = permutedims(genprofile))
 end
 
 function create_contingency_data(number_of_hours, data, contingency_profiles=Dict(), loadprofile = ones(length(data["load"]), number_of_hours),

@@ -36,6 +36,7 @@ include("prob/reliability_tnep.jl")
 
 include("io/parse.jl")
 include("io/scale.jl")
+include("io/time_series.jl")
 include("io/multinetwork.jl")
 include("io/plot_geo_data.jl")
 
