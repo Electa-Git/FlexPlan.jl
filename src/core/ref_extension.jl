@@ -1,3 +1,17 @@
+## Generators
+
+"Add to `ref` the keys for handling dispatchable and non-dispatchable generators"
+function ref_add_gen!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
+
+    for (n, nw_ref) in ref[:nw]
+        # Dispatchable generators. Their power varies between `pmin` and `pmax` and cannot be curtailed.
+        nw_ref[:dgen] = Dict(x for x in nw_ref[:gen] if x.second["dispatchable"] == true)
+        # Non-dispatchable generators. Their reference power `pref` can be curtailed.
+        nw_ref[:ndgen] = Dict(x for x in nw_ref[:gen] if x.second["dispatchable"] == false)
+    end
+end
+
+
 ## Storage
 
 function ref_add_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
@@ -7,7 +21,6 @@ function ref_add_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
         end
     end
 end
-
 
 function ref_add_ne_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
     for (n, nw_ref) in ref[:nw]
