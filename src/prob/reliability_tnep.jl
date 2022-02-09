@@ -36,6 +36,7 @@ function post_reliability_tnep(pm::_PM.AbstractPowerModel)
 
         # Generator
         _PM.variable_gen_power(pm; nw = n)
+        expression_gen_curtailment(pm; nw = n)
 
         # Storage
         _PM.variable_storage_power(pm; nw = n)

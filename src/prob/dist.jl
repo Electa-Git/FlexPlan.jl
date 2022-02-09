@@ -27,6 +27,7 @@ function build_opf_rad(pm::_PM.AbstractBFModel)
 
     # Generator
     _PM.variable_gen_power(pm)
+    expression_gen_curtailment(pm)
 
     _PM.objective_min_fuel_and_flow_cost(pm)
 
@@ -85,6 +86,7 @@ function build_tnep_rad(pm::_PM.AbstractBFModel)
 
     # Generator
     _PM.variable_gen_power(pm)
+    expression_gen_curtailment(pm)
 
     # Candidate AC branch
     _PM.variable_ne_branch_indicator(pm)

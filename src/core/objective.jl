@@ -137,6 +137,10 @@ function calc_gen_cost(pm::_PM.AbstractPowerModel, n::Int)
     if get(pm.setting, "add_co2_cost", false)
         cost += sum(g["emission_factor"] * _PM.var(pm,n,:pg,i) * pm.ref[:co2_emission_cost] for (i,g) in gen)
     end
+    ndgen = _PM.ref(pm, n, :ndgen)
+    if !isempty(ndgen)
+        cost += sum(g["cost_curt"] * _PM.var(pm,n,:pgcurt,i) for (i,g) in ndgen)
+    end
     return cost
 end
 

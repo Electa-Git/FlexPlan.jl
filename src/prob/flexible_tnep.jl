@@ -63,6 +63,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
 
         # Generator
         _PM.variable_gen_power(pm; nw = n)
+        expression_gen_curtailment(pm; nw = n)
 
         # Storage
         _PM.variable_storage_power(pm; nw = n)
@@ -294,6 +295,7 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
 
         # Generator
         _PM.variable_gen_power(pm; nw = n)
+        expression_gen_curtailment(pm; nw = n)
 
         # Storage
         _PM.variable_storage_power(pm; nw = n)
