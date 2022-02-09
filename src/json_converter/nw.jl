@@ -318,18 +318,19 @@ end
 
 function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, gen_bus::Int, y::Int)
     target = Dict{String,Any}(
-        "index"      => index,
-        "source_id"  => source_id,
-        "gen_status" => 1, # Assumption: all generators defined in JSON file are in service.
-        "gen_bus"    => gen_bus,
-        "pmin"       => source["minActivePower"][y],
-        "pmax"       => source["maxActivePower"][y],
-        "qmin"       => source["minReactivePower"][y],
-        "qmax"       => source["maxReactivePower"][y],
-        "vg"         => 1.0,
-        "model"      => 2, # Polynomial cost model
-        "ncost"      => 2, # 2 cost coefficients: c1 and c0
-        "cost"       => [source["generationCosts"][y], 0.0], # [c1, c0]
+        "index"        => index,
+        "source_id"    => source_id,
+        "gen_status"   => 1, # Assumption: all generators defined in JSON file are in service.
+        "gen_bus"      => gen_bus,
+        "dispatchable" => get(source, "isDispatchable", true),
+        "pmin"         => source["minActivePower"][y],
+        "pmax"         => source["maxActivePower"][y],
+        "qmin"         => source["minReactivePower"][y],
+        "qmax"         => source["maxReactivePower"][y],
+        "vg"           => 1.0,
+        "model"        => 2, # Polynomial cost model
+        "ncost"        => 2, # 2 cost coefficients: c1 and c0
+        "cost"         => [source["generationCosts"][y], 0.0], # [c1, c0]
     )
     return target
 end

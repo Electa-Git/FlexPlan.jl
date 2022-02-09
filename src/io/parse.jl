@@ -2,17 +2,20 @@
     parse_file(file; flex_load=true, <keyword arguments>)
 
 Parse a Matpower .m `file` or PTI (PSS(R)E-v33) .raw `file` into a FlexPlan data structure,
-including DC components, storage and flexible loads.
+including non-dispatchable generators, DC components, storage and flexible loads.
 
 `flex_load` specifies whether to process flexible load data.
-Other keyword arguments, if any, are forwarded to `PowerModels.parse_file()`.
+Other keyword arguments, if any, are forwarded to `PowerModels.parse_file`.
 
 Mandatory tables: `bus`, `gen`, `branch` (and `load_extra` if `flex_load==true`).
-Optional tables: `gencost`, `branch_oltc`, `storage`, `storage_extra`, `ne_storage`.
+
+Optional tables: `gencost`, `ndgen`, `branch_oltc`, `storage`, `storage_extra`,
+`ne_storage`, and tables used by PowerModelsACDC.
 Other tables can be added as well: they will be made available in the returned object.
 """
 function parse_file(file::String; flex_load=true, kwargs...)
     data = _PM.parse_file(file; kwargs...)
+    add_gen_data!(data)
     if !haskey(data, "ne_branch")
         data["ne_branch"] = Dict{String,Any}()
     end
@@ -26,6 +29,48 @@ function parse_file(file::String; flex_load=true, kwargs...)
         end
         add_flexible_demand_data!(data)
     end
+    return data
+end
+
+"Add a `dispatchable` bool field to all generators; add non-dispatchable generators to `data[\"gen\"]`."
+function add_gen_data!(data::Dict{String,Any})
+    for dgen in values(data["gen"])
+        dgen["dispatchable"] = true
+    end
+
+    if haskey(data, "ndgen")
+        offset = length(data["gen"])
+        rescale      = x -> x/data["baseMVA"]
+        rescale_dual = x -> x*data["baseMVA"]
+        for ndgen in values(data["ndgen"])
+            ndgen["dispatchable"] = false
+
+            # Convert to p.u.
+            _PM._apply_func!(ndgen, "pref", rescale)
+            _PM._apply_func!(ndgen, "qmax", rescale)
+            _PM._apply_func!(ndgen, "qmin", rescale)
+            _PM._apply_func!(ndgen, "cost_gen", rescale_dual)
+            _PM._apply_func!(ndgen, "cost_curt", rescale_dual)
+
+            # Define active power bounds using the same names used by dispatchable
+            # generators.
+            ndgen["pmin"] = 0.0
+            ndgen["pmax"] = ndgen["pref"]
+            delete!(ndgen, "pref")
+
+            # Convert the cost of power produced by non-dispatchable generators into
+            # polynomial form (the same used by dispatchable generators).
+            ndgen["cost"] = [ndgen["cost_gen"], 0.0]
+            delete!(ndgen, "cost_gen")
+
+            # Assign to non-dispatchable generators ids contiguous to dispatchable
+            # generators so that each generator has an unique id.
+            new_id = ndgen["index"] += offset
+            data["gen"]["$new_id"] = ndgen
+        end
+        delete!(data, "ndgen")
+    end
+
     return data
 end
 
