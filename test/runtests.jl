@@ -5,7 +5,8 @@ import InfrastructureModels; const _IM = InfrastructureModels
 using JuMP
 using Memento
 
-include("io/create_profile.jl")
+include(normpath(@__DIR__,"..","test","io","create_profile.jl"))
+include(normpath(@__DIR__,"..","test","io","multiple_years.jl"))
 
 # Suppress warnings during testing.
 Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
@@ -27,10 +28,18 @@ juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver" => ipopt
 
 @testset "FlexPlan" begin
 
+    # FlexPlan components
     include("dimensions.jl")
+
+    # Models
     include("bfarad.jl")
+
+    # Network components
     include("gen.jl")
     include("flex_demand.jl")
     include("storage.jl")
+
+    # Problems
+    include("prob.jl")
 
 end;
