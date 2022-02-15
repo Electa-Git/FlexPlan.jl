@@ -340,7 +340,7 @@ function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, g
         "gen_status"   => 1, # Assumption: all generators defined in JSON file are in service.
         "gen_bus"      => gen_bus,
         "dispatchable" => get(source, "isDispatchable", true),
-        "pmin"         => source["minActivePower"][y],
+        "pmin"         => get(source, "isDispatchable", true) ? source["minActivePower"][y] : 0.0,
         "pmax"         => source["maxActivePower"][y],
         "qmin"         => source["minReactivePower"][y],
         "qmax"         => source["maxReactivePower"][y],
@@ -349,6 +349,7 @@ function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, g
         "ncost"        => 2, # 2 cost coefficients: c1 and c0
         "cost"         => [source["generationCosts"][y], 0.0], # [c1, c0]
     )
+    optional_value(target, "cost_curt", source, "curtailmentCosts", y)
     return target
 end
 

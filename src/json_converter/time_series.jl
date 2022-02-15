@@ -9,11 +9,9 @@ function make_time_series(source::AbstractDict, lookup::AbstractDict, y::Int, sn
 
     for comp in source["scenarioDataInputFile"]["generators"]
         index = lookup["generators"][comp["id"]]
-        if haskey(comp, "capacityFactor") # If gen is a RES
-            # Since FlexPlan.jl does not support curtailable generators, we fix their power to the value determined by the time series.
-            # TODO: change this once FlexPlan.jl supports curtailable generation
+        if haskey(comp, "capacityFactor")
             p = ts_vector(comp, "capacityFactor", y; number_of_hours, number_of_scenarios) .* sn_data["gen"]["$index"]["pmax"]
-            target["gen"]["$index"] = Dict{String,Any}("pmax" => p, "pmin" => p)
+            target["gen"]["$index"] = Dict{String,Any}("pmax" => p)
         end
     end
 
