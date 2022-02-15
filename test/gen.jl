@@ -72,7 +72,7 @@ end
     _FP.add_dimension!(data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>1))
     _FP.scale_data!(data; cost_scale_factor=1e-6)
     loadprofile = collect(reshape(range(0,2;length=number_of_hours),:,1)) # Create a load profile: ramp from 0 to 2 times the rated value of load
-    genprofile = hcat(1.5.*ones(number_of_hours), reverse(loadprofile)) # Generator 1: 2 times the rated value; generator 2: ramp from 2 times the rated value to 0
+    genprofile = hcat(1.5.*ones(number_of_hours), reverse(loadprofile; dims=1)) # Generator 1: 2 times the rated value; generator 2: ramp from 2 times the rated value to 0
     time_series = _FP.make_time_series(data; loadprofile, genprofile) # Compute time series by multiplying the rated value by the profile
     mn_data = _FP.make_multinetwork(data, time_series)
     result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc)
