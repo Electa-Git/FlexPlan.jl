@@ -236,9 +236,8 @@ function make_branch(source::AbstractDict, index::Int, source_id::Vector{String}
         "t_bus"       => t_bus,
         "br_status"   => 1, # Assumption: all branches defined in JSON file are in service.
         "transformer" => transformer,
-        "br_x"        => source["reactance"],
-        "b_fr"        => source["susceptance"]/2,
-        "b_to"        => source["susceptance"]/2,
+        "b_fr"        => 0.0, # Assumption: all branches defined in JSON file have zero shunt susceptance.
+        "b_to"        => 0.0, # Assumption: all branches defined in JSON file have zero shunt susceptance.
         "g_fr"        => 0.0, # Assumption: all branches defined in JSON file have zero shunt conductance.
         "g_to"        => 0.0, # Assumption: all branches defined in JSON file have zero shunt conductance.
         "rate_a"      => source["ratedApparentPower"][y],
@@ -249,6 +248,13 @@ function make_branch(source::AbstractDict, index::Int, source_id::Vector{String}
         "angmax"      => source["maxAngleDifference"],
     )
     optional_value(target, "br_r", source, "resistance")
+    if source["isTransmission"]
+        target["br_r"] = 0.0
+        target["br_x"] = 1/source["susceptance"]
+    else
+        target["br_r"] = source["resistance"]
+        target["br_x"] = source["reactance"]
+    end
     return target
 end
 
