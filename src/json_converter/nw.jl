@@ -1,19 +1,14 @@
-# Single-network containing only fixed data (i.e. data that does not depend on year)
-function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::AbstractDict, y::Int)
+# Single-network containing only fixed data (i.e. data that does not depend on year), method without candidates
+function nw(source::AbstractDict, lookup::AbstractDict, y::Int)
     target = Dict{String,Any}(
         "branch"       => Dict{String,Any}(),
         "branchdc"     => Dict{String,Any}(),
-        "branchdc_ne"  => Dict{String,Any}(),
         "bus"          => Dict{String,Any}(),
         "busdc"        => Dict{String,Any}(),
-        "busdc_ne"     => Dict{String,Any}(),
         "convdc"       => Dict{String,Any}(),
-        "convdc_ne"    => Dict{String,Any}(),
         "dcline"       => Dict{String,Any}(),
         "gen"          => Dict{String,Any}(),
         "load"         => Dict{String,Any}(),
-        "ne_branch"    => Dict{String,Any}(),
-        "ne_storage"   => Dict{String,Any}(),
         "shunt"        => Dict{String,Any}(),
         "storage"      => Dict{String,Any}(),
         "switch"       => Dict{String,Any}(),
@@ -99,6 +94,19 @@ function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::Abstr
         storage_bus = lookup["acBuses"][comp["acBusConnected"]]
         target["storage"]["$index"] = make_storage(comp, index, source_id, storage_bus, y)
     end
+
+    return target
+end
+
+# Single-network containing only fixed data (i.e. data that does not depend on year), method with candidates
+function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::AbstractDict, y::Int)
+
+    target = nw(source, lookup, y)
+    target["branchdc_ne"] = Dict{String,Any}()
+    target["busdc_ne"]    = Dict{String,Any}()
+    target["convdc_ne"]   = Dict{String,Any}()
+    target["ne_branch"]   = Dict{String,Any}()
+    target["ne_storage"]  = Dict{String,Any}()
 
     ne_branch_path = ["candidatesInputFile", "acBranches"]
     for cand in walkpath(source, ne_branch_path)
