@@ -42,8 +42,8 @@ function _scale_time_data!(data, year_scale_factor)
     for component in ("ne_branch", "branchdc_ne", "ne_storage", "convdc_ne", "load")
         for (key, val) in get(data, component, Dict{String,Any}())
             if !haskey(val, "lifetime")
-                if component == "load" && !Bool(get(val, "flex", 0))
-                    continue # "lifetime" field might not be used in cases where the load is not flexible
+                if component == "load"
+                    continue # "lifetime" field is not used in OPF
                 else
                     Memento.error(_LOGGER, "Missing `lifetime` key in `$component` $key.")
                 end
