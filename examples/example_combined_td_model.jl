@@ -10,8 +10,9 @@ import FlexPlan; const _FP = FlexPlan
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
-include("../io/create_profile.jl")
 
+# Include profile data from FlexPlan repository, you can of course also use your own data
+include("../test/io/create_profile.jl")
 
 ## Input parameters
 
@@ -33,7 +34,7 @@ _FP.add_dimension!(t_data, :year, 1; metadata = Dict{String,Any}("scale_factor"=
 _FP.add_dimension!(t_data, :sub_nw, 1)
 _FP.scale_data!(t_data)
 t_data, t_loadprofile, t_genprofile = create_profile_data_italy!(t_data)
-t_time_series = _FP.create_profile_data(number_of_hours, t_data, t_loadprofile, t_genprofile)
+t_time_series = create_profile_data(number_of_hours, t_data, t_loadprofile, t_genprofile)
 
 
 ## Distribution network instance 1 (all data preparation except for make_multinetwork() call)

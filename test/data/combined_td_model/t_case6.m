@@ -29,21 +29,21 @@ mpc.gen = [
         6    0.0  -4.0  183.0  -10.0  0.9    100.0          1  240.0  0.0  0.0  0.0    0.0    0.0    0.0    0.0      0.0     0.0     0.0    0.0  0.0;
 ];
 
-%column_names% gen_id emission_factor
-mpc.generator_emission_factors = [
-                    1             0.1;
-                    2             0.1;
-                    3             0.0;
-                    4             0.1;
-                    5             0.0;
-                    6             0.0;
+%column_names% emission_factor
+mpc.gen_extra = [
+                           0.1;
+                           0.1;
+                           0.0;
+                           0.1;
+                           0.0;
+                           0.0;
 ]
 
 % https://en.wikipedia.org/wiki/Cost_of_electricity_by_source
-% Wind: 46$ -> 38.6 Euro / MWh 
-% Solar: 51$ -> 42.8 Euro / MWh 
-% Nat. Gas: 59$ -> 49.6 Euro / MWh 
-% Coal: 112$ -> 94.1 Euro / MWh 
+% Wind: 46$ -> 38.6 Euro / MWh
+% Solar: 51$ -> 42.8 Euro / MWh
+% Nat. Gas: 59$ -> 49.6 Euro / MWh
+% Coal: 112$ -> 94.1 Euro / MWh
 
 % model startup shutdown ncost  cost
 mpc.gencost = [
@@ -157,11 +157,11 @@ mpc.ne_storage = [
 
 %% load additional data
 % Investment cost: 1 k€/MW; lifetime: 10 years
-%column_names% load_id e_nce_max p_red_max p_shift_up_max p_shift_down_max p_shift_down_tot_max t_grace_up t_grace_down cost_reduction cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost lifetime
+%column_names% load_id ered_rel_max pred_rel_max pshift_up_rel_max pshift_down_rel_max eshift_rel_max tshift_up tshift_down cost_red cost_shift cost_curt cost_inv flex co2_cost lifetime
 mpc.load_extra = [
-                     1       100       0.3            0.3              1.0                  100         10           10          100.0           0.0            10.0   10000.0    80000    1      0.0       10;
-                     2       100       0.3            0.3              1.0                  100         10           10          100.0           0.0            10.0   10000.0   240000    1      0.0       10;
-                     3       100       0.3            0.3              1.0                  100         10           10          100.0           0.0            10.0   10000.0    40000    1      0.0       10;
-                     4       100       0.3            0.3              1.0                  100         10           10          100.0           0.0            10.0   10000.0   160000    1      0.0       10;
-                     5       100       0.3            0.3              1.0                  100         10           10          100.0           0.0            10.0   10000.0   240000    1      0.0       10;
+                     1         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0    80000    1      0.0       10;
+                     2         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0   240000    1      0.0       10;
+                     3         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0    40000    1      0.0       10;
+                     4         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0   160000    1      0.0       10;
+                     5         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0   240000    1      0.0       10;
 ];

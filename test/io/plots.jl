@@ -289,8 +289,8 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
     if !haskey(input_extra_data["load"], string(i_load_plot))
         error(string("There does not exist a load at bus ", i_load_plot))
     end
-    isflex = input_data["load"][string(i_load_plot)]["flex"]
-    if isflex == 0
+    flex = input_data["load"][string(i_load_plot)]["flex"]
+    if flex == 0
         println(string("Warning: Load at bus ", i_load_plot, " is not flexible"))
     end
 
@@ -302,7 +302,7 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
     pflex = zeros(n_time_steps, 1)          # Actual (flexible) load demand at bus
     pshift_down = zeros(n_time_steps, 1)    # Downwards load shifting
     pshift_up = zeros(n_time_steps, 1)      # Upwards demand shifting
-    pnce = zeros(n_time_steps, 1)           # Not consumed energy
+    pred = zeros(n_time_steps, 1)           # Not consumed energy
     pcurt = zeros(n_time_steps, 1)          # Demand curtailment
 
     # Extract demand-related variables from the solution
@@ -311,7 +311,7 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
         pflex[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pflex"]
         pshift_down[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pshift_down"]
         pshift_up[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pshift_up"]
-        pnce[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pnce"]
+        pred[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pred"]
         pcurt[t,1] = results["solution"]["nw"][string(t)]["load"][string(i_load_plot)]["pcurt"]
     end
 
@@ -326,7 +326,7 @@ function plot_flex_demand(results, i_load_plot, input_data, input_extra_data)
     #  If no demand shifting or curtailment, this should all be zeros
     plot!(p, t_vec, pshift_down, label=string("Downwards load shifting"))
     plot!(p, t_vec, pshift_up, label=string("Upwards demand shifting"))
-    plot!(p, t_vec, pnce, label=string("Not consumed energy"))
+    plot!(p, t_vec, pred, label=string("Not consumed energy"))
     plot!(p, t_vec, pcurt, label=string("Demand curtailment"))
 
     return p

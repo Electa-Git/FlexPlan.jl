@@ -1,6 +1,6 @@
 # Function for running model with specified data
 function run_model(data, extradata, _PM, solver)
-    mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
+    mn_data = _FP.make_multinetwork(data, extradata)
 
     # Add PowerModels(ACDC) settings
     s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)

@@ -28,13 +28,13 @@ use_DC = false                              # True for using DC power flow model
 vec_load_scaling_factor = [0.8 0.825 0.85 0.875 0.9 0.925 0.95 0.975 1.0]
 #vec_load_scaling_factor = [0.8 0.85 0.9 0.95 1.0]
 
-# Values for sensitivity analysis of p_shift_down and p_shift_up (demand flexibility potential)
-vec_p_shift_max = [0.0 0.1 0.2 0.3]
-#vec_p_shift_max = [0.0]
+# Values for sensitivity analysis of pshift_down and pshift_up (demand flexibility potential)
+vec_pshift_max = [0.0 0.1 0.2 0.3]
+#vec_pshift_max = [0.0]
 
-# Values for sensitivity analysis of p_shift_down and p_shift_up (demand flexibility potential)
-vec_t_grace = [2 6 10]
-#vec_t_grace = [2]
+# Values for sensitivity analysis of tshift_down and tshift_up (demand flexibility recovery period)
+vec_tshift = [2 6 10]
+#vec_tshift = [2]
 
 # Vector of hours (time steps) included in case
 t_vec = start_hour:start_hour + (number_of_hours - 1)
@@ -48,18 +48,18 @@ filename_load_extra = "./test/data/CIGRE_MV_benchmark_network_flex_load_extra.cs
 
 # Matrix for results of the sensitivity analysis: How many branches have to be built
 n_load_scaling_factor = length(vec_load_scaling_factor)
-n_p_shift_max = length(vec_p_shift_max)
-n_t_grace = length(vec_t_grace)
-n_branches_built = zeros(n_load_scaling_factor, n_p_shift_max, n_t_grace)
+n_pshift_max = length(vec_pshift_max)
+n_tshift = length(vec_tshift)
+n_branches_built = zeros(n_load_scaling_factor, n_pshift_max, n_tshift)
 
 # Sensitivity analysis for load scaling factor
 for i_load_scaling_factor = 1:n_load_scaling_factor
 
     # Sensitivity analysis for demand flexibility potential
-    for i_p_shift_max = 1:n_p_shift_max
+    for i_pshift_max = 1:n_pshift_max
 
-        # Sensitivity analysis for grace/recovery period
-        for i_t_grace = 1:n_t_grace
+        # Sensitivity analysis for recovery period
+        for i_tshift = 1:n_tshift
 
             # Data manipulation (per unit conversions and matching data models)
             data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
@@ -91,13 +91,13 @@ for i_load_scaling_factor = 1:n_load_scaling_factor
 
             # Update demand flexibility parameter values for all load points
             for i_load = 1:n_loads
-                data["load"][string(i_load)]["t_grace_down"] = vec_t_grace[i_t_grace]
-                data["load"][string(i_load)]["t_grace_up"] = vec_t_grace[i_t_grace]
-                data["load"][string(i_load)]["p_shift_down_max"] = vec_p_shift_max[i_p_shift_max]
-                data["load"][string(i_load)]["p_shift_up_max"] = vec_p_shift_max[i_p_shift_max]
+                data["load"][string(i_load)]["tshift_down"] = vec_tshift[i_tshift]
+                data["load"][string(i_load)]["tshift_up"] = vec_tshift[i_tshift]
+                data["load"][string(i_load)]["pshift_down_rel_max"] = vec_pshift_max[i_pshift_max]
+                data["load"][string(i_load)]["pshift_up_rel_max"] = vec_pshift_max[i_pshift_max]
             end
 
-            extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
+            extradata = create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
             # Create data dictionary where time series data is included at the right place
             mn_data = _FP.make_multinetwork(data, extradata)
 
@@ -127,7 +127,7 @@ for i_load_scaling_factor = 1:n_load_scaling_factor
             for i_ne_branch = 1:n_ne_branches
                 n_branches_built_this += results["solution"]["nw"]["1"]["ne_branch"][string(i_ne_branch)]["built"]
             end
-            n_branches_built[i_load_scaling_factor,i_p_shift_max,i_t_grace] = n_branches_built_this
+            n_branches_built[i_load_scaling_factor,i_pshift_max,i_tshift] = n_branches_built_this
 
         end
     end

@@ -28,26 +28,29 @@ __init__() = Memento.register(_LOGGER)
 
 
 include("prob/dist.jl")
+include("prob/storage_tnep.jl")
 include("prob/flexible_tnep.jl")
 include("prob/stochastic_flexible_tnep.jl")
-include("prob/storage_tnep.jl")
+include("prob/simple_stochastic_flexible_tnep.jl")
 include("prob/reliability_tnep.jl")
 
-include("io/common.jl")
+include("io/parse.jl")
+include("io/scale.jl")
+include("io/time_series.jl")
 include("io/multinetwork.jl")
 include("io/plot_geo_data.jl")
-include("io/profile_data.jl")
 
 include("core/types.jl")
 include("core/dimensions.jl")
 include("core/variable.jl")
 include("core/variableconv.jl")
 include("core/variabledcgrid.jl")
+include("core/gen.jl")
 include("core/flexible_demand.jl")
 include("core/storage.jl")
 include("core/objective.jl")
 include("core/reliability.jl")
-include("core/model_references.jl")
+include("core/ref_extension.jl")
 include("core/constraint_template.jl")
 include("core/constraint.jl")
 include("core/line_replacement.jl")
@@ -58,5 +61,11 @@ include("core/t-d_decoupling.jl")
 include("form/bf.jl")
 include("form/bfarad.jl")
 include("formconv/dcp.jl")
+
+
+# Submodules
+
+include("json_converter/json_converter.jl")
+using .JSONConverter
 
 end

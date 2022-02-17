@@ -5,7 +5,7 @@
 # If using the DC power flow there will be no grid issues (congestions) unless artificially forced using
 # the boolean switch parameter do_force_congest.
 
-# Import relevant pakcages:
+# Import relevant packages:
 # FlexPlan uses PowerModelsACDC for the multi-period transmission expansion optimisation & DC grid
 # PowerModelsACDC uses PowerModels for the AC grid, and the optimisation create_profile_data
 # InfrastructureModels is needed for data manipulation and common functions
@@ -30,17 +30,18 @@ cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, seconds = 20, print_level=0)
 
 
 # Input parameters:
-number_of_hours = 72          # Number of time steps
-start_hour = 1                # First time step
-n_loads = 13                  # Number of load points
-I_load_mon = 2:10                # The load point on which we monitor the load demand
-I_bus_mon = 1:11              # The buses for which voltage magnitude is to be monitored
-I_load_other = []            # Load point for other loads on the same radial affecting congestion
-i_branch_mon = 2              # Index of branch on which to monitor congestion
-do_force_congest = false      # True if forcing congestion by modifying branch flow rating of i_branch_mon
-rate_congest = 16            # Rating of branch on which to force congestion
-load_scaling_factor = 0.8       # Factor with which original base case load demand data should be scaled
-use_DC = false                      # True for using DC power flow model; false for using linearized power real-reactive flow model for radial networks
+start_hour = 1                     # First time step
+number_of_hours = 72               # Number of time steps
+n_loads = 13                       # Number of load points
+I_load_mon = 2:10                  # The load point on which we monitor the load demand
+I_bus_mon = 1:11                   # The buses for which voltage magnitude is to be monitored
+I_load_other = []                  # Load point for other loads on the same radial affecting congestion
+i_branch_mon = 2                   # Index of branch on which to monitor congestion
+do_force_congest = false           # True if forcing congestion by modifying branch flow rating of i_branch_mon
+rate_congest = 16                  # Rating of branch on which to force congestion
+load_scaling_factor = 0.8          # Factor with which original base case load demand data should be scaled
+use_DC = false                     # True for using DC power flow model; false for using linearized power real-reactive flow model for radial networks
+out_dir = "test/data/output_files" # Output directory
 
 # Vector of hours (time steps) included in case
 t_vec = start_hour:start_hour+(number_of_hours-1)
@@ -52,15 +53,9 @@ file = "./test/data/CIGRE_MV_benchmark_network_flex.m"
 filename_load_extra = "./test/data/CIGRE_MV_benchmark_network_flex_load_extra.csv"
 
 # Data manipulation (per unit conversions and matching data models)
-data = _PM.parse_file(file)  # Create PowerModels data dictionary (AC networks and storage)
-
-# Handle possible missing auxiliary fields of the MATPOWER case file
-field_names = ["busdc","busdc_ne","branchdc","branchdc_ne","convdc","convdc_ne","ne_storage","storage","storage_extra"]
-for field_name in field_names
-      if !haskey(data,field_name)
-            data[field_name] = Dict{String,Any}()
-      end
-end
+data = _FP.parse_file(file; flex_load=false)  # Create PowerModels data dictionary (AC networks and storage)
+_FP.add_dimension!(data, :hour, number_of_hours)
+_FP.add_dimension!(data, :year, 1)
 
 # Read load demand series and assign (relative) profiles to load points in the network
 data,loadprofile,genprofile = create_profile_data_norway(data, number_of_hours)
@@ -81,19 +76,14 @@ if do_force_congest
       data["branch"][string(i_branch_mon)]["rate_c"] = rate_congest
 end
 
-if use_DC
-      # Add DC grid data to the data dictionary
-      _PMACDC.process_additional_data!(data)
-end
-
 # Add flexible data model
 _FP.add_flexible_demand_data!(data)
 
 # Create a dictionary to pass time series data to data dictionary
-extradata = _FP.create_profile_data(number_of_hours, data, loadprofile)
+extradata = create_profile_data(number_of_hours, data, loadprofile)
 
 # Create data dictionary where time series data is included at the right place
-mn_data = _FP.multinetwork_data(data, extradata)
+mn_data = _FP.make_multinetwork(data, extradata)
 
 # Add PowerModels(ACDC) settings
 if use_DC
@@ -122,7 +112,7 @@ end
 # Plot branch flow on congested branch
 if !isnan(i_branch_mon)
       p_congest = plot_branch_flow(result,i_branch_mon,data,"branch")
-      savefig(p_congest,"branch_flow_congest")
+      savefig(p_congest, joinpath(out_dir,"branch_flow_congest.png"))
 end
 
 # Extract results for branch to monitor
@@ -134,7 +124,7 @@ branch_new = get_res(result, "ne_branch","2")
 # Extract results for load points to monitor
 # (this code got quite ugly but I do not want to re-write/extend the get_vars functions right now...)
 pflex_load_mon = zeros(number_of_hours,1)
-pnce_load_mon = zeros(number_of_hours,1)
+pred_load_mon = zeros(number_of_hours,1)
 pcurt_load_mon = zeros(number_of_hours,1)
 pd_load_mon = zeros(number_of_hours,1)
 ence_load_mon = zeros(number_of_hours,1)
@@ -143,9 +133,9 @@ pshift_down_load_mon = zeros(number_of_hours,1)
 for i_load_mon in I_load_mon
       load_mon = get_res(result, "load", string(i_load_mon))
       global pflex_load_mon += _IT.select(load_mon, :pflex)
-      global pnce_load_mon += _IT.select(load_mon, :pnce)
+      global pred_load_mon += _IT.select(load_mon, :pred)
       global pcurt_load_mon += _IT.select(load_mon, :pcurt)
-      global ence_load_mon += _IT.select(load_mon, :ence)
+      global ered_load_mon += _IT.select(load_mon, :ered)
       global pshift_up_load_mon += _IT.select(load_mon, :pshift_up)
       global pshift_down_load_mon += _IT.select(load_mon, :pshift_down)
       global pd_load_mon += transpose(extradata["load"][string(i_load_mon)]["pd"])
@@ -167,7 +157,7 @@ for i_bus in I_bus_mon[2:end]
       plot_res!(result,"bus",string(i_bus),"vm")
       voltage_plot.series_list[end].plotattributes[:label] = string("bus ", i_bus)
 end
-savefig(voltage_plot, "voltage.png")
+savefig(voltage_plot, joinpath(out_dir,"voltage.png"))
 
 # Plot combined stacked area and line plot for energy balance across the monitored branch
 #... plot areas for power contribution from different sources
@@ -178,17 +168,17 @@ else
       branch_new_flow = _IT.select(branch_new, :pt)*-1
 end
 bus_mod_balance = branch_congest_flow - pflex_load_other
-stack_series = [bus_mod_balance branch_new_flow pnce_load_mon pcurt_load_mon]
+stack_series = [bus_mod_balance branch_new_flow pred_load_mon pcurt_load_mon]
 stack_labels = ["branch flow old branch" "branch flow new branch" "reduced load at buses" "curtailed load at buses"]
 stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false, ylabel = "load (MW)")
 load_input = pd_load_mon + pd_load_other
 plot!(t_vec, load_input, color=:red, width=3.0, label="base demand", line=:dash)
 load_flex = pflex_load_mon + pflex_load_other
 plot!(t_vec, load_flex, color=:blue, width=3.0, label="flexible demand", line=:dash)
-savefig(stacked_plot, "load_mod_balance.png")
+savefig(stacked_plot, joinpath(out_dir,"load_mod_balance.png"))
 
-# Plot energy not served (i.e. energy not consumed according to the nomenclature in D1.2)
-plot_not_served = plot(t_vec, ence_load_mon, color=:black, width=3.0,
+# Plot energy not served (i.e. energy not consumed according to the nomeredlature in D1.2)
+plot_not_served = plot(t_vec, ered_load_mon, color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
                            ylabel="energy (MWh)", legend=false, gridalpha=0.5)
 
@@ -204,7 +194,7 @@ plot!([0], label = "total energy not served", color=:black, width=3.0, showaxis=
 #   and the legend on the side (with a given width -> .2w)
 vertical_plot = plot(stacked_plot, plot_not_served, v1legend, layout = @layout([[A; B] C{.22w}]),
                      size=(700, 400))
-savefig(vertical_plot, "load_mod_balance_vertical.png")
+savefig(vertical_plot, joinpath(out_dir,"load_mod_balance_vertical.png"))
 
 
 # Plot the shifted demand
@@ -229,4 +219,4 @@ stackedarea!([0],[0], showaxis=false, grid=false, label="load shift down", legen
 #   and the legend on the side (with a given width -> .2w)
 vshift_plot = plot(stacked_plot, plot_energy_shift, v2legend, layout = @layout([[A; B] C{.2w}]),
                    size=(700, 400))
-savefig(vshift_plot, "load_mod_balance_vshift.png")
+savefig(vshift_plot, joinpath(out_dir,"load_mod_balance_vshift.png"))

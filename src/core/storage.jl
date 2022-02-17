@@ -4,32 +4,32 @@
 
 function variable_absorbed_energy(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool = true, report::Bool=true)
     e_abs = _PM.var(pm, nw)[:e_abs] = JuMP.@variable(pm.model,
-    [i in _PM.ids(pm, nw, :storage)], base_name="$(nw)_e_abs",
+    [i in _PM.ids(pm, nw, :storage_bounded_absorption)], base_name="$(nw)_e_abs",
     start = 0)
 
     if bounded
-        for (s, storage) in _PM.ref(pm, nw, :storage)
+        for (s, storage) in _PM.ref(pm, nw, :storage_bounded_absorption)
             JuMP.set_lower_bound(e_abs[s],  0)
             JuMP.set_upper_bound(e_abs[s],  storage["max_energy_absorption"])
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :storage, :e_abs, _PM.ids(pm, nw, :storage), e_abs)
+    report && _IM.sol_component_value(pm, nw, :storage, :e_abs, _PM.ids(pm, nw, :storage_bounded_absorption), e_abs)
 end
 
 function variable_absorbed_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool = true, report::Bool=true)
     e_abs = _PM.var(pm, nw)[:e_abs_ne] = JuMP.@variable(pm.model,
-    [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_e_abs_ne",
+    [i in _PM.ids(pm, nw, :ne_storage_bounded_absorption)], base_name="$(nw)_e_abs_ne",
     start = 0)
 
     if bounded
-        for (s, storage) in _PM.ref(pm, nw, :ne_storage)
+        for (s, storage) in _PM.ref(pm, nw, :ne_storage_bounded_absorption)
             JuMP.set_lower_bound(e_abs[s],  0)
             JuMP.set_upper_bound(e_abs[s],  storage["max_energy_absorption"])
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :ne_storage, :e_abs_ne, _PM.ids(pm, nw, :ne_storage), e_abs)
+    report && _IM.sol_component_value(pm, nw, :ne_storage, :e_abs_ne, _PM.ids(pm, nw, :ne_storage_bounded_absorption), e_abs)
 end
 
 function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
@@ -382,7 +382,7 @@ end
 function constraint_ne_storage_activation(pm::_PM.AbstractPowerModel, i::Int, prev_nws::Vector{Int}, nw::Int)
     investment_horizon = [nw]
     lifetime = _PM.ref(pm, nw, :ne_storage, i, "lifetime")
-    for n in Iterators.reverse(prev_nws[1:min(lifetime-1,length(prev_nws))])
+    for n in Iterators.reverse(prev_nws[max(end-lifetime+2,1):end])
         i in _PM.ids(pm, n, :ne_storage) ? push!(investment_horizon, n) : break
     end
     constraint_ne_storage_activation(pm, nw, i, investment_horizon)
