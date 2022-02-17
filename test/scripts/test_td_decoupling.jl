@@ -23,30 +23,17 @@ import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 
 
-## Input parameters
-
-# Test case parameters
-flex_load         = false # Toggles flexibility of loads
-ne_storage        =  true # Toggles candidate storage
-scale_gen         =   1.0 # Scaling factor of all generators, wind included
-scale_wind        =   6.0 # Further scaling factor of wind generator
-scale_load        =   1.0 # Scaling factor of loads
-energy_cost       =  50.0 # Cost of energy exchanged with transmission network [€/MWh]
-year_scale_factor =    10 # How many years a representative year should represent
-number_of_hours   =    24 # Number of hourly optimization periods
-start_period      =     1 # First period of profile data to use
-
-# Procedure parameters
-number_of_candidates = 4 # Number of flexibility candidates for each distribution network to be returned
-
 # Script parameters
+
 out_dir = "./test/data/output_files/td_decoupling/" # Directory of output files
 plot = true # Toggles plotting of results
 
 
 ## Load distribution network instance
 
-d_mn_data = load_cigre_mv_eu(; flex_load, ne_storage, scale_gen, scale_wind, scale_load, energy_cost, year_scale_factor, number_of_hours, start_period)
+# To find out the meaning of the parameters, consult the function documentation
+#d_mn_data = load_cigre_mv_eu(flex_load=false, ne_storage=true, scale_gen=1.0, scale_wind=6.0, scale_load=1.0, energy_cost=50.0, year_scale_factor=10, number_of_hours=24, start_period=1)
+d_mn_data = load_ieee_33(number_of_hours=24, number_of_scenarios=1)
 
 
 ## Solve problem

@@ -71,3 +71,33 @@ function load_cigre_mv_eu(;
 
     return d_mn_data
 end
+
+"""
+    load_ieee_33(<keyword arguments>)
+
+Load an extended version of IEEE 33-bus network.
+
+Source: <https://ieeexplore.ieee.org/abstract/document/9258930>
+
+Extensions:
+- time series (672 hours, 4 scenarios) for loads and RES generators.
+
+# Arguments
+- `number_of_hours::Int = 672`: number of hourly optimization periods.
+- `number_of_hours::Int = 4`: number of scenarios (different time series for loads and RES
+  generators).
+"""
+function load_ieee_33(;
+        number_of_hours::Int = 672,
+        number_of_scenarios::Int = 4,
+    )
+    file = "test/data/ieee_33/ieee_33_28days.json"
+    mn_data = _FP.convert_JSON(
+        file;
+        number_of_hours,
+        number_of_scenarios,
+        init_data_extensions = [data -> _FP.add_dimension!(data, :sub_nw, 1)],
+        sn_data_extensions = [sn_data -> _FP.add_td_coupling_data!(sn_data; sub_nw=1)],
+    )
+    return mn_data
+end
