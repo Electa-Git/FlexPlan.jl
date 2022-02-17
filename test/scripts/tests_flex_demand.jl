@@ -66,7 +66,7 @@ _FP.add_dimension!(data, :hour, number_of_hours)
 _FP.add_dimension!(data, :year, 1)
 
 
-extradata = _FP.create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
+extradata = create_profile_data(number_of_hours, data, loadprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
 mn_data = _FP.make_multinetwork(data, extradata)
 

@@ -54,7 +54,7 @@ data["co2_emission_cost"] = 0.1
 _FP.scale_cost_data!(data, scenario) # Scale cost data
 # Put scenario data in right format
 dim = number_of_hours * length(data["scenario"])
-extradata = _FP.create_profile_data(dim, data, loadprofile, genprofile) # create a dictionary to pass time series data to data dictionary
+extradata = create_profile_data(dim, data, loadprofile, genprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type","scenario","name", "source_version", "per_unit", "co2_emission_cost"]))
 

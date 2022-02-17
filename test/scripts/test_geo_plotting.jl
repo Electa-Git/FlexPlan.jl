@@ -7,6 +7,8 @@ import PowerModelsACDC; const _PMACDC = PowerModelsACDC
 import PowerModels; const _PM = PowerModels
 import DataFrames
 
+include("../io/create_profile.jl")
+
 # Add solver packages,, NOTE: packages are needed handle communication bwteeen solver and Julia/JuMP,
 # they don't include the solver itself (the commercial ones). For instance ipopt, Cbc, juniper and so on should work
 import Ipopt
@@ -94,7 +96,7 @@ loadprofile = [demand_center_north_pu'; demand_north_pu'; demand_center_south_pu
 _PMACDC.process_additional_data!(data) # Add DC grid data to the data dictionary
 _FP.add_storage_data!(data) # Add addtional storage data model
 _FP.add_flexible_demand_data!(data) # Add flexible data model
-extradata = _FP.create_profile_data(number_of_hours, data, loadprofile, genprofile) # create a dictionary to pass time series data to data dictionary
+extradata = create_profile_data(number_of_hours, data, loadprofile, genprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
 

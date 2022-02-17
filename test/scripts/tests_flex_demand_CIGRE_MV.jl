@@ -80,7 +80,7 @@ end
 _FP.add_flexible_demand_data!(data)
 
 # Create a dictionary to pass time series data to data dictionary
-extradata = _FP.create_profile_data(number_of_hours, data, loadprofile)
+extradata = create_profile_data(number_of_hours, data, loadprofile)
 
 # Create data dictionary where time series data is included at the right place
 mn_data = _FP.make_multinetwork(data, extradata)

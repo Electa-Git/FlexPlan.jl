@@ -46,7 +46,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "p
 #result = _FP.stoch_flex_tnep(data, model_type, optimizer, multinetwork=_PM._IM.ismultinetwork(data); setting=s)
 
 # Two-step alternative, exposes pm
-pm = _PM.instantiate_model(data, model_type, _FP.post_stoch_flex_tnep; ref_extensions=[_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _FP.add_candidate_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting=s)
+pm = _PM.instantiate_model(data, model_type, _FP.post_stoch_flex_tnep; ref_extensions=[ref_add_gen!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting=s)
 result = _PM.optimize_model!(pm; optimizer)
 
 @assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"

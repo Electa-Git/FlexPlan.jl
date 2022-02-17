@@ -1,6 +1,28 @@
+## Generators
+
+"Add to `ref` the keys for handling dispatchable and non-dispatchable generators"
+function ref_add_gen!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
+
+    for (n, nw_ref) in ref[:nw]
+        # Dispatchable generators. Their power varies between `pmin` and `pmax` and cannot be curtailed.
+        nw_ref[:dgen] = Dict(x for x in nw_ref[:gen] if x.second["dispatchable"] == true)
+        # Non-dispatchable generators. Their reference power `pref` can be curtailed.
+        nw_ref[:ndgen] = Dict(x for x in nw_ref[:gen] if x.second["dispatchable"] == false)
+    end
+end
+
+
 ## Storage
 
-function add_candidate_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
+function ref_add_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
+    for (n, nw_ref) in ref[:nw]
+        if haskey(nw_ref, :storage)
+            nw_ref[:storage_bounded_absorption] = Dict(x for x in nw_ref[:storage] if 0.0 < get(x.second, "max_energy_absorption", Inf) < Inf)
+        end
+    end
+end
+
+function ref_add_ne_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
     for (n, nw_ref) in ref[:nw]
         if haskey(nw_ref, :ne_storage)
             bus_storage_ne = Dict([(i, []) for (i,bus) in nw_ref[:bus]])
@@ -8,6 +30,7 @@ function add_candidate_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any
                 push!(bus_storage_ne[storage["storage_bus"]], i)
             end
             nw_ref[:bus_storage_ne] = bus_storage_ne
+            nw_ref[:ne_storage_bounded_absorption] = Dict(x for x in nw_ref[:ne_storage] if 0.0 < get(x.second, "max_energy_absorption", Inf) < Inf)
         end
     end
 end

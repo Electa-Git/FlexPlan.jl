@@ -137,6 +137,10 @@ function calc_gen_cost(pm::_PM.AbstractPowerModel, n::Int)
     if get(pm.setting, "add_co2_cost", false)
         cost += sum(g["emission_factor"] * _PM.var(pm,n,:pg,i) * pm.ref[:co2_emission_cost] for (i,g) in gen)
     end
+    ndgen = _PM.ref(pm, n, :ndgen)
+    if !isempty(ndgen)
+        cost += sum(g["cost_curt"] * _PM.var(pm,n,:pgcurt,i) for (i,g) in ndgen)
+    end
     return cost
 end
 
@@ -205,8 +209,7 @@ function calc_load_operational_cost(pm::_PM.AbstractPowerModel, n::Int)
     flex_load = _PM.ref(pm, n, :flex_load)
     if !isempty(flex_load)
         cost += sum(
-            l["cost_shift_up"]*_PM.var(pm, n, :pshift_up, i)
-            + l["cost_shift_down"]*_PM.var(pm, n, :pshift_down, i)
+            l["cost_shift"]*_PM.var(pm, n, :pshift_up, i) # Do not add `:pshift_down`: would result in double counting.
             + l["cost_red"]*_PM.var(pm, n, :pred, i)
             + l["cost_curt"]*_PM.var(pm, n, :pcurt, i)
             for (i,l) in flex_load

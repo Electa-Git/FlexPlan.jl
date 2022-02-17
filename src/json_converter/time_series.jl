@@ -9,11 +9,9 @@ function make_time_series(source::AbstractDict, lookup::AbstractDict, y::Int, sn
 
     for comp in source["scenarioDataInputFile"]["generators"]
         index = lookup["generators"][comp["id"]]
-        if haskey(comp, "capacityFactor") # If gen is a RES
-            # Since FlexPlan.jl does not support curtailable generators, we fix their power to the value determined by the time series.
-            # TODO: change this once FlexPlan.jl supports curtailable generation
+        if haskey(comp, "capacityFactor")
             p = ts_vector(comp, "capacityFactor", y; number_of_hours, number_of_scenarios) .* sn_data["gen"]["$index"]["pmax"]
-            target["gen"]["$index"] = Dict{String,Any}("pmax" => p, "pmin" => p)
+            target["gen"]["$index"] = Dict{String,Any}("pmax" => p)
         end
     end
 
@@ -42,23 +40,25 @@ function make_time_series(source::AbstractDict, lookup::AbstractDict, y::Int, sn
         end
     end
 
-    for cand in source["candidatesInputFile"]["storage"]
-        comp = cand["storageData"]
-        index = lookup["cand_storage"][comp["id"]]
-        target["ne_storage"]["$index"] = Dict{String,Any}()
-        if haskey(comp, "powerExternalProcess")
-            p = ts_vector(comp, "powerExternalProcess", y; number_of_hours, number_of_scenarios)
-            target["ne_storage"]["$index"]["stationary_energy_inflow"] = max.(p,0.0)
-            target["ne_storage"]["$index"]["stationary_energy_outflow"] = -min.(p,0.0)
-        else
-            target["ne_storage"]["$index"]["stationary_energy_inflow"] = zeros(number_of_hours*number_of_scenarios)
-            target["ne_storage"]["$index"]["stationary_energy_outflow"] = zeros(number_of_hours*number_of_scenarios)
-        end
-        if haskey(comp, "maxAbsActivePower")
-            target["ne_storage"]["$index"]["charge_rating"] = ts_vector(comp, "maxAbsActivePower", y; number_of_hours, number_of_scenarios) * sn_data["ne_storage"]["$index"]["charge_rating"]
-        end
-        if haskey(comp, "maxInjActivePower")
-            target["ne_storage"]["$index"]["discharge_rating"] = ts_vector(comp, "maxInjActivePower", y; number_of_hours, number_of_scenarios) * sn_data["ne_storage"]["$index"]["discharge_rating"]
+    if haskey(source, "candidatesInputFile")
+        for cand in source["candidatesInputFile"]["storage"]
+            comp = cand["storageData"]
+            index = lookup["cand_storage"][comp["id"]]
+            target["ne_storage"]["$index"] = Dict{String,Any}()
+            if haskey(comp, "powerExternalProcess")
+                p = ts_vector(comp, "powerExternalProcess", y; number_of_hours, number_of_scenarios)
+                target["ne_storage"]["$index"]["stationary_energy_inflow"] = max.(p,0.0)
+                target["ne_storage"]["$index"]["stationary_energy_outflow"] = -min.(p,0.0)
+            else
+                target["ne_storage"]["$index"]["stationary_energy_inflow"] = zeros(number_of_hours*number_of_scenarios)
+                target["ne_storage"]["$index"]["stationary_energy_outflow"] = zeros(number_of_hours*number_of_scenarios)
+            end
+            if haskey(comp, "maxAbsActivePower")
+                target["ne_storage"]["$index"]["charge_rating"] = ts_vector(comp, "maxAbsActivePower", y; number_of_hours, number_of_scenarios) * sn_data["ne_storage"]["$index"]["charge_rating"]
+            end
+            if haskey(comp, "maxInjActivePower")
+                target["ne_storage"]["$index"]["discharge_rating"] = ts_vector(comp, "maxInjActivePower", y; number_of_hours, number_of_scenarios) * sn_data["ne_storage"]["$index"]["discharge_rating"]
+            end
         end
     end
 

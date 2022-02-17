@@ -29,14 +29,14 @@ mpc.gen = [
         6    0.0  -4.0  183.0  -10.0  0.9    100.0          1  400.0  0.0  0.0  0.0    0.0    0.0    0.0    0.0      0.0     0.0     0.0    0.0  0.0;
 ];
 
-%column_names% gen_id emission_factor
-mpc.generator_emission_factors = [
-                    1             0.1;
-                    2             0.1;
-                    3             0.0;
-                    4             0.1;
-                    5             0.0;
-                    6             0.0;
+%column_names% emission_factor
+mpc.gen_extra = [
+                           0.1;
+                           0.1;
+                           0.0;
+                           0.1;
+                           0.0;
+                           0.0;
 ]
 
 % https://en.wikipedia.org/wiki/Cost_of_electricity_by_source
@@ -144,28 +144,28 @@ mpc.storage = [
 ];
 
 %% storage additional data
-%column_names% max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate
+%column_names% stationary_energy_inflow stationary_energy_outflow self_discharge_rate
 mpc.storage_extra = [
-                             2190000                        0                         0               0.001;
+                                      0                         0               0.001;
 ];
 
 %% storage data
 % Cost of battery storage: 350 k€/MWh; lifetime: 10 years
-%column_names% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating    qmin   qmax    r    x p_loss q_loss status max_energy_absorption stationary_energy_inflow stationary_energy_outflow self_discharge_rate    eq_cost inst_cost co2_cost lifetime
+%column_names% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating    qmin   qmax    r    x p_loss q_loss status stationary_energy_inflow stationary_energy_outflow self_discharge_rate    eq_cost inst_cost co2_cost lifetime
 mpc.ne_storage = [
-                         2  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1               2190000                        0                         0               0.001  350000000         0      0.0       10;
-                         5  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1               2190000                        0                         0               0.001  350000000         0      0.0       10;
-                         6  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1               2190000                        0                         0               0.001  350000000         0      0.0       10;
+                         2  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1                        0                         0               0.001  350000000         0      0.0       10;
+                         5  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1                        0                         0               0.001  350000000         0      0.0       10;
+                         6  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1                        0                         0               0.001  350000000         0      0.0       10;
 ];
 
 
 %% load additional data
 % Investment cost: 1 k€/MW; lifetime: 10 years
-%column_names% load_id ered_rel_max pred_rel_max pshift_up_rel_max pshift_down_rel_max eshift_rel_max tshift_up tshift_down cost_red cost_shift_up cost_shift_down cost_curt cost_inv flex co2_cost lifetime
+%column_names% load_id ered_rel_max pred_rel_max pshift_up_rel_max pshift_down_rel_max eshift_rel_max tshift_up tshift_down cost_red cost_shift cost_curt cost_inv flex co2_cost lifetime
 mpc.load_extra = [
-                     1         0.01          0.3               0.3                 1.0            0.1        10          10    100.0           0.0            10.0   10000.0    80000    1      0.0       10;
-                     2         0.01          0.3               0.3                 1.0            0.1        10          10    100.0           0.0            10.0   10000.0   240000    1      0.0       10;
-                     3         0.01          0.3               0.3                 1.0            0.1        10          10    100.0           0.0            10.0   10000.0    40000    1      0.0       10;
-                     4         0.01          0.3               0.3                 1.0            0.1        10          10    100.0           0.0            10.0   10000.0   160000    1      0.0       10;
-                     5         0.01          0.3               0.3                 1.0            0.1        10          10    100.0           0.0            10.0   10000.0   240000    1      0.0       10;
+                     1         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0    80000    1      0.0       10;
+                     2         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0   240000    1      0.0       10;
+                     3         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0    40000    1      0.0       10;
+                     4         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0   160000    1      0.0       10;
+                     5         0.01          0.3               0.3                 1.0            0.1        10          10    100.0       10.0   10000.0   240000    1      0.0       10;
 ];

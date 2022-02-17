@@ -1,22 +1,18 @@
-# Single-network containing only fixed data (i.e. data that does not depend on year)
-function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::AbstractDict, y::Int)
+# Single-network containing only fixed data (i.e. data that does not depend on year), method without candidates
+function nw(source::AbstractDict, lookup::AbstractDict, y::Int)
     target = Dict{String,Any}(
         "branch"       => Dict{String,Any}(),
         "branchdc"     => Dict{String,Any}(),
-        "branchdc_ne"  => Dict{String,Any}(),
         "bus"          => Dict{String,Any}(),
         "busdc"        => Dict{String,Any}(),
-        "busdc_ne"     => Dict{String,Any}(),
         "convdc"       => Dict{String,Any}(),
-        "convdc_ne"    => Dict{String,Any}(),
         "dcline"       => Dict{String,Any}(),
         "gen"          => Dict{String,Any}(),
         "load"         => Dict{String,Any}(),
-        "ne_branch"    => Dict{String,Any}(),
-        "ne_storage"   => Dict{String,Any}(),
         "shunt"        => Dict{String,Any}(),
         "storage"      => Dict{String,Any}(),
         "switch"       => Dict{String,Any}(),
+        "dcpol"        => 2, # Assumption: DC grid has 2 poles.
         "per_unit"     => true,
         "time_elapsed" => 1.0, # Assumption: each period lasts 1 hour.
     )
@@ -98,6 +94,19 @@ function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::Abstr
         storage_bus = lookup["acBuses"][comp["acBusConnected"]]
         target["storage"]["$index"] = make_storage(comp, index, source_id, storage_bus, y)
     end
+
+    return target
+end
+
+# Single-network containing only fixed data (i.e. data that does not depend on year), method with candidates
+function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::AbstractDict, y::Int)
+
+    target = nw(source, lookup, y)
+    target["branchdc_ne"] = Dict{String,Any}()
+    target["busdc_ne"]    = Dict{String,Any}()
+    target["convdc_ne"]   = Dict{String,Any}()
+    target["ne_branch"]   = Dict{String,Any}()
+    target["ne_storage"]  = Dict{String,Any}()
 
     ne_branch_path = ["candidatesInputFile", "acBranches"]
     for cand in walkpath(source, ne_branch_path)
@@ -235,9 +244,8 @@ function make_branch(source::AbstractDict, index::Int, source_id::Vector{String}
         "t_bus"       => t_bus,
         "br_status"   => 1, # Assumption: all branches defined in JSON file are in service.
         "transformer" => transformer,
-        "br_x"        => source["reactance"],
-        "b_fr"        => source["susceptance"]/2,
-        "b_to"        => source["susceptance"]/2,
+        "b_fr"        => 0.0, # Assumption: all branches defined in JSON file have zero shunt susceptance.
+        "b_to"        => 0.0, # Assumption: all branches defined in JSON file have zero shunt susceptance.
         "g_fr"        => 0.0, # Assumption: all branches defined in JSON file have zero shunt conductance.
         "g_to"        => 0.0, # Assumption: all branches defined in JSON file have zero shunt conductance.
         "rate_a"      => source["ratedApparentPower"][y],
@@ -248,6 +256,13 @@ function make_branch(source::AbstractDict, index::Int, source_id::Vector{String}
         "angmax"      => source["maxAngleDifference"],
     )
     optional_value(target, "br_r", source, "resistance")
+    if source["isTransmission"]
+        target["br_r"] = 0.0
+        target["br_x"] = 1/source["susceptance"]
+    else
+        target["br_r"] = source["resistance"]
+        target["br_x"] = source["reactance"]
+    end
     return target
 end
 
@@ -260,6 +275,7 @@ function make_branchdc(source::AbstractDict, index::Int, source_id::Vector{Strin
         "status"    => 1, # Assumption: all branches defined in JSON file are in service.
         "rateA"     => source["ratedActivePower"][y],
         "rateC"     => source["emergencyRating"],
+        "r"         => 0.0, # Assumption: zero resistance (the parameter is required by PowerModelsACDC but unused in lossless models).
     )
     return target
 end
@@ -293,6 +309,7 @@ function make_busdc(source::AbstractDict, index::Int, source_id::Vector{String})
         "Vdc"       => source["nominalVoltageMagnitude"],
         "Vdcmin"    => 0.9, # Assumption: minimum DC voltage is 0.9 p.u. for every DC bus
         "Vdcmax"    => 1.1, # Assumption: maximum DC voltage is 1.1 p.u. for every DC bus
+        "Pdc"       => 0.0, # Assumption: power withdrawn from DC bus is 0.0 p.u.
     )
     optional_value(target, "basekVdc", source, "baseVoltage")
     return target
@@ -300,37 +317,53 @@ end
 
 function make_convdc(source::AbstractDict, index::Int, source_id::Vector{String}, busac::Int, busdc::Int, typeac::Int, y::Int)
     target = Dict{String,Any}(
-        "index"     => index,
-        "source_id" => source_id,
-        "status"    => 1, # Assumption: all converters defined in JSON file are in service.
-        "busac_i"   => busac,
-        "busdc_i"   => busdc,
-        "type_ac"   => typeac,
-        "type_dc"   => 3, # Assumption: all converters defined in JSON file have DC droop.
-        "Vmmin"     => 0.9, # Required by PowerModelsACDC, but not relevant, since we use an approximation where voltage magnitude is 1.0 p.u. at each AC transmission network bus
-        "Vmmax"     => 1.1, # Required by PowerModelsACDC, but not relevant, since we use an approximation where voltage magnitude is 1.0 p.u. at each AC transmission network bus
-        "Pacrated"  => source["ratedActivePowerAC"][y],
-        "Pacmin"    => -source["ratedActivePowerAC"][y],
-        "Pacmax"    => source["ratedActivePowerAC"][y],
+        "index"       => index,
+        "source_id"   => source_id,
+        "status"      => 1, # Assumption: all converters defined in JSON file are in service.
+        "busac_i"     => busac,
+        "busdc_i"     => busdc,
+        "type_ac"     => typeac,
+        "type_dc"     => 3, # Assumption: all converters defined in JSON file have DC droop.
+        "Vmmin"       => 0.9, # Required by PowerModelsACDC, but not relevant, since we use an approximation where voltage magnitude is 1.0 p.u. at each AC transmission network bus
+        "Vmmax"       => 1.1, # Required by PowerModelsACDC, but not relevant, since we use an approximation where voltage magnitude is 1.0 p.u. at each AC transmission network bus
+        "Pacrated"    => source["ratedActivePowerAC"][y],
+        "Pacmin"      => -source["ratedActivePowerAC"][y],
+        "Pacmax"      => source["ratedActivePowerAC"][y],
+        "LossA"       => source["auxiliaryLosses"][y],
+        "LossB"       => source["linearLosses"][y],
+        "LossCinv"    => 0.0,
+        "Imax"        => 0.0, # Required by PowerModelsACDC, but unused in lossless models.
+        "transformer" => false, # Assumption: the converter is not a transformer.
+        "tm"          => 0.0, # Required by PowerModelsACDC, but unused, provided that the converter is not a transformer.
+        "rtf"         => 0.0, # Required by PowerModelsACDC, but unused, provided that the converter is not a transformer.
+        "xtf"         => 0.0, # Required by PowerModelsACDC, but unused, provided that the converter is not a transformer.
+        "reactor"     => false, # Assumption: the converter is not a reactor.
+        "rc"          => 0.0, # Required by PowerModelsACDC, but unused, provided that the converter is not a reactor.
+        "xc"          => 0.0, # Required by PowerModelsACDC, but unused, provided that the converter is not a reactor.
+        "filter"      => false, # Required by PowerModelsACDC, but unused, provided that the model is lossless.
+        "bf"          => 0.0, # Required by PowerModelsACDC, but unused, provided that the model is lossless.
+        "islcc"       => 0.0, # Required by PowerModelsACDC, but unused, provided that the model is DC.
     )
     return target
 end
 
 function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, gen_bus::Int, y::Int)
     target = Dict{String,Any}(
-        "index"      => index,
-        "source_id"  => source_id,
-        "gen_status" => 1, # Assumption: all generators defined in JSON file are in service.
-        "gen_bus"    => gen_bus,
-        "pmin"       => source["minActivePower"][y],
-        "pmax"       => source["maxActivePower"][y],
-        "qmin"       => source["minReactivePower"][y],
-        "qmax"       => source["maxReactivePower"][y],
-        "vg"         => 1.0,
-        "model"      => 2, # Polynomial cost model
-        "ncost"      => 2, # 2 cost coefficients: c1 and c0
-        "cost"       => [source["generationCosts"][y], 0.0], # [c1, c0]
+        "index"        => index,
+        "source_id"    => source_id,
+        "gen_status"   => 1, # Assumption: all generators defined in JSON file are in service.
+        "gen_bus"      => gen_bus,
+        "dispatchable" => get(source, "isDispatchable", true),
+        "pmin"         => get(source, "isDispatchable", true) ? source["minActivePower"][y] : 0.0,
+        "pmax"         => source["maxActivePower"][y],
+        "qmin"         => source["minReactivePower"][y],
+        "qmax"         => source["maxReactivePower"][y],
+        "vg"           => 1.0,
+        "model"        => 2, # Polynomial cost model
+        "ncost"        => 2, # 2 cost coefficients: c1 and c0
+        "cost"         => [source["generationCosts"][y], 0.0], # [c1, c0]
     )
+    optional_value(target, "cost_curt", source, "curtailmentCosts", y)
     return target
 end
 
@@ -354,10 +387,7 @@ function make_load(source::AbstractDict, index::Int, source_id::Vector{String}, 
     optional_value(target, "eshift_rel_max",      source, "maxEnergyShifted",        y)
     optional_value(target, "cost_curt",           source, "valueOfLossLoad",         y)
     optional_value(target, "cost_red",            source, "compensationConsumeLess", y)
-    if haskey(source, "compensationDemandShift") && !isempty(source["compensationDemandShift"])
-        target["cost_shift_down"] = source["compensationDemandShift"][y]
-        target["cost_shift_up"] = 0.0 # To avoid double counting. An alternative would be to split `compensationDemandShift` equally between `cost_shift_down` and `cost_shift_up`.
-    end
+    optional_value(target, "cost_shift",          source, "compensationDemandShift", y)
     return target
 end
 
@@ -375,7 +405,6 @@ function make_storage(source::AbstractDict, index::Int, source_id::Vector{String
         "qmin"                  => source["minReactivePowerExchange"][y],
         "qmax"                  => source["maxReactivePowerExchange"][y],
         "self_discharge_rate"   => source["selfDischargeRate"][y],
-        "max_energy_absorption" => source["maxEnergyYear"][y],
         "r"                     => 0.0, # JSON API does not support `r`. Neither Flexplan.jl does (in lossless models), however a value is required by the constraint templates `_PM.constraint_storage_losses` and `_FP.constraint_storage_losses_ne`.
         "x"                     => 0.0, # JSON API does not support `x`. Neither Flexplan.jl does (in lossless models), however a value is required by the constraint templates `_PM.constraint_storage_losses` and `_FP.constraint_storage_losses_ne`.
         "p_loss"                => 0.0, # JSON API does not support `p_loss`. Neither Flexplan.jl does, however a value is required by the constraint templates `_PM.constraint_storage_losses` and `_FP.constraint_storage_losses_ne`.
@@ -386,5 +415,6 @@ function make_storage(source::AbstractDict, index::Int, source_id::Vector{String
     # limiting active or reactive power, even in the case of octagonal approximation of
     # apparent power.
     target["thermal_rating"] = 2 * max(target["charge_rating"], target["discharge_rating"], target["qmax"], -target["qmin"])
+    optional_value(target, "max_energy_absorption", source, "maxEnergyYear", y)
     return target
 end

@@ -99,7 +99,6 @@ function convert_JSON(source::AbstractDict;
     # Generate ID lookup dict
 
     lookup_acBranches = id_lookup(source["gridModelInputFile"]["acBranches"])
-    lookup_cand_acBranches = id_lookup(source["candidatesInputFile"]["acBranches"], "acBranch")
     lookup = Dict(
         "acBuses"           => id_lookup(source["gridModelInputFile"]["acBuses"]),
         "acBranches"        => lookup_acBranches,
@@ -110,25 +109,30 @@ function convert_JSON(source::AbstractDict;
         "dcBuses"           => id_lookup(source["gridModelInputFile"]["dcBuses"]),
         "dcBranches"        => id_lookup(source["gridModelInputFile"]["dcBranches"]),
         "converters"        => id_lookup(source["gridModelInputFile"]["converters"]),
-        "cand_acBranches"   => lookup_cand_acBranches,
-        "cand_transformers" => id_lookup(source["candidatesInputFile"]["transformers"], "acBranch"; offset=length(lookup_cand_acBranches)), # AC branches are split between `acBranches` and `transformers` dicts in JSON files
-        "cand_storage"      => id_lookup(source["candidatesInputFile"]["storage"], "storage"),
-        "cand_dcBranches"   => id_lookup(source["candidatesInputFile"]["dcBranches"], "dcBranch"),
-        "cand_converters"   => id_lookup(source["candidatesInputFile"]["converters"], "converter"),
     )
+    if haskey(source, "candidatesInputFile")
+        lookup_cand_acBranches = id_lookup(source["candidatesInputFile"]["acBranches"], "acBranch")
+        lookup["cand_acBranches"]   = lookup_cand_acBranches
+        lookup["cand_transformers"] = id_lookup(source["candidatesInputFile"]["transformers"], "acBranch"; offset=length(lookup_cand_acBranches)) # AC branches are split between `acBranches` and `transformers` dicts in JSON files
+        lookup["cand_storage"]      = id_lookup(source["candidatesInputFile"]["storage"], "storage")
+        lookup["cand_dcBranches"]   = id_lookup(source["candidatesInputFile"]["dcBranches"], "dcBranch")
+        lookup["cand_converters"]   = id_lookup(source["candidatesInputFile"]["converters"], "converter")
+    end
 
     # Compute availability of candidates
 
-    year_scale_factor = _FP.dim_meta(target, :year, "scale_factor")
-    year_lookup = Dict{Int,Int}((year,y) for (y,year) in enumerate(source["genericParameters"]["years"]))
-    cand_availability = Dict{String,Any}(
-        "acBranches"   => availability(source, "acBranches",    "acBranch",  year_lookup, year_scale_factor, number_of_years),
-        "transformers" => availability(source, "transformers",  "acBranch",  year_lookup, year_scale_factor, number_of_years),
-        "loads"        => availability(source, "flexibleLoads", "load",      year_lookup, year_scale_factor, number_of_years),
-        "storage"      => availability(source, "storage",       "storage",   year_lookup, year_scale_factor, number_of_years),
-        "dcBranches"   => availability(source, "dcBranches",    "dcBranch",  year_lookup, year_scale_factor, number_of_years),
-        "converters"   => availability(source, "converters",    "converter", year_lookup, year_scale_factor, number_of_years),
-    )
+    if haskey(source, "candidatesInputFile")
+        year_scale_factor = _FP.dim_meta(target, :year, "scale_factor")
+        year_lookup = Dict{Int,Int}((year,y) for (y,year) in enumerate(source["genericParameters"]["years"]))
+        cand_availability = Dict{String,Any}(
+            "acBranches"   => availability(source, "acBranches",    "acBranch",  year_lookup, year_scale_factor, number_of_years),
+            "transformers" => availability(source, "transformers",  "acBranch",  year_lookup, year_scale_factor, number_of_years),
+            "loads"        => availability(source, "flexibleLoads", "load",      year_lookup, year_scale_factor, number_of_years),
+            "storage"      => availability(source, "storage",       "storage",   year_lookup, year_scale_factor, number_of_years),
+            "dcBranches"   => availability(source, "dcBranches",    "dcBranch",  year_lookup, year_scale_factor, number_of_years),
+            "converters"   => availability(source, "converters",    "converter", year_lookup, year_scale_factor, number_of_years),
+        )
+    end
 
     # Apply init data extensions
 
@@ -139,7 +143,7 @@ function convert_JSON(source::AbstractDict;
     # Build data year by year
 
     for y in 1:number_of_years
-        sn_data = nw(source, lookup, cand_availability, y)
+        sn_data = haskey(source, "candidatesInputFile") ? nw(source, lookup, cand_availability, y) : nw(source, lookup, y)
         _FP.scale_data!(sn_data; year_idx=y, number_of_years, year_scale_factor, cost_scale_factor)
         sn_data["dim"] = target["dim"]
 

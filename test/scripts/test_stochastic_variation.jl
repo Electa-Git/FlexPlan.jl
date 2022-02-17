@@ -73,7 +73,7 @@ for p1 in 0:0.1:1
 
 
     dim = number_of_hours * length(data["scenario"])
-    extradata = _FP.create_profile_data(dim, data, loadprofile, genprofile) # create a dictionary to pass time series data to data dictionary
+    extradata = create_profile_data(dim, data, loadprofile, genprofile) # create a dictionary to pass time series data to data dictionary
     # Create data dictionary where time series data is included at the right place
     mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "scenario", "scenario_prob", "name", "source_version", "per_unit"]))
     # Plot all candidates pre-optimisation

@@ -1,21 +1,21 @@
-export flex_tnep
+export simple_stoch_flex_tnep
 
-"TNEP with flexible loads and storage, for transmission networks"
-function flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
-    require_dim(data, :hour, :year)
+"Multi-scenario TNEP with flexible loads and storage, for transmission networks"
+function simple_stoch_flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
+    require_dim(data, :hour, :scenario, :year)
     return _PM.run_model(
-        data, model_type, optimizer, post_flex_tnep;
+        data, model_type, optimizer, post_simple_stoch_flex_tnep;
         ref_extensions = [ref_add_gen!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
         multinetwork = true,
         kwargs...
     )
 end
 
-"TNEP with flexible loads and storage, for distribution networks"
-function flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
-    require_dim(data, :hour, :year)
+"Multi-scenario TNEP with flexible loads and storage, for distribution networks"
+function simple_stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
+    require_dim(data, :hour, :scenario, :year)
     return _PM.run_model(
-        data, model_type, optimizer, post_flex_tnep;
+        data, model_type, optimizer, post_simple_stoch_flex_tnep;
         ref_extensions = [ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
         solution_processors = [_PM.sol_data_model!],
         multinetwork = true,
@@ -23,25 +23,12 @@ function flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFMode
     )
 end
 
-"TNEP with flexible loads and storage, combines transmission and distribution networks"
-function flex_tnep(t_data::Dict{String,Any}, d_data::Dict{String,Any}, t_model_type::Type, d_model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
-    require_dim(t_data, :hour, :year)
-    require_dim(d_data, :hour, :year)
-    return run_model(
-        t_data, d_data, t_model_type, d_model_type, optimizer, post_flex_tnep;
-        t_ref_extensions = [ref_add_gen!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
-        d_ref_extensions = [ref_add_gen!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
-        t_solution_processors = [_PM.sol_data_model!],
-        d_solution_processors = [_PM.sol_data_model!, sol_td_coupling!],
-        kwargs...
-    )
-end
 
 # Here the problem is defined, which is then sent to the solver.
 # It is basically a declaration of variables and constraints of the problem
 
 "Builds transmission model."
-function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
+function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
     # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code
     for n in nw_ids(pm)
 
@@ -94,15 +81,10 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
 
         # Flexible demand
         variable_flexible_demand(pm; nw = n)
-        variable_energy_not_consumed(pm; nw = n)
-        variable_total_demand_shifting_upwards(pm; nw = n)
-        variable_total_demand_shifting_downwards(pm; nw = n)
     end
 
     # OBJECTIVE: see objective.jl
-    if objective
-        objective_min_cost_flex(pm)
-    end
+    objective_stoch_flex(pm)
 
     # CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code
     for n in nw_ids(pm)
@@ -188,12 +170,10 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         end
 
         for i in _PM.ids(pm, :storage, nw=n)
-            constraint_storage_excl_slack(pm, i, nw = n)
             _PM.constraint_storage_thermal_limit(pm, i, nw = n)
             _PM.constraint_storage_losses(pm, i, nw = n)
         end
         for i in _PM.ids(pm, :ne_storage, nw=n)
-            constraint_storage_excl_slack_ne(pm, i, nw = n)
             constraint_storage_thermal_limit_ne(pm, i, nw = n)
             constraint_storage_losses_ne(pm, i, nw = n)
             constraint_storage_bounds_ne(pm, i, nw = n)
@@ -213,12 +193,6 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption_ne(pm, i, nw = n)
             end
-
-            for i in _PM.ids(pm, :flex_load, nw = n)
-                constraint_red_state(pm, i, nw = n)
-                constraint_shift_up_state(pm, i, nw = n)
-                constraint_shift_down_state(pm, i, nw = n)
-            end
         else
             if is_last_id(pm, n, :hour)
                 for i in _PM.ids(pm, :storage, nw = n)
@@ -230,7 +204,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
                 end
 
                 for i in _PM.ids(pm, :flex_load, nw = n)
-                    constraint_shift_state_final(pm, i, nw = n)
+                    constraint_shift_balance_periodic(pm, i, get(pm.setting, "demand_shifting_balance_period", 24), nw = n)
                 end
             end
 
@@ -249,16 +223,10 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
                 constraint_maximum_absorption_ne(pm, i, prev_n, n)
             end
-            for i in _PM.ids(pm, :flex_load, nw = n)
-                constraint_red_state(pm, i, prev_n, n)
-                constraint_shift_up_state(pm, i, prev_n, n)
-                constraint_shift_down_state(pm, i, prev_n, n)
-                constraint_shift_duration(pm, i, first_n, n)
-            end
         end
 
         # Constraints on investments
-        if is_first_id(pm, n, :hour)
+        if is_first_id(pm, n, :hour, :scenario)
             # Inter-year constraints
             prev_nws = prev_ids(pm, n, :year)
             for i in _PM.ids(pm, :ne_branch; nw = n)
@@ -281,7 +249,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
 end
 
 "Builds distribution model."
-function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemporal_constraints::Bool=true)
+function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel)
 
     for n in nw_ids(pm)
 
@@ -314,14 +282,9 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
 
         # Flexible demand
         variable_flexible_demand(pm; nw = n)
-        variable_energy_not_consumed(pm; nw = n)
-        variable_total_demand_shifting_upwards(pm; nw = n)
-        variable_total_demand_shifting_downwards(pm; nw = n)
     end
 
-    if objective
-        objective_min_cost_flex(pm)
-    end
+    objective_stoch_flex(pm)
 
     for n in nw_ids(pm)
         _PM.constraint_model_current(pm; nw = n)
@@ -356,79 +319,63 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
         end
 
         for i in _PM.ids(pm, :storage, nw=n)
-            constraint_storage_excl_slack(pm, i, nw = n)
             _PM.constraint_storage_thermal_limit(pm, i, nw = n)
             _PM.constraint_storage_losses(pm, i, nw = n)
         end
         for i in _PM.ids(pm, :ne_storage, nw=n)
-            constraint_storage_excl_slack_ne(pm, i, nw = n)
             constraint_storage_thermal_limit_ne(pm, i, nw = n)
             constraint_storage_losses_ne(pm, i, nw = n)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
 
-        if intertemporal_constraints
-            if is_first_id(pm, n, :hour)
+        if is_first_id(pm, n, :hour)
+            for i in _PM.ids(pm, :storage, nw = n)
+                constraint_storage_state(pm, i, nw = n)
+            end
+            for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
+                constraint_maximum_absorption(pm, i, nw = n)
+            end
+
+            for i in _PM.ids(pm, :ne_storage, nw = n)
+                constraint_storage_state_ne(pm, i, nw = n)
+            end
+            for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
+                constraint_maximum_absorption_ne(pm, i, nw = n)
+            end
+        else
+            if is_last_id(pm, n, :hour)
                 for i in _PM.ids(pm, :storage, nw = n)
-                    constraint_storage_state(pm, i, nw = n)
-                end
-                for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
-                    constraint_maximum_absorption(pm, i, nw = n)
+                    constraint_storage_state_final(pm, i, nw = n)
                 end
 
                 for i in _PM.ids(pm, :ne_storage, nw = n)
-                    constraint_storage_state_ne(pm, i, nw = n)
-                end
-                for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
-                    constraint_maximum_absorption_ne(pm, i, nw = n)
+                    constraint_storage_state_final_ne(pm, i, nw = n)
                 end
 
                 for i in _PM.ids(pm, :flex_load, nw = n)
-                    constraint_red_state(pm, i, nw = n)
-                    constraint_shift_up_state(pm, i, nw = n)
-                    constraint_shift_down_state(pm, i, nw = n)
+                    constraint_shift_balance_periodic(pm, i, get(pm.setting, "demand_shifting_balance_period", 24), nw = n)
                 end
-            else
-                if is_last_id(pm, n, :hour)
-                    for i in _PM.ids(pm, :storage, nw = n)
-                        constraint_storage_state_final(pm, i, nw = n)
-                    end
+            end
 
-                    for i in _PM.ids(pm, :ne_storage, nw = n)
-                        constraint_storage_state_final_ne(pm, i, nw = n)
-                    end
-
-                    for i in _PM.ids(pm, :flex_load, nw = n)
-                        constraint_shift_state_final(pm, i, nw = n)
-                    end
-                end
-
-                # From second hour to last hour
-                prev_n = prev_id(pm, n, :hour)
-                first_n = first_id(pm, n, :hour)
-                for i in _PM.ids(pm, :storage, nw = n)
-                    constraint_storage_state(pm, i, prev_n, n)
-                end
-                for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
-                    constraint_maximum_absorption(pm, i, prev_n, n)
-                end
-                for i in _PM.ids(pm, :ne_storage, nw = n)
-                    constraint_storage_state_ne(pm, i, prev_n, n)
-                end
-                for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
-                    constraint_maximum_absorption_ne(pm, i, prev_n, n)
-                end
-                for i in _PM.ids(pm, :flex_load, nw = n)
-                    constraint_red_state(pm, i, prev_n, n)
-                    constraint_shift_up_state(pm, i, prev_n, n)
-                    constraint_shift_down_state(pm, i, prev_n, n)
-                    constraint_shift_duration(pm, i, first_n, n)
-                end
+            # From second hour to last hour
+            prev_n = prev_id(pm, n, :hour)
+            first_n = first_id(pm, n, :hour)
+            for i in _PM.ids(pm, :storage, nw = n)
+                constraint_storage_state(pm, i, prev_n, n)
+            end
+            for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
+                constraint_maximum_absorption(pm, i, prev_n, n)
+            end
+            for i in _PM.ids(pm, :ne_storage, nw = n)
+                constraint_storage_state_ne(pm, i, prev_n, n)
+            end
+            for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
+                constraint_maximum_absorption_ne(pm, i, prev_n, n)
             end
         end
 
         # Constraints on investments
-        if is_first_id(pm, n, :hour)
+        if is_first_id(pm, n, :hour, :scenario)
             for i in _PM.ids(pm, n, :branch)
                 if !isempty(ne_branch_ids(pm, i; nw = n))
                     constraint_branch_complementarity(pm, i; nw = n)
@@ -448,24 +395,4 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
             end
         end
     end
-end
-
-"Builds combined transmission and distribution model."
-function post_flex_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
-
-    # Transmission variables and constraints
-    post_flex_tnep(t_pm; objective = false)
-
-    # Distribution variables and constraints
-    post_flex_tnep(d_pm; objective = false)
-
-    # Variables related to the combined model
-    # (No new variables are needed here.)
-
-    # Constraints related to the combined model
-    constraint_td_coupling(t_pm, d_pm)
-
-    # Objective function of the combined model
-    objective_min_cost_flex(t_pm, d_pm)
-
 end
