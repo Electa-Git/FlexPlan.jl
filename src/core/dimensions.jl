@@ -235,7 +235,7 @@ function nw_ids(data::Dict{String,Any}; kwargs...)::Vector{Int}
 end
 
 function nw_ids(pm::_PM.AbstractPowerModel; kwargs...)::Vector{Int}
-    haskey(pm.ref, :dim) ? nw_ids(pm.ref[:dim]; kwargs...) : [0]
+    haskey(pm.ref[:it][:pm], :dim) ? nw_ids(pm.ref[:it][:pm][:dim]; kwargs...) : [0]
 end
 
 
@@ -271,7 +271,7 @@ function similar_ids(dim::Dict{Symbol,Any}, n::Int; kwargs...)::Vector{Int}
 end
 
 similar_ids(data::Dict{String,Any}, n::Int; kwargs...) = similar_ids(data["dim"], n; kwargs...)
-similar_ids(pm::_PM.AbstractPowerModel, n::Int; kwargs...) = similar_ids(pm.ref[:dim], n; kwargs...)
+similar_ids(pm::_PM.AbstractPowerModel, n::Int; kwargs...) = similar_ids(pm.ref[:it][:pm][:dim], n; kwargs...)
 
 """
     similar_id(pm::PowerModels.AbstractPowerModel, n::Int; kwargs...)
@@ -300,7 +300,7 @@ function similar_id(dim::Dict{Symbol,Any}, n::Int; kwargs...)::Int
 end
 
 similar_id(data::Dict{String,Any}, n::Int; kwargs...) = similar_id(data["dim"], n; kwargs...)
-similar_id(pm::_PM.AbstractPowerModel, n::Int; kwargs...) = similar_id(pm.ref[:dim], n; kwargs...)
+similar_id(pm::_PM.AbstractPowerModel, n::Int; kwargs...) = similar_id(pm.ref[:it][:pm][:dim], n; kwargs...)
 
 """
     first_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
@@ -320,7 +320,7 @@ function first_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
 end
 
 first_id(data::Dict{String,Any}, n::Int, dimension::Symbol...) = first_id(data["dim"], n, dimension...)
-first_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...) = first_id(pm.ref[:dim], n, dimension...)
+first_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...) = first_id(pm.ref[:it][:pm][:dim], n, dimension...)
 
 """
     last_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
@@ -340,7 +340,7 @@ function last_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
 end
 
 last_id(data::Dict{String,Any}, n::Int, dimension::Symbol...) = last_id(data["dim"], n, dimension...)
-last_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...) = last_id(pm.ref[:dim], n, dimension...)
+last_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol...) = last_id(pm.ref[:it][:pm][:dim], n, dimension...)
 
 """
     prev_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
@@ -360,7 +360,7 @@ function prev_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)::Int
 end
 
 prev_id(data::Dict{String,Any}, n::Int, dimension::Symbol) = prev_id(data["dim"], n, dimension)
-prev_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = prev_id(pm.ref[:dim], n, dimension)
+prev_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = prev_id(pm.ref[:it][:pm][:dim], n, dimension)
 
 """
     prev_ids(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
@@ -380,7 +380,7 @@ function prev_ids(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)::Vector{Int}
 end
 
 prev_ids(data::Dict{String,Any}, n::Int, dimension::Symbol) = prev_ids(data["dim"], n, dimension)
-prev_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = prev_ids(pm.ref[:dim], n, dimension)
+prev_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = prev_ids(pm.ref[:it][:pm][:dim], n, dimension)
 
 """
     next_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
@@ -400,7 +400,7 @@ function next_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)::Int
 end
 
 next_id(data::Dict{String,Any}, n::Int, dimension::Symbol) = next_id(data["dim"], n, dimension)
-next_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = next_id(pm.ref[:dim], n, dimension)
+next_id(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = next_id(pm.ref[:it][:pm][:dim], n, dimension)
 
 """
     next_ids(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol)
@@ -420,7 +420,7 @@ function next_ids(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)::Vector{Int}
 end
 
 next_ids(data::Dict{String,Any}, n::Int, dimension::Symbol) = next_ids(data["dim"], n, dimension)
-next_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = next_ids(pm.ref[:dim], n, dimension)
+next_ids(pm::_PM.AbstractPowerModel, n::Int, dimension::Symbol) = next_ids(pm.ref[:it][:pm][:dim], n, dimension)
 
 
 ## Query properties of nw ids
@@ -442,7 +442,7 @@ function coord(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol)
 end
 
 coord(data::Dict{String,Any}, args...) = coord(data["dim"], args...)
-coord(pm::_PM.AbstractPowerModel, args...) = coord(pm.ref[:dim], args...)
+coord(pm::_PM.AbstractPowerModel, args...) = coord(pm.ref[:it][:pm][:dim], args...)
 
 """
     is_first_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
@@ -461,7 +461,7 @@ function is_first_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
 end
 
 is_first_id(data::Dict{String,Any}, args...) = is_first_id(data["dim"], args...)
-is_first_id(pm::_PM.AbstractPowerModel, args...) = is_first_id(pm.ref[:dim], args...)
+is_first_id(pm::_PM.AbstractPowerModel, args...) = is_first_id(pm.ref[:it][:pm][:dim], args...)
 
 """
     is_last_id(pm::PowerModels.AbstractPowerModel, n::Int, dimension::Symbol...)
@@ -479,7 +479,7 @@ function is_last_id(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol...)
 end
 
 is_last_id(data::Dict{String,Any}, args...) = is_last_id(data["dim"], args...)
-is_last_id(pm::_PM.AbstractPowerModel, args...) = is_last_id(pm.ref[:dim], args...)
+is_last_id(pm::_PM.AbstractPowerModel, args...) = is_last_id(pm.ref[:it][:pm][:dim], args...)
 
 
 ## Access data relating to dimensions
@@ -507,7 +507,7 @@ dim_prop(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol) = dim[:prop][dimensio
 dim_prop(dim::Dict{Symbol,Any}, n::Int, dimension::Symbol, key::String) = dim[:prop][dimension][coord(dim,n,dimension)][key]
 
 dim_prop(data::Dict{String,Any}, args...) = dim_prop(data["dim"], args...)
-dim_prop(pm::_PM.AbstractPowerModel, args...) = dim_prop(pm.ref[:dim], args...)
+dim_prop(pm::_PM.AbstractPowerModel, args...) = dim_prop(pm.ref[:it][:pm][:dim], args...)
 
 """
     dim_meta(dim::Dict{Symbol,Any}[, dimension[, key]])
@@ -521,7 +521,7 @@ dim_meta(dim::Dict{Symbol,Any}) = dim[:meta]
 dim_meta(dim::Dict{Symbol,Any}, dimension::Symbol) = dim[:meta][dimension]
 dim_meta(dim::Dict{Symbol,Any}, dimension::Symbol, key::String) = dim[:meta][dimension][key]
 dim_meta(data::Dict{String,Any}, args...) = dim_meta(data["dim"], args...)
-dim_meta(pm::_PM.AbstractPowerModel, args...) = dim_meta(pm.ref[:dim], args...)
+dim_meta(pm::_PM.AbstractPowerModel, args...) = dim_meta(pm.ref[:it][:pm][:dim], args...)
 
 """
     dim_length(dim::Dict{Symbol,Any}[, dimension])
@@ -534,4 +534,4 @@ function dim_length end
 dim_length(dim::Dict{Symbol,Any}) = length(dim[:li])
 dim_length(dim::Dict{Symbol,Any}, dimension::Symbol) = size(dim[:li], dim[:pos][dimension])
 dim_length(data::Dict{String,Any}, args...) = dim_length(data["dim"], args...)
-dim_length(pm::_PM.AbstractPowerModel, args...) = dim_length(pm.ref[:dim], args...)
+dim_length(pm::_PM.AbstractPowerModel, args...) = dim_length(pm.ref[:it][:pm][:dim], args...)

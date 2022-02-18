@@ -2,7 +2,7 @@
 #### DEFINTION OF NEW VARIABLES FOR STORAGE INVESTMENTS ACCODING TO FlexPlan MODEL
 ##################################################################################
 
-function variable_absorbed_energy(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool = true, report::Bool=true)
+function variable_absorbed_energy(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool = true, report::Bool=true)
     e_abs = _PM.var(pm, nw)[:e_abs] = JuMP.@variable(pm.model,
     [i in _PM.ids(pm, nw, :storage_bounded_absorption)], base_name="$(nw)_e_abs",
     start = 0)
@@ -14,10 +14,10 @@ function variable_absorbed_energy(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bo
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :storage, :e_abs, _PM.ids(pm, nw, :storage_bounded_absorption), e_abs)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :storage, :e_abs, _PM.ids(pm, nw, :storage_bounded_absorption), e_abs)
 end
 
-function variable_absorbed_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool = true, report::Bool=true)
+function variable_absorbed_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool = true, report::Bool=true)
     e_abs = _PM.var(pm, nw)[:e_abs_ne] = JuMP.@variable(pm.model,
     [i in _PM.ids(pm, nw, :ne_storage_bounded_absorption)], base_name="$(nw)_e_abs_ne",
     start = 0)
@@ -29,7 +29,7 @@ function variable_absorbed_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw,
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :ne_storage, :e_abs_ne, _PM.ids(pm, nw, :ne_storage_bounded_absorption), e_abs)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :e_abs_ne, _PM.ids(pm, nw, :ne_storage_bounded_absorption), e_abs)
 end
 
 function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
@@ -44,7 +44,7 @@ function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
     variable_storage_investment(pm; kwargs...)
 end
 
-function variable_storage_power_real_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_storage_power_real_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     ps = _PM.var(pm, nw)[:ps_ne] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_ps_ne",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :ne_storage, i), "ps_start")
@@ -63,10 +63,10 @@ function variable_storage_power_real_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.c
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :ne_storage, :ps_ne, _PM.ids(pm, nw, :ne_storage), ps)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :ps_ne, _PM.ids(pm, nw, :ne_storage), ps)
 end
 
-function variable_storage_power_imaginary_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_storage_power_imaginary_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     qs = _PM.var(pm, nw)[:qs_ne] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_qs_ne",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :ne_storage, i), "qs_start")
@@ -81,15 +81,15 @@ function variable_storage_power_imaginary_ne(pm::_PM.AbstractPowerModel; nw::Int
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :ne_storage, :qs_ne, _PM.ids(pm, nw, :ne_storage), qs)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :qs_ne, _PM.ids(pm, nw, :ne_storage), qs)
 end
 
 "apo models ignore reactive power flows"
-function variable_storage_power_imaginary_ne(pm::_PM.AbstractActivePowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    report && _IM.sol_component_fixed(pm, nw, :ne_storage, :qs_ne, _PM.ids(pm, nw, :ne_storage), NaN)
+function variable_storage_power_imaginary_ne(pm::_PM.AbstractActivePowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
+    report && _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :ne_storage, :qs_ne, _PM.ids(pm, nw, :ne_storage), NaN)
 end
 
-function variable_storage_power_control_imaginary_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_storage_power_control_imaginary_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     qsc = _PM.var(pm, nw)[:qsc_ne] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_qsc_ne",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :ne_storage, i), "qsc_start")
@@ -109,19 +109,19 @@ function variable_storage_power_control_imaginary_ne(pm::_PM.AbstractPowerModel;
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :ne_storage, :qsc_ne, _PM.ids(pm, nw, :ne_storage), qsc)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :qsc_ne, _PM.ids(pm, nw, :ne_storage), qsc)
 end
 
 "apo models ignore reactive power flows"
-function variable_storage_power_control_imaginary_ne(pm::_PM.AbstractActivePowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
-    report && _IM.sol_component_fixed(pm, nw, :ne_storage, :qsc_ne, _PM.ids(pm, nw, :ne_storage), NaN)
+function variable_storage_power_control_imaginary_ne(pm::_PM.AbstractActivePowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
+    report && _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :ne_storage, :qsc_ne, _PM.ids(pm, nw, :ne_storage), NaN)
 end
 
 "do nothing by default but some formulations require this"
-function variable_storage_current_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_storage_current_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
 end
 
-function variable_storage_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_storage_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     se = _PM.var(pm, nw)[:se_ne] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_se_ne",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :ne_storage, i), "se_start", 1)
@@ -134,10 +134,10 @@ function variable_storage_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, 
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :ne_storage, :se_ne, _PM.ids(pm, nw, :ne_storage), se)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :se_ne, _PM.ids(pm, nw, :ne_storage), se)
 end
 
-function variable_storage_charge_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_storage_charge_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     sc = _PM.var(pm, nw)[:sc_ne] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_sc_ne",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :ne_storage, i), "sc_start", 1)
@@ -150,10 +150,10 @@ function variable_storage_charge_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, 
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :ne_storage, :sc_ne, _PM.ids(pm, nw, :ne_storage), sc)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :sc_ne, _PM.ids(pm, nw, :ne_storage), sc)
 end
 
-function variable_storage_discharge_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_storage_discharge_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     sd = _PM.var(pm, nw)[:sd_ne] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :ne_storage)], base_name="$(nw)_sd_ne",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :ne_storage, i), "sd_start", 1)
@@ -166,10 +166,10 @@ function variable_storage_discharge_ne(pm::_PM.AbstractPowerModel; nw::Int=pm.cn
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :ne_storage, :sd_ne, _PM.ids(pm, nw, :ne_storage), sd)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :sd_ne, _PM.ids(pm, nw, :ne_storage), sd)
 end
 
-function variable_storage_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
+function variable_storage_indicator(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, relax::Bool=false, report::Bool=true)
     first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
@@ -189,10 +189,10 @@ function variable_storage_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, 
     else
         z = _PM.var(pm, nw)[:z_strg_ne] = _PM.var(pm, first_n)[:z_strg_ne]
     end
-    report && _IM.sol_component_value(pm, nw, :ne_storage, :isbuilt, _PM.ids(pm, nw, :ne_storage), z)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :isbuilt, _PM.ids(pm, nw, :ne_storage), z)
 end
 
-function variable_storage_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
+function variable_storage_investment(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, relax::Bool=false, report::Bool=true)
     first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
@@ -212,7 +212,7 @@ function variable_storage_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw,
     else
         investment = _PM.var(pm, nw)[:z_strg_ne_investment] = _PM.var(pm, first_n)[:z_strg_ne_investment]
     end
-    report && _IM.sol_component_value(pm, nw, :ne_storage, :investment, _PM.ids(pm, nw, :ne_storage), investment)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :investment, _PM.ids(pm, nw, :ne_storage), investment)
 end
 
 
@@ -221,23 +221,23 @@ end
 # this way the constraint itself only containts the mathematical formulation
 # ###################################################
 
-function constraint_storage_thermal_limit_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_storage_thermal_limit_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     storage = _PM.ref(pm, nw, :ne_storage, i)
     constraint_storage_thermal_limit_ne(pm, nw, i, storage["thermal_rating"])
 end
 
-function constraint_storage_losses_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_storage_losses_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     storage = _PM.ref(pm, nw, :ne_storage, i)
 
     constraint_storage_losses_ne(pm, nw, i, storage["storage_bus"], storage["r"], storage["x"], storage["p_loss"], storage["q_loss"])
 end
 
-function constraint_storage_bounds_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_storage_bounds_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     constraint_storage_bounds_ne(pm, nw, i)
 end
 
 
-function constraint_storage_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_storage_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     storage = _PM.ref(pm, nw, :storage, i)
 
     if haskey(_PM.ref(pm, nw), :time_elapsed)
@@ -249,7 +249,7 @@ function constraint_storage_state(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm
     constraint_storage_state_initial(pm, nw, i, storage["energy"], storage["charge_efficiency"], storage["discharge_efficiency"], storage["stationary_energy_inflow"], storage["stationary_energy_outflow"], storage["self_discharge_rate"], time_elapsed)
 end
 
-function constraint_storage_state_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_storage_state_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     storage = _PM.ref(pm, nw, :ne_storage, i)
 
     if haskey(_PM.ref(pm, nw), :time_elapsed)
@@ -299,25 +299,25 @@ function constraint_storage_state_ne(pm::_PM.AbstractPowerModel, i::Int, nw_1::I
     end
 end
 
-function constraint_storage_state_final(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_storage_state_final(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     storage = _PM.ref(pm, nw, :storage, i)
     constraint_storage_state_final(pm, nw, i, storage["energy"])
 end
 
-function constraint_storage_state_final_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_storage_state_final_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     storage = _PM.ref(pm, nw, :ne_storage, i)
     constraint_storage_state_final_ne(pm, nw, i, storage["energy"])
 end
 
-function constraint_storage_excl_slack(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_storage_excl_slack(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     constraint_storage_excl_slack(pm, nw, i)
 end
 
-function constraint_storage_excl_slack_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_storage_excl_slack_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     constraint_storage_excl_slack_ne(pm, nw, i)
 end
 
-function constraint_maximum_absorption(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_maximum_absorption(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     storage = _PM.ref(pm, nw, :storage, i)
 
     if haskey(_PM.ref(pm, nw), :time_elapsed)
@@ -329,7 +329,7 @@ function constraint_maximum_absorption(pm::_PM.AbstractPowerModel, i::Int; nw::I
     constraint_maximum_absorption_initial(pm, nw, i, time_elapsed)
 end
 
-function constraint_maximum_absorption_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_maximum_absorption_ne(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     storage = _PM.ref(pm, nw, :ne_storage, i)
 
     if haskey(_PM.ref(pm, nw), :time_elapsed)
