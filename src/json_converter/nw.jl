@@ -108,6 +108,8 @@ function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::Abstr
     target["ne_branch"]   = Dict{String,Any}()
     target["ne_storage"]  = Dict{String,Any}()
 
+    bus_path = ["gridModelInputFile", "acBuses"] # Needed by convdc_ne
+
     ne_branch_path = ["candidatesInputFile", "acBranches"]
     for cand in walkpath(source, ne_branch_path)
         comp = cand["acBranch"]
