@@ -38,7 +38,7 @@ function constraint_power_balance_acne_strg(pm::_PM.AbstractWModels, n::Int, i::
 end
 
 # Power balance including candidate storage & flexible demand
-function constraint_power_balance_acne_dcne_flex(pm::_PM.AbstractDCPModel, n::Int, i::Int, bus_arcs, bus_arcs_ne, bus_arcs_dc, bus_gens, bus_convs_ac, bus_convs_ac_ne, bus_loads, bus_shunts, bus_storage, bus_storage_ne, pd, qd, gs, bs)
+function constraint_power_balance_acne_dcne_flex(pm::_PM.AbstractDCPModel, n::Int, i::Int, bus_arcs, bus_arcs_ne, bus_arcs_dc, bus_gens, bus_convs_ac, bus_convs_ac_ne, bus_loads, bus_shunts, bus_storage, bus_storage_ne, gs, bs)
     p                = _PM.var(pm, n, :p)
     pg               = _PM.var(pm, n, :pg)
     pconv_grid_ac_ne = _PM.var(pm, n, :pconv_tf_fr_ne)
@@ -55,7 +55,7 @@ function constraint_power_balance_acne_dcne_flex(pm::_PM.AbstractDCPModel, n::In
 end
 
 # Power balance (without DC equipment) including candidate storage & flexible demand
-function constraint_power_balance_acne_flex(pm::_PM.AbstractWModels, n::Int, i::Int, bus_arcs, bus_arcs_ne, bus_gens, bus_loads, bus_shunts, bus_storage, bus_storage_ne, pd, qd, gs, bs)
+function constraint_power_balance_acne_flex(pm::_PM.AbstractWModels, n::Int, i::Int, bus_arcs, bus_arcs_ne, bus_gens, bus_loads, bus_shunts, bus_storage, bus_storage_ne, gs, bs)
     p     = _PM.var(pm, n, :p)
     q     = _PM.var(pm, n, :q)
     p_ne  = _PM.var(pm, n, :p_ne)
@@ -75,7 +75,7 @@ function constraint_power_balance_acne_flex(pm::_PM.AbstractWModels, n::Int, i::
 end
 
 # Power balance with power interrupted by contingency - pinter (including candidate storage & flexible demand)
-function constraint_power_balance_reliability(pm::_PM.AbstractDCPModel, n::Int, i::Int, bus_arcs, bus_arcs_ne, bus_arcs_dc, bus_gens, bus_convs_ac, bus_convs_ac_ne, bus_loads, bus_shunts, bus_storage, bus_storage_ne, pd, qd, gs, bs)
+function constraint_power_balance_reliability(pm::_PM.AbstractDCPModel, n::Int, i::Int, bus_arcs, bus_arcs_ne, bus_arcs_dc, bus_gens, bus_convs_ac, bus_convs_ac_ne, bus_loads, bus_shunts, bus_storage, bus_storage_ne, gs, bs)
     p                = _PM.var(pm, n, :p)
     pg               = _PM.var(pm, n, :pg)
     pconv_grid_ac_ne = _PM.var(pm, n, :pconv_tf_fr_ne)

@@ -51,7 +51,7 @@ _FP.scale_cost_data!(data, scenario) # Scale cost data
 
 # Translate data profiles into model parameters:
 dim = number_of_hours * length(data["contingency"])
-extradata = _FP.create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series
+extradata = create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series
 
 
 # # Case system
@@ -174,7 +174,7 @@ _FP.add_storage_data!(data) # Add addtional storage data model
 _FP.add_flexible_demand_data!(data) # Add flexible data model
 _FP.scale_cost_data!(data, scenario) # Scale cost data
 dim = number_of_hours * length(data["contingency"])
-extradata = _FP.create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series
+extradata = create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series
 
 
 # Scale the load and generation as previously:
@@ -231,7 +231,7 @@ _FP.add_storage_data!(data) # Add addtional storage data model
 _FP.add_flexible_demand_data!(data) # Add flexible data model
 _FP.scale_cost_data!(data, scenario) # Scale cost data
 dim = number_of_hours * length(data["contingency"])
-extradata = _FP.create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series
+extradata = create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series
 extradata["load"]["5"]["pd"] *= load_5_scale;
 extradata["gen"]["1"]["pmax"] *= gen_1_scale;
 data["gen"]["1"]["pmax"] *= gen_1_scale;
@@ -286,7 +286,7 @@ _FP.add_storage_data!(data) # Add addtional storage data model
 _FP.add_flexible_demand_data!(data) # Add flexible data model
 _FP.scale_cost_data!(data, scenario) # Scale cost data
 dim = number_of_hours * length(data["contingency"])
-extradata = _FP.create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series
+extradata = create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "contingency", "contingency_prob", "name", "source_version", "per_unit"]))
 
 

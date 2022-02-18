@@ -12,19 +12,21 @@ Generate a multinetwork data structure from a single network and a time series.
   default: read from `dim`.
 - `nw_id_offset`: optional value to be added to `time_series` ids to shift `nw` ids in
   multinetwork data structure; default: read from `dim`.
+- `check_dim`: whether to check for `dim` in `sn_data`; default: `true`.
 """
 function make_multinetwork(
         sn_data::Dict{String,Any},
         time_series::Dict{String,Any};
         global_keys = ["dim","multinetwork","name","per_unit","source_type","source_version"],
         number_of_nws::Int = length(sn_data["dim"][:li]),
-        nw_id_offset::Int = sn_data["dim"][:offset]
+        nw_id_offset::Int = sn_data["dim"][:offset],
+        check_dim::Bool = true
     )
 
     if _IM.ismultinetwork(sn_data)
         Memento.error(_LOGGER, "`sn_data` argument must be a single network.")
     end
-    if !haskey(sn_data, "dim")
+    if check_dim && !haskey(sn_data, "dim")
         Memento.error(_LOGGER, "Missing `dim` dict in `sn_data` argument. The function `add_dimension!` must be called before `make_multinetwork`.")
     end
 
@@ -44,16 +46,18 @@ Generate a multinetwork data structure - having only one `nw` - from a single ne
 - `sn_data`: single-network data structure to be replicated.
 - `global_keys`: keys that are stored once per multinetwork (they are not repeated in each
   `nw`).
+- `check_dim`: whether to check for `dim` in `sn_data`; default: `true`.
 """
 function make_multinetwork(
         sn_data::Dict{String,Any};
         global_keys = ["dim","name","per_unit","source_type","source_version"],
+        check_dim::Bool = true
     )
 
     if _IM.ismultinetwork(sn_data)
         Memento.error(_LOGGER, "`sn_data` argument must be a single network.")
     end
-    if !haskey(sn_data, "dim")
+    if check_dim && !haskey(sn_data, "dim")
         Memento.error(_LOGGER, "Missing `dim` dict in `sn_data` argument. The function `add_dimension!` must be called before `make_multinetwork`.")
     end
 
@@ -181,9 +185,9 @@ function _add_mn_global_values!(mn_data, sn_data, global_keys)
     get!(mn_data, "name", "multinetwork")
 end
 
-# Make a deep copy of `data` and remove global keys
+# Make a copy of `data` and remove global keys
 function _make_template_nw(sn_data, global_keys)
-    template_nw = deepcopy(sn_data)
+    template_nw = copy(sn_data)
     for k in global_keys
         delete!(template_nw, k)
     end
@@ -207,13 +211,9 @@ function _build_nw(template_nw, time_series, idx)
             nw[key] = copy(template_nw[key])
             for (l, element) in time_series[key]
                 if haskey(nw[key], l)
-                    nw[key][l] = deepcopy(template_nw[key][l])
+                    nw[key][l] = copy(template_nw[key][l])
                     for (m, property) in time_series[key][l]
-                        if haskey(nw[key][l], m)
-                            nw[key][l][m] = property[idx]
-                        else
-                            Memento.warn(_LOGGER, "Property $m for $key $l not found, will be ignored.")
-                        end
+                        nw[key][l][m] = property[idx]
                     end
                 else
                     Memento.warn(_LOGGER, "Key $l not found, will be ignored.")

@@ -69,7 +69,7 @@ _FP.add_flexible_demand_data!(data) # Add flexible data model
 _FP.scale_cost_data!(data, scenario) # Scale cost data
 
 dim = number_of_hours * length(data["contingency"])
-extradata = _FP.create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series data to data dictionary
+extradata = create_contingency_data(dim, data, contingency_profile, loadprofile, genprofile) # create a dictionary to pass time series data to data dictionary
 # Create data dictionary where time series data is included at the right place
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "contingency", "contingency_prob", "name", "source_version", "per_unit"]))
 
@@ -113,7 +113,7 @@ t_vec = Array(1:dim)
 #... plot areas for power contribution from different sources
 using JuliaDB
 using Plots
-stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pnce) select(load5, :pcurt) select(load5, :pinter)]
+stack_series = [select(branchdc_2, :pt) select(branchdc_ne_3, :pf) select(branchdc_1, :pt) select(load5, :pred) select(load5, :pcurt) select(load5, :pinter)]
 replace!(stack_series, NaN=>0)
 stack_labels = ["dc branch 2" "new dc branch 3" "dc branch 1"  "reduced load" "curtailed load" "energy not served"]
 stacked_plot = stackedarea(t_vec, stack_series, labels= stack_labels, alpha=0.7, legend=false)
@@ -129,7 +129,7 @@ savefig(stacked_plot, "bus5_balance.png")
 
 
 # Plot energy not served
-plot_not_served = plot_res(result, "load", "5", "ence", color=:black, width=3.0,
+plot_not_served = plot_res(result, "load", "5", "ered", color=:black, width=3.0,
                            label="total energy not served", xlabel="time (h)",
                            ylabel="energy (p.u.)", legend=false, gridalpha=0.5)
 

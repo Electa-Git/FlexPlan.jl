@@ -4,22 +4,22 @@
 ## Lookup functions, to build the constraint selection logic
 
 "Return whether the `f_bus` of branch `i` is the reference bus."
-function is_frb_branch(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function is_frb_branch(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     return haskey(_PM.ref(pm, nw, :frb_branch), i)
 end
 
 "Return whether the `f_bus` of ne_branch `i` is the reference bus."
-function is_frb_ne_branch(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function is_frb_ne_branch(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     return haskey(_PM.ref(pm, nw, :frb_ne_branch), i)
 end
 
 "Return whether branch `i` is an OLTC."
-function is_oltc_branch(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function is_oltc_branch(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     return haskey(_PM.ref(pm, nw, :oltc_branch), i)
 end
 
 "Return whether ne_branch `i` is an OLTC."
-function is_oltc_ne_branch(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function is_oltc_ne_branch(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     return haskey(_PM.ref(pm, nw, :oltc_ne_branch), i)
 end
 
@@ -32,7 +32,7 @@ function variable_oltc_branch_transform(pm::_PM.AbstractWModels; kwargs...)
 end
 
 "variable: `0 <= ttmi[l]` for `l` in `oltc_branch`es"
-function variable_oltc_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_oltc_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     ttmi = _PM.var(pm, nw)[:ttmi] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :oltc_branch)], base_name="$(nw)_ttmi",
         lower_bound = 0.0,
@@ -46,7 +46,7 @@ function variable_oltc_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPowerM
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :branch, :ttmi, _PM.ids(pm, nw, :oltc_branch), ttmi)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :branch, :ttmi, _PM.ids(pm, nw, :oltc_branch), ttmi)
 end
 
 function variable_oltc_ne_branch_transform(pm::_PM.AbstractWModels; kwargs...)
@@ -54,7 +54,7 @@ function variable_oltc_ne_branch_transform(pm::_PM.AbstractWModels; kwargs...)
 end
 
 "variable: `0 <= ttmi_ne[l]` for `l` in `oltc_ne_branch`es"
-function variable_oltc_ne_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_oltc_ne_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     ttmi_ne = _PM.var(pm, nw)[:ttmi_ne] = JuMP.@variable(pm.model,
         [i in _PM.ids(pm, nw, :oltc_ne_branch)], base_name="$(nw)_ttmi_ne",
         lower_bound = 0.0,
@@ -68,14 +68,14 @@ function variable_oltc_ne_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPow
         end
     end
 
-    report && _IM.sol_component_value(pm, nw, :ne_branch, :ttmi, _PM.ids(pm, nw, :oltc_ne_branch), ttmi_ne)
+    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_branch, :ttmi, _PM.ids(pm, nw, :oltc_ne_branch), ttmi_ne)
 end
 
 
 
 ## Constraint templates that group several other constraint templates, provided for convenience
 
-function constraint_dist_branch_tnep(pm::_PM.AbstractBFModel, i::Int; nw::Int=pm.cnw)
+function constraint_dist_branch_tnep(pm::_PM.AbstractBFModel, i::Int; nw::Int=_PM.nw_id_default)
     if isempty(ne_branch_ids(pm, i; nw = nw))
         if is_frb_branch(pm, i; nw = nw)
             if is_oltc_branch(pm, i; nw = nw)
@@ -113,7 +113,7 @@ function constraint_dist_branch_tnep(pm::_PM.AbstractBFModel, i::Int; nw::Int=pm
     end
 end
 
-function constraint_dist_ne_branch_tnep(pm::_PM.AbstractBFModel, i::Int; nw::Int=pm.cnw)
+function constraint_dist_ne_branch_tnep(pm::_PM.AbstractBFModel, i::Int; nw::Int=_PM.nw_id_default)
     if ne_branch_replace(pm, i, nw = nw)
         if is_frb_ne_branch(pm, i, nw = nw)
             if is_oltc_ne_branch(pm, i, nw = nw)
@@ -152,7 +152,7 @@ end
 ## Constraint templates
 
 "Defines voltage drop over a a branch whose `f_bus` is the reference bus"
-function constraint_voltage_magnitude_difference_frb(pm::_PM.AbstractBFModel, i::Int; nw::Int=pm.cnw)
+function constraint_voltage_magnitude_difference_frb(pm::_PM.AbstractBFModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -169,7 +169,7 @@ function constraint_voltage_magnitude_difference_frb(pm::_PM.AbstractBFModel, i:
 end
 
 "Defines voltage drop over a transformer branch that has an OLTC"
-function constraint_voltage_magnitude_difference_oltc(pm::_PM.AbstractBFModel, i::Int; nw::Int=pm.cnw)
+function constraint_voltage_magnitude_difference_oltc(pm::_PM.AbstractBFModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -185,7 +185,7 @@ function constraint_voltage_magnitude_difference_oltc(pm::_PM.AbstractBFModel, i
 end
 
 "Defines branch flow model power flow equations for a branch whose `f_bus` is the reference bus"
-function constraint_power_losses_frb(pm::_PM.AbstractBFModel, i::Int; nw::Int=pm.cnw)
+function constraint_power_losses_frb(pm::_PM.AbstractBFModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -204,7 +204,7 @@ function constraint_power_losses_frb(pm::_PM.AbstractBFModel, i::Int; nw::Int=pm
 end
 
 "Defines branch flow model power flow equations for a transformer branch that has an OLTC"
-function constraint_power_losses_oltc(pm::_PM.AbstractBFModel, i::Int; nw::Int=pm.cnw)
+function constraint_power_losses_oltc(pm::_PM.AbstractBFModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -222,7 +222,7 @@ function constraint_power_losses_oltc(pm::_PM.AbstractBFModel, i::Int; nw::Int=p
 end
 
 ""
-function constraint_ne_power_losses_frb(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_ne_power_losses_frb(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :ne_branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -244,7 +244,7 @@ function constraint_ne_power_losses_frb(pm::_PM.AbstractPowerModel, i::Int; nw::
 end
 
 ""
-function constraint_ne_power_losses_oltc(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_ne_power_losses_oltc(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :ne_branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -267,7 +267,7 @@ end
 """
 Defines voltage drop over a branch, linking from and to side voltage magnitude
 """
-function constraint_ne_voltage_magnitude_difference_frb(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_ne_voltage_magnitude_difference_frb(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :ne_branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -286,7 +286,7 @@ end
 """
 Defines voltage drop over a branch, linking from and to side voltage magnitude
 """
-function constraint_ne_voltage_magnitude_difference_oltc(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_ne_voltage_magnitude_difference_oltc(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :ne_branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]

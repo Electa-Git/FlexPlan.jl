@@ -19,7 +19,7 @@ data = _PM.parse_file(data_file)
 
 result = _FP.opf_rad(data, _FP.BFARadPowerModel, optimizer)
 # Two-step alternative
-#pm = _PM.instantiate_model(data, _FP.BFARadPowerModel, _FP.build_opf_rad; ref_extensions=[_FP.ref_add_frb_branch!,_FP.ref_add_oltc_branch!])
+#pm = _PM.instantiate_model(data, _FP.BFARadPowerModel, _FP.build_opf_rad; ref_extensions=[ref_add_gen!, _FP.ref_add_frb_branch!,_FP.ref_add_oltc_branch!])
 #result = _PM.optimize_model!(pm; optimizer=optimizer, solution_processors=[_PM.sol_data_model!])
 @assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
 
