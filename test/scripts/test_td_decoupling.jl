@@ -1,14 +1,9 @@
 # Test of transmission and distribution decoupling
 
-# Note 1
-# Only distribution part is implemented at the moment: given a distribution network having some
-# candidate storage / flexible loads, a set of flexibility candidates is returned.
-# The entire distribution network is seen as a flexibility candidate by transmission. Multiple
-# candidates related to the same distribution network represent alternative planning options, which
-# vary in amount of flexibility provided and in cost.
-
-# Note 2
-# Among flexibility sources in distribution, only storage is considered at the moment.
+# T&D decoupling procedure
+# 1. Compute a surrogate model of distributon networks [partly implemented]
+# 2. Optimize planning of transmission network using surrogate distribution nwtorks [not implemented yet]
+# 3. Fix power exchanges between T&D and optimize planning of distribution networks [not implemented yet]
 
 
 ## Import packages and choose a solver
@@ -16,6 +11,7 @@
 using Memento
 _LOGGER = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script, also used by included files.
 
+import PowerModels; const _PM = PowerModels
 import FlexPlan; const _FP = FlexPlan
 include("../io/load_case.jl")
 include("../io/td_decoupling.jl")
@@ -38,13 +34,10 @@ d_mn_data = load_ieee_33(number_of_hours=24, number_of_scenarios=1)
 
 ## Solve problem
 
-dist_candidates = _FP.solve_td_decoupling_distribution(d_mn_data; optimizer, number_of_candidates)
+flex_result = _FP.probe_distribution_flexibility!(d_mn_data; optimizer)
 
 
 ## Result analysis and output
-
-# Candidates to be processed and plotted. Passing a subset of candidates can be useful in making plots less crowded. Order of candidates is respected in plots.
-candidate_ids = sort(collect(keys(dist_candidates)))
 
 mkpath(out_dir)
 
@@ -53,12 +46,11 @@ mkpath(out_dir)
 #Plots.plotlyjs()
 
 # Kwargs: `plot_ext` can be used to set plot file extension; also all Plots kwargs are accepted. Example: `plot_ext="png", dpi=300`
-report_dist_candidates_pcc_power(dist_candidates, out_dir; plot, candidate_ids)
-report_dist_candidates_branch(dist_candidates, out_dir, d_mn_data; plot, candidate_ids)
-report_dist_candidates_storage(dist_candidates, out_dir; plot, candidate_ids)
+report_flex_pcc_power(flex_result, out_dir; plot)
+report_flex_branch(flex_result, out_dir, d_mn_data; plot)
+report_flex_storage(flex_result, out_dir; plot)
 
-report_dist_candidates_investment(dist_candidates, out_dir; candidate_ids)
-report_dist_candidates_cost(dist_candidates, out_dir; candidate_ids)
-#report_dist_candidates_nw_summary(dist_candidates, out_dir)
+report_flex_investment(flex_result, out_dir)
+#report_flex_nw_summary(flex_result, out_dir)
 
 println("Test completed. Results saved in $out_dir")

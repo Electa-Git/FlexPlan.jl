@@ -1,6 +1,6 @@
 module TDDecoupling
 
-export solve_td_decoupling_distribution
+export probe_distribution_flexibility!
 
 using ..FlexPlan
 const _FP = FlexPlan

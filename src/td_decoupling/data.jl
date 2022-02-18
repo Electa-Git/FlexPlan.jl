@@ -1,9 +1,9 @@
 ## Result - data structure interaction
 
-# These functions allow to pass investment decisions between two problems: the investment decision
-# results of the first problem are copied into the data structure of the second problem; an
-# appropriate constraint could be necessary in the model of the second problem to read the data
-# prepared by these functions.
+# These functions allow to pass investment decisions between two problems: the investment
+# decision results of the first problem are copied into the data structure of the second
+# problem; an appropriate constraint may be necessary in the model of the second problem to
+# read the data prepared by these functions.
 
 function add_ne_branch_indicator!(mn_data::Dict{String,Any}, result::Dict{String,Any})
     for (n, data_nw) in mn_data["nw"]
@@ -33,8 +33,4 @@ function add_td_coupling_power_active!(mn_data::Dict{String,Any}, result::Dict{S
         d_gen["pmax"] = p
         d_gen["pmin"] = p
     end
-end
-
-function add_max_cost!(mn_data::Dict{String,Any}, max_cost::Float64)
-    mn_data["max_cost"] = max_cost
 end
