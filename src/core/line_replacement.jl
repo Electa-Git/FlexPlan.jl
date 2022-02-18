@@ -4,7 +4,7 @@
 ### Expression templates ###
 
 "Defines branch indicator as a function of corresponding ne_branch indicator variables."
-function expression_branch_indicator(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=pm.cnw)
+function expression_branch_indicator(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=_PM.nw_id_default)
     if !haskey(_PM.var(pm, nw), :z_branch)
         _PM.var(pm, nw)[:z_branch] = Dict{Int,Any}()
     end
@@ -33,7 +33,7 @@ end
 ### Constraint templates ###
 
 ""
-function constraint_ohms_yt_from_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_ohms_yt_from_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -61,7 +61,7 @@ function constraint_ohms_yt_from_repl(pm::_PM.AbstractPowerModel, i::Int; nw::In
 end
 
 ""
-function constraint_ohms_yt_to_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_ohms_yt_to_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -87,7 +87,7 @@ function constraint_ohms_yt_to_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=
     end
 end
 
-function constraint_voltage_angle_difference_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_voltage_angle_difference_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -106,7 +106,7 @@ function constraint_voltage_angle_difference_repl(pm::_PM.AbstractPowerModel, i:
     end
 end
 
-function constraint_thermal_limit_from_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_thermal_limit_from_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -127,7 +127,7 @@ function constraint_thermal_limit_from_repl(pm::_PM.AbstractPowerModel, i::Int; 
 end
 
 ""
-function constraint_thermal_limit_to_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_thermal_limit_to_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -150,7 +150,7 @@ end
 #### Constraint templates used in radial networks ####
 
 "States that at most one of the ne_branches sharing the same bus pair must be built."
-function constraint_branch_complementarity(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=pm.cnw)
+function constraint_branch_complementarity(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, br_idx)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -159,7 +159,7 @@ function constraint_branch_complementarity(pm::_PM.AbstractPowerModel, br_idx::I
 end
 
 ""
-function constraint_power_losses_on_off(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=pm.cnw)
+function constraint_power_losses_on_off(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, br_idx)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -181,7 +181,7 @@ function constraint_power_losses_on_off(pm::_PM.AbstractPowerModel, br_idx::Int;
 end
 
 ""
-function constraint_power_losses_frb_on_off(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=pm.cnw)
+function constraint_power_losses_frb_on_off(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, br_idx)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -203,7 +203,7 @@ function constraint_power_losses_frb_on_off(pm::_PM.AbstractPowerModel, br_idx::
 end
 
 ""
-function constraint_power_losses_oltc_on_off(pm::_PM.AbstractBFModel, br_idx::Int; nw::Int=pm.cnw)
+function constraint_power_losses_oltc_on_off(pm::_PM.AbstractBFModel, br_idx::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, br_idx)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -224,7 +224,7 @@ function constraint_power_losses_oltc_on_off(pm::_PM.AbstractBFModel, br_idx::In
 end
 
 ""
-function constraint_ne_power_losses_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=pm.cnw)
+function constraint_ne_power_losses_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=_PM.nw_id_default)
     ne_branch = _PM.ref(pm, nw, :ne_branch, ne_br_idx)
     f_bus = ne_branch["f_bus"]
     t_bus = ne_branch["t_bus"]
@@ -259,7 +259,7 @@ function constraint_ne_power_losses_parallel(pm::_PM.AbstractPowerModel, ne_br_i
 end
 
 ""
-function constraint_ne_power_losses_frb_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=pm.cnw)
+function constraint_ne_power_losses_frb_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=_PM.nw_id_default)
     ne_branch = _PM.ref(pm, nw, :ne_branch, ne_br_idx)
     f_bus = ne_branch["f_bus"]
     t_bus = ne_branch["t_bus"]
@@ -294,7 +294,7 @@ function constraint_ne_power_losses_frb_parallel(pm::_PM.AbstractPowerModel, ne_
 end
 
 ""
-function constraint_voltage_magnitude_difference_on_off(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=pm.cnw)
+function constraint_voltage_magnitude_difference_on_off(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, br_idx)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -311,7 +311,7 @@ function constraint_voltage_magnitude_difference_on_off(pm::_PM.AbstractPowerMod
 end
 
 ""
-function constraint_voltage_magnitude_difference_frb_on_off(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=pm.cnw)
+function constraint_voltage_magnitude_difference_frb_on_off(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, br_idx)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -328,7 +328,7 @@ function constraint_voltage_magnitude_difference_frb_on_off(pm::_PM.AbstractPowe
 end
 
 ""
-function constraint_voltage_magnitude_difference_oltc_on_off(pm::_PM.AbstractBFModel, br_idx::Int; nw::Int=pm.cnw)
+function constraint_voltage_magnitude_difference_oltc_on_off(pm::_PM.AbstractBFModel, br_idx::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, br_idx)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -346,7 +346,7 @@ function constraint_voltage_magnitude_difference_oltc_on_off(pm::_PM.AbstractBFM
 end
 
 ""
-function constraint_ne_voltage_magnitude_difference_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=pm.cnw)
+function constraint_ne_voltage_magnitude_difference_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int =_PM.nw_id_default)
     ne_branch = _PM.ref(pm, nw, :ne_branch, ne_br_idx)
     f_bus = ne_branch["f_bus"]
     t_bus = ne_branch["t_bus"]
@@ -366,8 +366,7 @@ function constraint_ne_voltage_magnitude_difference_parallel(pm::_PM.AbstractPow
     g_sh_fr = branch["g_fr"]
     b_sh_fr = branch["b_fr"]
     tm      = branch["tap"]
-
-    if is_oltc_branch(pm, br_idx)
+    if is_oltc_branch(pm, br_idx, nw = nw)
         Memento.error(_LOGGER, "ne_branch $ne_br_idx cannot be built in parallel to an OLTC (branch $br_idx)")
     end
     if ne_tm != tm
@@ -378,7 +377,7 @@ function constraint_ne_voltage_magnitude_difference_parallel(pm::_PM.AbstractPow
 end
 
 ""
-function constraint_ne_voltage_magnitude_difference_frb_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=pm.cnw)
+function constraint_ne_voltage_magnitude_difference_frb_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int =_PM.nw_id_default)
     ne_branch = _PM.ref(pm, nw, :ne_branch, ne_br_idx)
     f_bus = ne_branch["f_bus"]
     t_bus = ne_branch["t_bus"]
@@ -399,7 +398,7 @@ function constraint_ne_voltage_magnitude_difference_frb_parallel(pm::_PM.Abstrac
     b_sh_fr = branch["b_fr"]
     tm      = branch["tap"]
 
-    if is_oltc_branch(pm, br_idx)
+    if is_oltc_branch(pm, br_idx, nw = nw)
         Memento.error(_LOGGER, "ne_branch $ne_br_idx cannot be built in parallel to an OLTC (branch $br_idx)")
     end
     if ne_tm != tm
@@ -410,7 +409,7 @@ function constraint_ne_voltage_magnitude_difference_frb_parallel(pm::_PM.Abstrac
 end
 
 ""
-function constraint_ne_thermal_limit_from_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=pm.cnw)
+function constraint_ne_thermal_limit_from_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=_PM.nw_id_default)
     ne_branch = _PM.ref(pm, nw, :ne_branch, ne_br_idx)
     f_bus     = ne_branch["f_bus"]
     t_bus     = ne_branch["t_bus"]
@@ -428,7 +427,7 @@ function constraint_ne_thermal_limit_from_parallel(pm::_PM.AbstractPowerModel, n
 end
 
 ""
-function constraint_ne_thermal_limit_to_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=pm.cnw)
+function constraint_ne_thermal_limit_to_parallel(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=_PM.nw_id_default)
     ne_branch = _PM.ref(pm, nw, :ne_branch, ne_br_idx)
     f_bus     = ne_branch["f_bus"]
     t_bus     = ne_branch["t_bus"]
@@ -597,7 +596,7 @@ function branch_idx(pm::_PM.AbstractPowerModel, nw::Int, f_bus, t_bus)
 end
 
 "Returns a list of indices of `ne_branch`es relative to `branch` `br_idx`"
-function ne_branch_ids(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=pm.cnw)
+function ne_branch_ids(pm::_PM.AbstractPowerModel, br_idx::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :branch, br_idx)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -612,7 +611,7 @@ function ne_branch_ids(pm::_PM.AbstractPowerModel, nw::Int, f_bus, t_bus)
 end
 
 "Returns whether a `ne_branch` is intended to replace the existing branch or to be added in parallel"
-function ne_branch_replace(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=pm.cnw)
+function ne_branch_replace(pm::_PM.AbstractPowerModel, ne_br_idx::Int; nw::Int=_PM.nw_id_default)
     ne_branch = _PM.ref(pm, nw, :ne_branch, ne_br_idx)
     if !haskey(ne_branch, "replace")
         Memento.error(_LOGGER, "a `replace` value is required on all `ne_branch`es")

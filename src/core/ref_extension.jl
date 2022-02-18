@@ -3,7 +3,7 @@
 "Add to `ref` the keys for handling dispatchable and non-dispatchable generators"
 function ref_add_gen!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
 
-    for (n, nw_ref) in ref[:nw]
+    for (n, nw_ref) in ref[:it][:pm][:nw]
         # Dispatchable generators. Their power varies between `pmin` and `pmax` and cannot be curtailed.
         nw_ref[:dgen] = Dict(x for x in nw_ref[:gen] if x.second["dispatchable"] == true)
         # Non-dispatchable generators. Their reference power `pref` can be curtailed.
@@ -15,7 +15,8 @@ end
 ## Storage
 
 function ref_add_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
-    for (n, nw_ref) in ref[:nw]
+
+    for (n, nw_ref) in ref[:it][:pm][:nw]
         if haskey(nw_ref, :storage)
             nw_ref[:storage_bounded_absorption] = Dict(x for x in nw_ref[:storage] if 0.0 < get(x.second, "max_energy_absorption", Inf) < Inf)
         end
@@ -23,7 +24,7 @@ function ref_add_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
 end
 
 function ref_add_ne_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
-    for (n, nw_ref) in ref[:nw]
+    for (n, nw_ref) in ref[:it][:pm][:nw]
         if haskey(nw_ref, :ne_storage)
             bus_storage_ne = Dict([(i, []) for (i,bus) in nw_ref[:bus]])
             for (i,storage) in nw_ref[:ne_storage]
@@ -41,7 +42,7 @@ end
 "Add to `ref` the keys for handling flexible demand"
 function ref_add_flex_load!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
 
-    for (n, nw_ref) in ref[:nw]
+    for (n, nw_ref) in ref[:it][:pm][:nw]
         # Loads that can be made flexible, depending on investment decision
         nw_ref[:flex_load] = Dict(x for x in nw_ref[:load] if x.second["flex"] == 1)
         # Loads that are not flexible and do not have an associated investment decision
@@ -50,17 +51,17 @@ function ref_add_flex_load!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
 
     # Compute the total energy demand of each flex load and store it in the first hour nw
     for nw in nw_ids(data; hour = 1)
-        if haskey(ref[:nw][nw], :time_elapsed)
-            time_elapsed = ref[:nw][nw][:time_elapsed]
+        if haskey(ref[:it][:pm][:nw][nw], :time_elapsed)
+            time_elapsed = ref[:it][:pm][:nw][nw][:time_elapsed]
         else
             Memento.warn(_LOGGER, "network data should specify time_elapsed, using 1.0 as a default")
             time_elapsed = 1.0
         end
         timeseries_nw_ids = similar_ids(data, nw, hour = 1:dim_length(data,:hour))
-        for (l, load) in ref[:nw][nw][:flex_load]
+        for (l, load) in ref[:it][:pm][:nw][nw][:flex_load]
             # `ref` instead of `data` must be used to access loads, since the former has
             # already been filtered to remove inactive loads.
-            load["ed"] = time_elapsed * sum(ref[:nw][n][:load][l]["pd"] for n in timeseries_nw_ids)
+            load["ed"] = time_elapsed * sum(ref[:it][:pm][:nw][n][:load][l]["pd"] for n in timeseries_nw_ids)
         end
     end
 end
@@ -70,7 +71,7 @@ end
 
 "Like ref_add_ne_branch!, but ne_buspairs are built using calc_buspair_parameters_allbranches"
 function ref_add_ne_branch_allbranches!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
-    for (nw, nw_ref) in ref[:nw]
+    for (nw, nw_ref) in ref[:it][:pm][:nw]
         if !haskey(nw_ref, :ne_branch)
             Memento.error(_LOGGER, "required ne_branch data not found")
         end
@@ -101,7 +102,7 @@ Add to `ref` the following keys:
 - `:frb_ne_branch`: the set of `ne_branch`es whose `f_bus` is the reference bus.
 """
 function ref_add_frb_branch!(ref::Dict{Symbol,Any}, data::Dict{String,<:Any})
-    for (nw, nw_ref) in ref[:nw]
+    for (nw, nw_ref) in ref[:it][:pm][:nw]
         ref_bus_id = first(keys(nw_ref[:ref_buses]))
 
         frb_branch = Dict{Int,Any}()
@@ -130,7 +131,7 @@ Add to `ref` the following keys:
 - `:oltc_ne_branch`: the set of `frb_ne_branch`es that are OLTCs.
 """
 function ref_add_oltc_branch!(ref::Dict{Symbol,Any}, data::Dict{String,<:Any})
-    for (nw, nw_ref) in ref[:nw]
+    for (nw, nw_ref) in ref[:it][:pm][:nw]
         if !haskey(nw_ref, :frb_branch)
             Memento.error(_LOGGER, "ref_add_oltc_branch! must be called after ref_add_frb_branch!")
         end

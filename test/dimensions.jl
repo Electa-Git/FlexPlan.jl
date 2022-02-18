@@ -48,7 +48,7 @@
     _FP.add_dimension!(sn_data, :sub_nw, 2; metadata = Dict{String,Any}("description"=>"sub_nws model different physical networks"))
     dt = Dict{String,Any}("dim"=>sn_data["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data)) # Fake a multinetwork data structure
     pm = _PM.instantiate_model(dt, _PM.ACPPowerModel, pm->nothing)
-    dim = pm.ref[:dim]
+    dim = pm.ref[:it][:pm][:dim]
 
     dim_shift = deepcopy(dim)
     _FP.shift_ids!(dim_shift, 24)
