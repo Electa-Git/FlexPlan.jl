@@ -355,9 +355,6 @@ function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, g
         "source_id"    => source_id,
         "gen_status"   => 1, # Assumption: all generators defined in JSON file are in service.
         "gen_bus"      => gen_bus,
-        "dispatchable" => get(source, "isDispatchable", true),
-        "pmin"         => get(source, "isDispatchable", true) ? source["minActivePower"][y] : 0.0,
-        "pmax"         => source["maxActivePower"][y],
         "qmin"         => source["minReactivePower"][y],
         "qmax"         => source["maxReactivePower"][y],
         "vg"           => 1.0,
@@ -365,7 +362,17 @@ function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, g
         "ncost"        => 2, # 2 cost coefficients: c1 and c0
         "cost"         => [source["generationCosts"][y], 0.0], # [c1, c0]
     )
-    optional_value(target, "cost_curt", source, "curtailmentCosts", y)
+    pmin = source["minActivePower"][y]
+    pmax = source["maxActivePower"][y]
+    target["pmax"] = pmax
+    if pmin == pmax # Non-dispatchable generators are characterized in JSON file by having coincident power bounds
+        target["dispatchable"] = false
+        target["pmin"] = 0.0 # Must be zero to allow for curtailment
+        target["cost_curt"] = source["curtailmentCosts"][y]
+    else
+        target["dispatchable"] = true
+        target["pmin"] = pmin
+    end
     return target
 end
 
