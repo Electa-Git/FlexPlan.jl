@@ -18,8 +18,8 @@ function make_multinetwork(
         sn_data::Dict{String,Any},
         time_series::Dict{String,Any};
         global_keys = ["dim","multinetwork","name","per_unit","source_type","source_version"],
-        number_of_nws::Int = length(sn_data["dim"][:li]),
-        nw_id_offset::Int = sn_data["dim"][:offset],
+        number_of_nws::Int = length(dim(sn_data)[:li]),
+        nw_id_offset::Int = dim(sn_data)[:offset],
         check_dim::Bool = true
     )
 
@@ -158,8 +158,8 @@ function slice_multinetwork(data::Dict{String,Any}; kwargs...)
     for k in setdiff(keys(data), ("dim", "nw"))
         slice[k] = data[k]
     end
-    dim, ids = slice_dim(data["dim"]; kwargs...)
-    slice["dim"] = dim
+    dim_dict, ids = slice_dim(dim(data); kwargs...)
+    slice["dim"] = dim_dict
     slice["nw"] = Dict{String,Any}()
     for (new_id, old_id) in enumerate(ids)
         slice["nw"]["$new_id"] = data["nw"]["$old_id"]
