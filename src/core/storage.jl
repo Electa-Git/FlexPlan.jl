@@ -14,7 +14,7 @@ function variable_absorbed_energy(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_
         end
     end
 
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :storage, :e_abs, _PM.ids(pm, nw, :storage_bounded_absorption), e_abs)
+    report && _PM.sol_component_value(pm, nw, :storage, :e_abs, _PM.ids(pm, nw, :storage_bounded_absorption), e_abs)
 end
 
 function variable_absorbed_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool = true, report::Bool=true)
@@ -29,7 +29,7 @@ function variable_absorbed_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_
         end
     end
 
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :e_abs_ne, _PM.ids(pm, nw, :ne_storage_bounded_absorption), e_abs)
+    report && _PM.sol_component_value(pm, nw, :ne_storage, :e_abs_ne, _PM.ids(pm, nw, :ne_storage_bounded_absorption), e_abs)
 end
 
 function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
@@ -63,7 +63,7 @@ function variable_storage_power_real_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.
         end
     end
 
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :ps_ne, _PM.ids(pm, nw, :ne_storage), ps)
+    report && _PM.sol_component_value(pm, nw, :ne_storage, :ps_ne, _PM.ids(pm, nw, :ne_storage), ps)
 end
 
 function variable_storage_power_imaginary_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
@@ -81,7 +81,7 @@ function variable_storage_power_imaginary_ne(pm::_PM.AbstractPowerModel; nw::Int
         end
     end
 
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :qs_ne, _PM.ids(pm, nw, :ne_storage), qs)
+    report && _PM.sol_component_value(pm, nw, :ne_storage, :qs_ne, _PM.ids(pm, nw, :ne_storage), qs)
 end
 
 "apo models ignore reactive power flows"
@@ -109,7 +109,7 @@ function variable_storage_power_control_imaginary_ne(pm::_PM.AbstractPowerModel;
         end
     end
 
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :qsc_ne, _PM.ids(pm, nw, :ne_storage), qsc)
+    report && _PM.sol_component_value(pm, nw, :ne_storage, :qsc_ne, _PM.ids(pm, nw, :ne_storage), qsc)
 end
 
 "apo models ignore reactive power flows"
@@ -134,7 +134,7 @@ function variable_storage_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_i
         end
     end
 
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :se_ne, _PM.ids(pm, nw, :ne_storage), se)
+    report && _PM.sol_component_value(pm, nw, :ne_storage, :se_ne, _PM.ids(pm, nw, :ne_storage), se)
 end
 
 function variable_storage_charge_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
@@ -150,7 +150,7 @@ function variable_storage_charge_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_i
         end
     end
 
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :sc_ne, _PM.ids(pm, nw, :ne_storage), sc)
+    report && _PM.sol_component_value(pm, nw, :ne_storage, :sc_ne, _PM.ids(pm, nw, :ne_storage), sc)
 end
 
 function variable_storage_discharge_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
@@ -166,7 +166,7 @@ function variable_storage_discharge_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.n
         end
     end
 
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :sd_ne, _PM.ids(pm, nw, :ne_storage), sd)
+    report && _PM.sol_component_value(pm, nw, :ne_storage, :sd_ne, _PM.ids(pm, nw, :ne_storage), sd)
 end
 
 function variable_storage_indicator(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, relax::Bool=false, report::Bool=true)
@@ -189,7 +189,7 @@ function variable_storage_indicator(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_i
     else
         z = _PM.var(pm, nw)[:z_strg_ne] = _PM.var(pm, first_n)[:z_strg_ne]
     end
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :isbuilt, _PM.ids(pm, nw, :ne_storage), z)
+    report && _PM.sol_component_value(pm, nw, :ne_storage, :isbuilt, _PM.ids(pm, nw, :ne_storage), z)
 end
 
 function variable_storage_investment(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, relax::Bool=false, report::Bool=true)
@@ -212,7 +212,7 @@ function variable_storage_investment(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_
     else
         investment = _PM.var(pm, nw)[:z_strg_ne_investment] = _PM.var(pm, first_n)[:z_strg_ne_investment]
     end
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_storage, :investment, _PM.ids(pm, nw, :ne_storage), investment)
+    report && _PM.sol_component_value(pm, nw, :ne_storage, :investment, _PM.ids(pm, nw, :ne_storage), investment)
 end
 
 
