@@ -19,7 +19,7 @@ function variable_ne_converter_indicator(pm::_PM.AbstractPowerModel; nw::Int=_PM
     else
         Z_dc_conv_ne = _PM.var(pm, nw)[:conv_ne] = _PM.var(pm, first_n)[:conv_ne]
     end
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :convdc_ne, :isbuilt, _PM.ids(pm, nw, :convdc_ne), Z_dc_conv_ne)
+    report && _PM.sol_component_value(pm, nw, :convdc_ne, :isbuilt, _PM.ids(pm, nw, :convdc_ne), Z_dc_conv_ne)
 end
 
 function variable_ne_converter_investment(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, relax::Bool=false, report::Bool=true)
@@ -42,7 +42,7 @@ function variable_ne_converter_investment(pm::_PM.AbstractPowerModel; nw::Int=_P
     else
         investment = _PM.var(pm, nw)[:conv_ne_investment] = _PM.var(pm, first_n)[:conv_ne_investment]
     end
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :convdc_ne, :investment, _PM.ids(pm, nw, :convdc_ne), investment)
+    report && _PM.sol_component_value(pm, nw, :convdc_ne, :investment, _PM.ids(pm, nw, :convdc_ne), investment)
 end
 
 # To be used instead of _PMACDC.variable_dc_converter_ne() - supports deduplication of variables

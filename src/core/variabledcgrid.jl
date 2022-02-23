@@ -19,7 +19,7 @@ function variable_ne_branchdc_indicator(pm::_PM.AbstractPowerModel; nw::Int=_PM.
     else
         Z_dc_branch_ne = _PM.var(pm, nw)[:branchdc_ne] = _PM.var(pm, first_n)[:branchdc_ne]
     end
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :branchdc_ne, :isbuilt, _PM.ids(pm, nw, :branchdc_ne), Z_dc_branch_ne)
+    report && _PM.sol_component_value(pm, nw, :branchdc_ne, :isbuilt, _PM.ids(pm, nw, :branchdc_ne), Z_dc_branch_ne)
 end
 
 function variable_ne_branchdc_investment(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, relax::Bool=false, report::Bool=true)
@@ -42,5 +42,5 @@ function variable_ne_branchdc_investment(pm::_PM.AbstractPowerModel; nw::Int=_PM
     else
         investment = _PM.var(pm, nw)[:branchdc_ne_investment] = _PM.var(pm, first_n)[:branchdc_ne_investment]
     end
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :branchdc_ne, :investment, _PM.ids(pm, nw, :branchdc_ne), investment)
+    report && _PM.sol_component_value(pm, nw, :branchdc_ne, :investment, _PM.ids(pm, nw, :branchdc_ne), investment)
 end

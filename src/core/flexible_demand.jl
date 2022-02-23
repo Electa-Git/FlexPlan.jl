@@ -36,7 +36,7 @@ function variable_flexible_demand_indicator(pm::_PM.AbstractPowerModel; nw::Int=
         z = _PM.var(pm, nw)[:z_flex] = _PM.var(pm, first_n)[:z_flex]
     end
     if report
-        _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :flex, _PM.ids(pm, nw, :flex_load), z)
+        _PM.sol_component_value(pm, nw, :load, :flex, _PM.ids(pm, nw, :flex_load), z)
         _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :load, :flex, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
@@ -63,7 +63,7 @@ function variable_flexible_demand_investment(pm::_PM.AbstractPowerModel; nw::Int
         investment = _PM.var(pm, nw)[:z_flex_investment] = _PM.var(pm, first_n)[:z_flex_investment]
     end
     if report
-        _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :investment, _PM.ids(pm, nw, :flex_load), investment)
+        _PM.sol_component_value(pm, nw, :load, :investment, _PM.ids(pm, nw, :flex_load), investment)
         _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :load, :investment, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
@@ -81,7 +81,7 @@ function variable_total_flex_demand_active(pm::_PM.AbstractPowerModel; nw::Int=_
         upper_bound = _PM.ref(pm, nw, :load, i, "pd") * (1 + get(_PM.ref(pm, nw, :load, i), "pshift_up_rel_max", 0.0)), # Not strictly necessary: redundant due to other bounds
         start = _PM.comp_start_value(_PM.ref(pm, nw, :load, i), "pd")
     )
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :pflex, _PM.ids(pm, nw, :load), pflex)
+    report && _PM.sol_component_value(pm, nw, :load, :pflex, _PM.ids(pm, nw, :load), pflex)
 end
 
 function variable_total_flex_demand_reactive(pm::_PM.AbstractActivePowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
@@ -93,7 +93,7 @@ function variable_total_flex_demand_reactive(pm::_PM.AbstractPowerModel; nw::Int
         [i in _PM.ids(pm, nw, :load)], base_name="$(nw)_qflex",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :load, i), "qd")
     )
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :qflex, _PM.ids(pm, nw, :load), qflex)
+    report && _PM.sol_component_value(pm, nw, :load, :qflex, _PM.ids(pm, nw, :load), qflex)
 end
 
 "Variable for load curtailment (i.e. involuntary demand reduction) at each load point and each time step"
@@ -104,7 +104,7 @@ function variable_demand_curtailment(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_
         upper_bound = _PM.ref(pm, nw, :load, i, "pd"),
         start = 0
     )
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :pcurt, _PM.ids(pm, nw, :load), pcurt)
+    report && _PM.sol_component_value(pm, nw, :load, :pcurt, _PM.ids(pm, nw, :load), pcurt)
 end
 
 "Variable for the power not consumed (voluntary load reduction) at each flex load point and each time step"
@@ -119,7 +119,7 @@ function variable_demand_reduction(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id
         start = 0
     )
     if report
-        _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :pred, _PM.ids(pm, nw, :flex_load), pred)
+        _PM.sol_component_value(pm, nw, :load, :pred, _PM.ids(pm, nw, :flex_load), pred)
         _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :load, :pred, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
@@ -134,7 +134,7 @@ function variable_energy_not_consumed(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw
         start = 0
     )
     if report
-        _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :ered, _PM.ids(pm, nw, :flex_load), ered)
+        _PM.sol_component_value(pm, nw, :load, :ered, _PM.ids(pm, nw, :flex_load), ered)
         _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :load, :ered, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
@@ -151,7 +151,7 @@ function variable_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::Int=_P
         start = 0
     )
     if report
-        _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :pshift_up, _PM.ids(pm, nw, :flex_load), pshift_up)
+        _PM.sol_component_value(pm, nw, :load, :pshift_up, _PM.ids(pm, nw, :flex_load), pshift_up)
         _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :load, :pshift_up, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
@@ -167,7 +167,7 @@ function variable_total_demand_shifting_upwards(pm::_PM.AbstractPowerModel; nw::
         start = 0
     )
     if report
-        _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :eshift_up, _PM.ids(pm, nw, :flex_load), eshift_up)
+        _PM.sol_component_value(pm, nw, :load, :eshift_up, _PM.ids(pm, nw, :flex_load), eshift_up)
         _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :load, :eshift_up, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
@@ -184,7 +184,7 @@ function variable_demand_shifting_downwards(pm::_PM.AbstractPowerModel; nw::Int=
         start = 0
     )
     if report
-        _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :pshift_down, _PM.ids(pm, nw, :flex_load), pshift_down)
+        _PM.sol_component_value(pm, nw, :load, :pshift_down, _PM.ids(pm, nw, :flex_load), pshift_down)
         _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :load, :pshift_down, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end
@@ -199,7 +199,7 @@ function variable_total_demand_shifting_downwards(pm::_PM.AbstractPowerModel; nw
         start = 0
     )
     if report
-        _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :eshift_down, _PM.ids(pm, nw, :flex_load), eshift_down)
+        _PM.sol_component_value(pm, nw, :load, :eshift_down, _PM.ids(pm, nw, :flex_load), eshift_down)
         _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :load, :eshift_down, _PM.ids(pm, nw, :fixed_load), 0.0)
     end
 end

@@ -280,7 +280,7 @@ end
 """
 Apply bounds on reactive power exchange at the point of common coupling (PCC) of a distribution nw.
 """
-function constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel; nw::Int=d__PM.nw_id_default)
+function constraint_td_coupling_power_reactive_bounds(d_pm::_PM.AbstractBFModel; nw::Int=_PM.nw_id_default)
     sub_nw = dim_prop(d_pm, nw, :sub_nw)
     d_gen = sub_nw["d_gen"]
     qs_ratio_bound = sub_nw["qs_ratio_bound"] # Allowable fraction of rated apparent power
