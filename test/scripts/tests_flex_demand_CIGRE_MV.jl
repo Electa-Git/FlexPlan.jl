@@ -26,7 +26,7 @@ import JuMP
 import Cbc
 
 # Solver configurations
-cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, seconds = 20, print_level=0)
+cbc = _FP.optimizer_with_attributes(Cbc.Optimizer, "tol"=>1e-4, "seconds"=>20, "print_level"=>0)
 
 
 # Input parameters:

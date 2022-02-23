@@ -23,12 +23,12 @@ import JSON
 import CSV
 
 # Solver configurations
-scs = JuMP.with_optimizer(SCS.Optimizer, max_iters=100000)
-ipopt = JuMP.with_optimizer(Ipopt.Optimizer, tol=1e-4, print_level=0)
-cbc = JuMP.with_optimizer(Cbc.Optimizer, tol=1e-4, print_level=0)
-gurobi = JuMP.with_optimizer(Gurobi.Optimizer)
-mosek = JuMP.with_optimizer(Mosek.Optimizer)
-juniper = JuMP.with_optimizer(Juniper.Optimizer, nl_solver = ipopt, mip_solver= cbc, time_limit= 7200)
+scs = _FP.optimizer_with_attributes(SCS.Optimizer, "max_iters"=>100000)
+ipopt = _FP.optimizer_with_attributes(Ipopt.Optimizer, "tol"=>1e-4, "print_level"=>0)
+cbc = _FP.optimizer_with_attributes(Cbc.Optimizer, "tol"=>1e-4, "print_level"=>0)
+gurobi = Gurobi.Optimizer
+mosek = Mosek.Optimizer
+juniper = _FP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "mip_solver"=>cbc, "time_limit"=>7200)
 
 ################# INPUT PARAMETERS ######################
 number_of_hours = 144 # Number of time points

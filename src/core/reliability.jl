@@ -8,7 +8,7 @@ function variable_demand_interruption(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw
         start = 0
     )
 
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :load, :pinter, _PM.ids(pm, nw, :load), pinter)
+    report && _PM.sol_component_value(pm, nw, :load, :pinter, _PM.ids(pm, nw, :load), pinter)
 end
 
 

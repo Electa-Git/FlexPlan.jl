@@ -10,6 +10,6 @@ function expression_gen_curtailment(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_i
     )
     if report
         _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :gen, :pgcurt, _PM.ids(pm, nw, :dgen), 0.0)
-        _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :gen, :pgcurt, _PM.ids(pm, nw, :ndgen), pgcurt)
+        _PM.sol_component_value(pm, nw, :gen, :pgcurt, _PM.ids(pm, nw, :ndgen), pgcurt)
     end
 end

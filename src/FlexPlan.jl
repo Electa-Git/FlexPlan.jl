@@ -15,8 +15,8 @@ const _IM = InfrastructureModels
 import MathOptInterface
 const _MOI = MathOptInterface
 
-import JuMP: with_optimizer, optimizer_with_attributes
-export with_optimizer, optimizer_with_attributes
+import JuMP: optimizer_with_attributes
+export optimizer_with_attributes
 
 using Printf
 

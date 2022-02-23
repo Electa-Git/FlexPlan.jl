@@ -99,7 +99,7 @@ end
 
 function objective_reliability(pm::_PM.AbstractPowerModel)
     return JuMP.@objective(pm.model, Min,
-        sum(pm.ref[:contingency_prob][s] *
+        sum(pm.ref[:it][_PM.pm_it_sym][:contingency_prob][s] *
             sum(
                 calc_gen_cost(pm, n)
                 + calc_convdc_ne_cost(pm, n)
@@ -109,7 +109,7 @@ function objective_reliability(pm::_PM.AbstractPowerModel)
                 + calc_load_cost(pm, n)
                 + calc_contingency_cost(pm, n)
             for (sc, n) in contingency)
-        for (s, contingency) in pm.ref[:contingency])
+        for (s, contingency) in pm.ref[:it][_PM.pm_it_sym][:contingency])
     )
 end
 
@@ -135,7 +135,7 @@ function calc_gen_cost(pm::_PM.AbstractPowerModel, n::Int)
     gen = _PM.ref(pm, n, :gen)
     cost = sum(calc_single_gen_cost(i,g["cost"]) for (i,g) in gen)
     if get(pm.setting, "add_co2_cost", false)
-        cost += sum(g["emission_factor"] * _PM.var(pm,n,:pg,i) * pm.ref[:co2_emission_cost] for (i,g) in gen)
+        cost += sum(g["emission_factor"] * _PM.var(pm,n,:pg,i) * pm.ref[:it][_PM.pm_it_sym][:co2_emission_cost] for (i,g) in gen)
     end
     ndgen = _PM.ref(pm, n, :ndgen)
     if !isempty(ndgen)
@@ -240,7 +240,7 @@ end
 function calc_contingency_cost(pm::_PM.AbstractPowerModel, n::Int)
     load = _PM.ref(pm, n, :load)
     cost = 0.0
-    if n ∉ [parse(Int, t) for t in keys(pm.ref[:contingency]["0"])]
+    if n ∉ [parse(Int, t) for t in keys(pm.ref[:it][_PM.pm_it_sym][:contingency]["0"])]
         cost += sum(l["cost_voll"]*_PM.var(pm, n, :pinter, i) for (i,l) in load)
     end
     return cost

@@ -46,7 +46,7 @@ function variable_oltc_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPowerM
         end
     end
 
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :branch, :ttmi, _PM.ids(pm, nw, :oltc_branch), ttmi)
+    report && _PM.sol_component_value(pm, nw, :branch, :ttmi, _PM.ids(pm, nw, :oltc_branch), ttmi)
 end
 
 function variable_oltc_ne_branch_transform(pm::_PM.AbstractWModels; kwargs...)
@@ -68,7 +68,7 @@ function variable_oltc_ne_branch_transform_magnitude_sqr_inv(pm::_PM.AbstractPow
         end
     end
 
-    report && _IM.sol_component_value(pm, _PM.pm_it_sym, nw, :ne_branch, :ttmi, _PM.ids(pm, nw, :oltc_ne_branch), ttmi_ne)
+    report && _PM.sol_component_value(pm, nw, :ne_branch, :ttmi, _PM.ids(pm, nw, :oltc_ne_branch), ttmi_ne)
 end
 
 
