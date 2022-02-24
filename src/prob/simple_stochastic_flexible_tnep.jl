@@ -28,7 +28,7 @@ end
 # It is basically a declaration of variables and constraints of the problem
 
 "Builds transmission model."
-function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
+function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
     # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code
     for n in nw_ids(pm)
 
@@ -84,7 +84,9 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
     end
 
     # OBJECTIVE: see objective.jl
-    objective_stoch_flex(pm)
+    if objective
+        objective_stoch_flex(pm)
+    end
 
     # CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code
     for n in nw_ids(pm)
@@ -249,7 +251,7 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel)
 end
 
 "Builds distribution model."
-function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel)
+function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemporal_constraints::Bool=true)
 
     for n in nw_ids(pm)
 
@@ -284,7 +286,9 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel)
         variable_flexible_demand(pm; nw = n)
     end
 
-    objective_stoch_flex(pm)
+    if objective
+        objective_stoch_flex(pm)
+    end
 
     for n in nw_ids(pm)
         _PM.constraint_model_current(pm; nw = n)
@@ -328,49 +332,51 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
 
-        if is_first_id(pm, n, :hour)
-            for i in _PM.ids(pm, :storage, nw = n)
-                constraint_storage_state(pm, i, nw = n)
-            end
-            for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
-                constraint_maximum_absorption(pm, i, nw = n)
-            end
-
-            for i in _PM.ids(pm, :ne_storage, nw = n)
-                constraint_storage_state_ne(pm, i, nw = n)
-            end
-            for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
-                constraint_maximum_absorption_ne(pm, i, nw = n)
-            end
-        else
-            if is_last_id(pm, n, :hour)
+        if intertemporal_constraints
+            if is_first_id(pm, n, :hour)
                 for i in _PM.ids(pm, :storage, nw = n)
-                    constraint_storage_state_final(pm, i, nw = n)
+                    constraint_storage_state(pm, i, nw = n)
+                end
+                for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
+                    constraint_maximum_absorption(pm, i, nw = n)
                 end
 
                 for i in _PM.ids(pm, :ne_storage, nw = n)
-                    constraint_storage_state_final_ne(pm, i, nw = n)
+                    constraint_storage_state_ne(pm, i, nw = n)
+                end
+                for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
+                    constraint_maximum_absorption_ne(pm, i, nw = n)
+                end
+            else
+                if is_last_id(pm, n, :hour)
+                    for i in _PM.ids(pm, :storage, nw = n)
+                        constraint_storage_state_final(pm, i, nw = n)
+                    end
+
+                    for i in _PM.ids(pm, :ne_storage, nw = n)
+                        constraint_storage_state_final_ne(pm, i, nw = n)
+                    end
+
+                    for i in _PM.ids(pm, :flex_load, nw = n)
+                        constraint_shift_balance_periodic(pm, i, get(pm.setting, "demand_shifting_balance_period", 24), nw = n)
+                    end
                 end
 
-                for i in _PM.ids(pm, :flex_load, nw = n)
-                    constraint_shift_balance_periodic(pm, i, get(pm.setting, "demand_shifting_balance_period", 24), nw = n)
+                # From second hour to last hour
+                prev_n = prev_id(pm, n, :hour)
+                first_n = first_id(pm, n, :hour)
+                for i in _PM.ids(pm, :storage, nw = n)
+                    constraint_storage_state(pm, i, prev_n, n)
                 end
-            end
-
-            # From second hour to last hour
-            prev_n = prev_id(pm, n, :hour)
-            first_n = first_id(pm, n, :hour)
-            for i in _PM.ids(pm, :storage, nw = n)
-                constraint_storage_state(pm, i, prev_n, n)
-            end
-            for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
-                constraint_maximum_absorption(pm, i, prev_n, n)
-            end
-            for i in _PM.ids(pm, :ne_storage, nw = n)
-                constraint_storage_state_ne(pm, i, prev_n, n)
-            end
-            for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
-                constraint_maximum_absorption_ne(pm, i, prev_n, n)
+                for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
+                    constraint_maximum_absorption(pm, i, prev_n, n)
+                end
+                for i in _PM.ids(pm, :ne_storage, nw = n)
+                    constraint_storage_state_ne(pm, i, prev_n, n)
+                end
+                for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
+                    constraint_maximum_absorption_ne(pm, i, prev_n, n)
+                end
             end
         end
 
