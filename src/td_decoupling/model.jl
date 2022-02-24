@@ -1,7 +1,7 @@
 ## Problems
 
 function build_max_import_with_current_investments(pm::_PM.AbstractBFModel)
-    _FP.post_flex_tnep(pm; objective = false, intertemporal_constraints = false)
+    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
     for n in _PM.nw_ids(pm)
         constraint_ne_branch_indicator_fix(pm, n)
         constraint_ne_storage_indicator_fix(pm, n)
@@ -10,7 +10,7 @@ function build_max_import_with_current_investments(pm::_PM.AbstractBFModel)
 end
 
 function build_max_export_with_current_investments(pm::_PM.AbstractBFModel)
-    _FP.post_flex_tnep(pm; objective = false, intertemporal_constraints = false)
+    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
     for n in _PM.nw_ids(pm)
         constraint_ne_branch_indicator_fix(pm, n)
         constraint_ne_storage_indicator_fix(pm, n)

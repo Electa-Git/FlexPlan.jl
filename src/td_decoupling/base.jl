@@ -5,7 +5,7 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; optimizer, s
         Memento.error(_LOGGER, "A single distribution network is required ($(dim_length(mn_data, :sub_nw)) found)")
     end
 
-    r_base = run_td_decoupling_model(mn_data, _FP.post_flex_tnep, optimizer; setting)
+    r_base = run_td_decoupling_model(mn_data, _FP.post_simple_stoch_flex_tnep, optimizer; setting)
 
     add_ne_branch_indicator!(mn_data, r_base)
     add_ne_storage_indicator!(mn_data, r_base)
