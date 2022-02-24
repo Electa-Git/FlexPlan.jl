@@ -4,7 +4,7 @@
 ## Power balance
 
 "Power balance including candidate storage"
-function constraint_power_balance_acne_dcne_strg(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_power_balance_acne_dcne_strg(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     bus = _PM.ref(pm, nw, :bus, i)
     bus_arcs = _PM.ref(pm, nw, :bus_arcs, i)
     bus_arcs_ne = _PM.ref(pm, nw, :ne_bus_arcs, i)
@@ -26,7 +26,7 @@ function constraint_power_balance_acne_dcne_strg(pm::_PM.AbstractPowerModel, i::
 end
 
 "Power balance (without DC equipment) including candidate storage"
-function constraint_power_balance_acne_strg(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_power_balance_acne_strg(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     bus = _PM.ref(pm, nw, :bus, i)
     bus_arcs = _PM.ref(pm, nw, :bus_arcs, i)
     bus_arcs_ne = _PM.ref(pm, nw, :ne_bus_arcs, i)
@@ -45,7 +45,7 @@ function constraint_power_balance_acne_strg(pm::_PM.AbstractPowerModel, i::Int; 
 end
 
 "Power balance including candidate storage & flexible demand"
-function constraint_power_balance_acne_dcne_flex(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_power_balance_acne_dcne_flex(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     bus = _PM.ref(pm, nw, :bus, i)
     bus_arcs = _PM.ref(pm, nw, :bus_arcs, i)
     bus_arcs_ne = _PM.ref(pm, nw, :ne_bus_arcs, i)
@@ -64,7 +64,7 @@ function constraint_power_balance_acne_dcne_flex(pm::_PM.AbstractPowerModel, i::
 end
 
 "Power balance (without DC equipment) including candidate storage & flexible demand"
-function constraint_power_balance_acne_flex(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_power_balance_acne_flex(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     bus = _PM.ref(pm, nw, :bus, i)
     bus_arcs = _PM.ref(pm, nw, :bus_arcs, i)
     bus_arcs_ne = _PM.ref(pm, nw, :ne_bus_arcs, i)
@@ -80,7 +80,7 @@ function constraint_power_balance_acne_flex(pm::_PM.AbstractPowerModel, i::Int; 
 end
 
 "Power balance with power interrupted by contingency - pinter (including candidate storage & flexible demand)"
-function constraint_power_balance_reliability(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_power_balance_reliability(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     bus = _PM.ref(pm, nw, :bus, i)
     bus_arcs = _PM.ref(pm, nw, :bus_arcs, i)
     bus_arcs_ne = _PM.ref(pm, nw, :ne_bus_arcs, i)

@@ -163,7 +163,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             _PMACDC.constraint_conv_transformer(pm, i; nw = n)
             _PMACDC.constraint_conv_reactor(pm, i; nw = n)
             _PMACDC.constraint_conv_filter(pm, i; nw = n)
-            if pm.ref[:nw][n][:convdc][i]["islcc"] == 1
+            if _PM.ref(pm,n,:convdc,i,"islcc") == 1
                 _PMACDC.constraint_conv_firing_angle(pm, i; nw = n)
             end
         end
@@ -174,7 +174,7 @@ function post_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
             _PMACDC.constraint_conv_transformer_ne(pm, i; nw = n)
             _PMACDC.constraint_conv_reactor_ne(pm, i; nw = n)
             _PMACDC.constraint_conv_filter_ne(pm, i; nw = n)
-            if pm.ref[:nw][n][:convdc_ne][i]["islcc"] == 1
+            if _PM.ref(pm,n,:convdc_ne,i,"islcc") == 1
                 _PMACDC.constraint_conv_firing_angle_ne(pm, i; nw = n)
             end
         end
