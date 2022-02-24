@@ -144,7 +144,7 @@ function add_flexible_demand_data!(data)
             data["load"]["$idx"]["tshift_down"] = load_extra["tshift_down"]
         end
 
-        # Compensation for demand shifting (€/MWh), applied only to the power shifted upward to avoid double counting
+        # Compensation for demand shifting (€/MWh), applied half to the power shifted upward and half to the power shifted downward
         data["load"]["$idx"]["cost_shift"] = load_extra["cost_shift"]
 
         # Compensation for load curtailment (i.e. involuntary demand reduction) (€/MWh)
