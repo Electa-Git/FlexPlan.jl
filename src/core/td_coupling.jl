@@ -220,6 +220,7 @@ Report in `solution` the active and reactive power that distribution network `pm
 transmission network (positive if from transmission to distribution) in units of `baseMVA` of `pm`.
 """
 function sol_td_coupling!(pm::_PM.AbstractBFModel, solution::Dict{String,Any})
+    solution = _PM.get_pm_data(solution)
     if haskey(solution, "nw")
         nws_sol = solution["nw"]
     else

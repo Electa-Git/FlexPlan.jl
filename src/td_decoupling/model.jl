@@ -98,7 +98,7 @@ function constraint_investment_cost_max(pm::_PM.AbstractPowerModel; sub_nw = 1)
             + _FP.calc_ne_storage_cost(pm, n)
             + _FP.calc_load_investment_cost(pm, n)
         for n in _FP.nw_ids(pm; hour=1, scenario=1, sub_nw))
-    max_cost = pm.ref[:max_cost]
+    max_cost = pm.ref[:it][_PM.pm_it_sym][:max_cost]
 
     JuMP.@constraint(pm.model, inv_cost <= max_cost)
 end
