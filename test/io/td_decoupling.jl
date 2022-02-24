@@ -26,7 +26,7 @@ function report_flex_pcc_power(
     if plot
         plt = @df pcc_power Plots.plot(:period, cols(2:ncol(pcc_power));
             title  = "Power exchange at PCC",
-            ylabel = "Imported power [MW]",
+            ylabel = "Imported power [p.u.]",
             xlabel = "Period",
             legend = :outertopright,
             plot_kwargs...
@@ -42,7 +42,7 @@ function report_flex_pcc_power(
         if plot
             plt = @df pcc_deviation Plots.plot(:period, cols(2:ncol(pcc_deviation));
                 title  = "Difference in power exchange at PCC w.r.t. base case",
-                ylabel = "Power [MW]",
+                ylabel = "Power [p.u.]",
                 xlabel = "Period",
                 legend = :outertopright,
                 plot_kwargs...
@@ -58,7 +58,7 @@ function report_flex_pcc_power(
         if plot
             plt = @df pcc_flex_band Plots.plot(:period, cols(2:ncol(pcc_flex_band));
                 title  = "Flexibility band at PCC",
-                ylabel = "Power [MW]",
+                ylabel = "Power [p.u.]",
                 xlabel = "Period",
                 legend = :outertopright,
                 ylims  = (0.0, Inf),
@@ -150,7 +150,7 @@ function report_flex_storage(
             s = a_storage[1, :s]
             plt = @df a_storage Plots.plot(:period, cols(3:ncol(storage_p));
                 title  = "$s",
-                ylabel = "Absorbed power [MW]",
+                ylabel = "Absorbed power [p.u.]",
                 xlabel = "Period",
                 legend = :outertopright,
                 plot_kwargs...
@@ -163,7 +163,7 @@ function report_flex_storage(
         if plot
             plt = @df storage_power_total Plots.plot(:period, cols(2:ncol(storage_power_total));
                 title  = "Total storage",
-                ylabel = "Absorbed power [MW]",
+                ylabel = "Absorbed power [p.u.]",
                 xlabel = "Period",
                 legend = :outertopright,
                 plot_kwargs...
@@ -193,7 +193,7 @@ function report_flex_storage(
             s = a_storage[1, :s]
             plt = @df a_storage Plots.plot(:period, cols(3:ncol(storage_e));
                 title  = "$s",
-                ylabel = "Stored energy [MWh]",
+                ylabel = "Stored energy [p.u.]",
                 xlabel = "Period",
                 legend = :outertopright,
                 plot_kwargs...
@@ -206,7 +206,7 @@ function report_flex_storage(
         if plot
             plt = @df storage_energy_total Plots.plot(:period, cols(2:ncol(storage_energy_total));
                 title  = "Total storage",
-                ylabel = "Stored energy [MWh]",
+                ylabel = "Stored energy [p.u.]",
                 xlabel = "Period",
                 legend = :outertopright,
                 plot_kwargs...
