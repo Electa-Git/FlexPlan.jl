@@ -10,7 +10,7 @@ function add_ne_branch_indicator!(mn_data::Dict{String,Any}, result::Dict{String
         sol_nw = result["solution"]["nw"][n]
         for (b, data_branch) in data_nw["ne_branch"]
             if data_branch["br_status"] == 1
-                data_branch["built"] = sol_nw["ne_branch"][b]["built"]
+                data_branch["sol_built"] = sol_nw["ne_branch"][b]["built"]
             end
         end
     end
@@ -20,7 +20,16 @@ function add_ne_storage_indicator!(mn_data::Dict{String,Any}, result::Dict{Strin
     for (n, data_nw) in mn_data["nw"]
         sol_nw = result["solution"]["nw"][n]
         for (s, data_storage) in data_nw["ne_storage"]
-            data_storage["isbuilt"] = sol_nw["ne_storage"][s]["isbuilt"]
+            data_storage["sol_built"] = sol_nw["ne_storage"][s]["isbuilt"]
+        end
+    end
+end
+
+function add_flex_load_indicator!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+    for (n, data_nw) in mn_data["nw"]
+        sol_nw = result["solution"]["nw"][n]
+        for (l, data_load) in data_nw["load"]
+            data_load["sol_built"] = sol_nw["ne_storage"][l]["flex"]
         end
     end
 end

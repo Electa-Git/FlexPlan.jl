@@ -9,6 +9,7 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; optimizer, s
 
     add_ne_branch_indicator!(mn_data, r_base)
     add_ne_storage_indicator!(mn_data, r_base)
+    add_flex_load_indicator!(mn_data, r_base)
 
     r_up   = run_td_decoupling_model(mn_data, build_max_import_with_current_investments, optimizer; setting)
     r_down = run_td_decoupling_model(mn_data, build_max_export_with_current_investments, optimizer; setting)
@@ -16,7 +17,7 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; optimizer, s
     # Store sorted ids of components (nw, branch, etc.).
     ids = Dict{String,Any}("nw" => string.(_FP.nw_ids(mn_data)))
     first_nw = r_base["solution"]["nw"][ids["nw"][1]] # Cannot use mn_data here because it may contain inactive components
-    for comp in ("branch", "ne_branch", "storage", "ne_storage")
+    for comp in ("branch", "ne_branch", "storage", "ne_storage", "load")
         if haskey(first_nw, comp)
             ids[comp] = string.(sort(parse.(Int, keys(first_nw[comp]))))
         end
@@ -29,7 +30,7 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; optimizer, s
         result_comp = result["solution"]["nw"][ids["nw"][1]][component]
         Bool.(round.(result_comp[k][built_keyword] for k in ids[component]))
     end
-    for (comp, built_keyword) in ("ne_branch"=>"built", "ne_storage"=>"isbuilt")
+    for (comp, built_keyword) in ("ne_branch"=>"built", "ne_storage"=>"isbuilt", "load"=>"flex")
         if !isempty(ids[comp])
             built = _isbuilt(r_base, comp, built_keyword)
             for res in (r_up, r_down)

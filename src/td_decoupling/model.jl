@@ -5,6 +5,7 @@ function build_max_import_with_current_investments(pm::_PM.AbstractBFModel)
     for n in _PM.nw_ids(pm)
         constraint_ne_branch_indicator_fix(pm, n)
         constraint_ne_storage_indicator_fix(pm, n)
+        constraint_flex_load_indicator_fix(pm, n)
     end
     objective_max_import(pm)
 end
@@ -14,6 +15,7 @@ function build_max_export_with_current_investments(pm::_PM.AbstractBFModel)
     for n in _PM.nw_ids(pm)
         constraint_ne_branch_indicator_fix(pm, n)
         constraint_ne_storage_indicator_fix(pm, n)
+        constraint_flex_load_indicator_fix(pm, n)
     end
     objective_max_export(pm)
 end
@@ -26,7 +28,7 @@ end
 function constraint_ne_branch_indicator_fix(pm::_PM.AbstractPowerModel, n::Int)
     for i in _PM.ids(pm, n, :ne_branch)
         indicator = _PM.var(pm, n, :branch_ne, i)
-        value = _PM.ref(pm, n, :ne_branch, i, "built")
+        value = _PM.ref(pm, n, :ne_branch, i, "sol_built")
         JuMP.@constraint(pm.model, indicator == value)
     end
 end
@@ -35,7 +37,16 @@ end
 function constraint_ne_storage_indicator_fix(pm::_PM.AbstractPowerModel, n::Int)
     for i in _PM.ids(pm, n, :ne_storage)
         indicator = _PM.var(pm, n, :z_strg_ne, i)
-        value = _PM.ref(pm, n, :ne_storage, i, "isbuilt")
+        value = _PM.ref(pm, n, :ne_storage, i, "sol_built")
+        JuMP.@constraint(pm.model, indicator == value)
+    end
+end
+
+"Fix investment decisions on flexibility of loads according to values in data structure"
+function constraint_flex_load_indicator_fix(pm::_PM.AbstractPowerModel, n::Int)
+    for i in _PM.ids(pm, n, :flex_load)
+        indicator = _PM.var(pm, n, :z_flex, i)
+        value = _PM.ref(pm, n, :flex_load, i, "sol_built")
         JuMP.@constraint(pm.model, indicator == value)
     end
 end
