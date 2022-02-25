@@ -11,8 +11,23 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; optimizer, s
     add_ne_storage_indicator!(mn_data, r_base)
     add_flex_load_indicator!(mn_data, r_base)
 
-    r_up   = run_td_decoupling_model(mn_data, build_max_import_with_current_investments, optimizer; setting)
-    r_down = run_td_decoupling_model(mn_data, build_max_export_with_current_investments, optimizer; setting)
+    mn_data_up = deepcopy(mn_data)
+    r_up = run_td_decoupling_model(mn_data_up, build_max_import_with_current_investments, optimizer; setting)
+    apply_td_coupling_power_active!(mn_data_up, r_up)
+    apply_gen_power_active_ub!(mn_data_up, r_base)
+    add_storage_power_active_lb!(mn_data_up, r_base)
+    add_ne_storage_power_active_lb!(mn_data_up, r_base)
+    add_load_power_active_lb!(mn_data_up, r_base)
+    r_up = run_td_decoupling_model(mn_data_up, build_min_cost_at_max_import, optimizer; setting)
+
+    mn_data_down = deepcopy(mn_data)
+    r_down = run_td_decoupling_model(mn_data_down, build_max_export_with_current_investments, optimizer; setting)
+    apply_td_coupling_power_active!(mn_data_down, r_down)
+    apply_gen_power_active_lb!(mn_data_down, r_base)
+    add_storage_power_active_ub!(mn_data_down, r_base)
+    add_ne_storage_power_active_ub!(mn_data_down, r_base)
+    add_load_power_active_ub!(mn_data_down, r_base)
+    r_down = run_td_decoupling_model(mn_data_down, build_min_cost_at_max_export, optimizer; setting)
 
     # Store sorted ids of components (nw, branch, etc.).
     ids = Dict{String,Any}("nw" => string.(_FP.nw_ids(mn_data)))

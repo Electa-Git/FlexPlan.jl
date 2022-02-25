@@ -5,7 +5,18 @@
 # problem; an appropriate constraint may be necessary in the model of the second problem to
 # read the data prepared by these functions.
 
+function _copy_comp_key!(target_data::Dict{String,Any}, comp::String, target_key::String, source_data::Dict{String,Any}, source_key::String=target_key)
+    for (n, target_nw) in target_data["nw"]
+        source_nw = source_data["nw"][n]
+        for (i, target_comp) in target_nw[comp]
+            target_comp[target_key] = source_nw[comp][i][source_key]
+        end
+    end
+end
+
 function add_ne_branch_indicator!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+    # Cannot use `_copy_comp_key!` because `ne_branch`es have a `br_status` parameter:
+    # those whose `br_status` is 0 are not reported in solution dict.
     for (n, data_nw) in mn_data["nw"]
         sol_nw = result["solution"]["nw"][n]
         for (b, data_branch) in data_nw["ne_branch"]
@@ -17,24 +28,22 @@ function add_ne_branch_indicator!(mn_data::Dict{String,Any}, result::Dict{String
 end
 
 function add_ne_storage_indicator!(mn_data::Dict{String,Any}, result::Dict{String,Any})
-    for (n, data_nw) in mn_data["nw"]
-        sol_nw = result["solution"]["nw"][n]
-        for (s, data_storage) in data_nw["ne_storage"]
-            data_storage["sol_built"] = sol_nw["ne_storage"][s]["isbuilt"]
-        end
-    end
+    _copy_comp_key!(mn_data, "ne_storage", "sol_built", result["solution"], "isbuilt")
 end
 
 function add_flex_load_indicator!(mn_data::Dict{String,Any}, result::Dict{String,Any})
-    for (n, data_nw) in mn_data["nw"]
-        sol_nw = result["solution"]["nw"][n]
-        for (l, data_load) in data_nw["load"]
-            data_load["sol_built"] = sol_nw["ne_storage"][l]["flex"]
-        end
-    end
+    _copy_comp_key!(mn_data, "load", "sol_built", result["solution"], "flex")
 end
 
-function add_td_coupling_power_active!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+function add_load_power_active_ub!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+    _copy_comp_key!(mn_data, "load", "pflex_ub", result["solution"], "pflex")
+end
+
+function add_load_power_active_lb!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+    _copy_comp_key!(mn_data, "load", "pflex_lb", result["solution"], "pflex")
+end
+
+function apply_td_coupling_power_active!(mn_data::Dict{String,Any}, result::Dict{String,Any})
     for (n, data_nw) in mn_data["nw"]
         p = result["solution"]["nw"][n]["td_coupling"]["p"]
         d_gen_id = _FP.dim_prop(mn_data, parse(Int,n), :sub_nw, "d_gen")
@@ -42,4 +51,46 @@ function add_td_coupling_power_active!(mn_data::Dict{String,Any}, result::Dict{S
         d_gen["pmax"] = p
         d_gen["pmin"] = p
     end
+end
+
+function apply_gen_power_active_ub!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+    # Cannot use `_copy_comp_key!` because `d_gen` must not be changed.
+    for (n, data_nw) in mn_data["nw"]
+        d_gen_id = string(_FP.dim_prop(mn_data, parse(Int,n), :sub_nw, "d_gen"))
+        sol_nw = result["solution"]["nw"][n]
+        for (g, data_gen) in data_nw["gen"]
+            if g ≠ d_gen_id
+                data_gen["pmax"] = sol_nw["gen"][g]["pg"]
+            end
+        end
+    end
+end
+
+function apply_gen_power_active_lb!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+    # Cannot use `_copy_comp_key!` because `d_gen` must not be changed.
+    for (n, data_nw) in mn_data["nw"]
+        d_gen_id = string(_FP.dim_prop(mn_data, parse(Int,n), :sub_nw, "d_gen"))
+        sol_nw = result["solution"]["nw"][n]
+        for (g, data_gen) in data_nw["gen"]
+            if g ≠ d_gen_id
+                data_gen["pmin"] = sol_nw["gen"][g]["pg"]
+            end
+        end
+    end
+end
+
+function add_storage_power_active_ub!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+    _copy_comp_key!(mn_data, "storage", "ps_ub", result["solution"], "ps")
+end
+
+function add_storage_power_active_lb!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+    _copy_comp_key!(mn_data, "storage", "ps_lb", result["solution"], "ps")
+end
+
+function add_ne_storage_power_active_ub!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+    _copy_comp_key!(mn_data, "ne_storage", "ps_ne_ub", result["solution"], "ps_ne")
+end
+
+function add_ne_storage_power_active_lb!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+    _copy_comp_key!(mn_data, "ne_storage", "ps_ne_lb", result["solution"], "ps_ne")
 end
