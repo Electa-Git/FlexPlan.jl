@@ -34,7 +34,11 @@ d_mn_data = load_ieee_33(number_of_hours=24, number_of_scenarios=1)
 
 ## Solve problem
 
-flex_result = _FP.probe_distribution_flexibility!(d_mn_data; optimizer)
+#surrogate_dist = _FP.surrogate_model!(d_mn_data; optimizer)
+
+# Two-step alternative
+flex_profiles = _FP.TDDecoupling.probe_distribution_flexibility!(d_mn_data; optimizer)
+surrogate_dist = _FP.TDDecoupling.calc_surrogate_model(d_mn_data, flex_profiles)
 
 
 ## Result analysis and output
@@ -46,11 +50,11 @@ mkpath(out_dir)
 #Plots.plotlyjs()
 
 # Kwargs: `plot_ext` can be used to set plot file extension; also all Plots kwargs are accepted. Example: `plot_ext="png", dpi=300`
-report_flex_pcc_power(flex_result, out_dir; plot)
-report_flex_branch(flex_result, out_dir, d_mn_data; plot)
-report_flex_storage(flex_result, out_dir; plot)
+report_flex_pcc_power(flex_profiles, out_dir; plot)
+report_flex_branch(flex_profiles, out_dir, d_mn_data; plot)
+report_flex_storage(flex_profiles, out_dir; plot)
 
-report_flex_investment(flex_result, out_dir)
-#report_flex_nw_summary(flex_result, out_dir)
+report_flex_investment(flex_profiles, out_dir)
+#report_flex_nw_summary(flex_profiles, out_dir)
 
 println("Test completed. Results saved in $out_dir")

@@ -1,6 +1,6 @@
 module TDDecoupling
 
-export probe_distribution_flexibility!
+export surrogate_model!
 
 using ..FlexPlan
 const _FP = FlexPlan
@@ -13,7 +13,7 @@ import JuMP
 import Memento
 
 include("base.jl")
-include("data.jl")
-include("model.jl")
+include("probe_flexibility.jl")
+include("surrogate_model.jl")
 
 end
