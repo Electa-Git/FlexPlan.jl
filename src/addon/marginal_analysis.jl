@@ -3,7 +3,7 @@ function run_model(data, extradata, _PM, solver)
     mn_data = _FP.make_multinetwork(data, extradata)
 
     # Add PowerModels(ACDC) settings
-    s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
+    s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false)
 
     # Build optimisation model, solve it and write solution dictionary:
     # This is the "problem file" which needs to be constructed individually depending on application

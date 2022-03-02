@@ -108,7 +108,7 @@ for i_load_scaling_factor = 1:n_load_scaling_factor
                 else
                     do_replace_branch = false
                 end
-                s = Dict("output" => Dict("branch_flows" => true), "allow_line_replacement" => do_replace_branch, "conv_losses_mp" => false, "process_data_internally" => false)
+                s = Dict("output" => Dict("branch_flows" => true), "allow_line_replacement" => do_replace_branch, "conv_losses_mp" => false)
             else
                 s = Dict("output" => Dict("branch_flows" => true))
             end

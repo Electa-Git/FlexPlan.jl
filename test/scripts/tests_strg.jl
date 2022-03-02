@@ -48,7 +48,7 @@ extradata = create_profile_data(dim, data, loadprofile) # create a dictionary to
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
 
 # Add PowerModels(ACDC) settings
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
+s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false)
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
@@ -68,7 +68,7 @@ extradata = create_profile_data(dim, data, loadprofile) # create a dictionary to
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
 
 # Add PowerModels(ACDC) settings
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
+s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false)
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments
@@ -88,7 +88,7 @@ extradata = create_profile_data(dim, data, loadprofile) # create a dictionary to
 mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type", "name", "source_version", "per_unit"]))
 
 # Add PowerModels(ACDC) settings
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
+s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false)
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments

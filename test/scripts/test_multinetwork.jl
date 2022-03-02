@@ -67,7 +67,7 @@ end
 
 ## Solve problem
 
-result = _FP.stoch_flex_tnep(data, model_type, optimizer; multinetwork=_PM._IM.ismultinetwork(data), setting=Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false))
+result = _FP.stoch_flex_tnep(data, model_type, optimizer; multinetwork=_PM._IM.ismultinetwork(data), setting=Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false))
 @assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
 
 println("Test completed")

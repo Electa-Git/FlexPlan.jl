@@ -20,7 +20,7 @@ include("../test/io/create_profile.jl")
 number_of_hours = 24
 
 # PowerModels, PowerModelsACDC and FlexPlan settings
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
+s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false)
 
 
 ## Transmission network instance (all data preparation except for make_multinetwork() call)

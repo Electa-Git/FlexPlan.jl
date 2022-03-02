@@ -59,7 +59,7 @@ plot_filename = "./test/data/output_files/candidates_italy.kml"
 _FP.plot_geo_data(mn_data, plot_filename, plot_settings)
 
 # Add PowerModels(ACDC) settings
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "allow_line_replacement" => true, "process_data_internally" => false)
+s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "allow_line_replacement" => true)
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application
 # In this case: multi-period optimisation of demand flexibility, AC & DC lines and storage investments

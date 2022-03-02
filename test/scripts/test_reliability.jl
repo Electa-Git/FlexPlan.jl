@@ -94,7 +94,7 @@ mn_data = _PMACDC.multinetwork_data(data, extradata, Set{String}(["source_type",
 
 
 #  Add PowerModels(ACDC) settings
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false)
+s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false)
 
 
 # Solve the model for base case:
