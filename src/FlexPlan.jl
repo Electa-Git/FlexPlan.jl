@@ -28,7 +28,6 @@ const _LOGGER = Memento.getlogger(@__MODULE__)
 __init__() = Memento.register(_LOGGER)
 
 
-include("prob/dist.jl")
 include("prob/storage_tnep.jl")
 include("prob/flexible_tnep.jl")
 include("prob/stochastic_flexible_tnep.jl")
