@@ -69,8 +69,8 @@ function create_profile_data_italy!(data)
     monte_carlo = get(_FP.dim_meta(data, :scenario), "mc", false)
 
     for (s, scnr) in _FP.dim_prop(data, :scenario)
-        pv_sicily, pv_south_central, wind_sicily = read_res_data(s-1; mc = monte_carlo)
-        demand_center_north_pu, demand_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu = read_demand_data(s-1; mc = monte_carlo)
+        pv_sicily, pv_south_central, wind_sicily = read_res_data(s; mc = monte_carlo)
+        demand_center_north_pu, demand_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu = read_demand_data(s; mc = monte_carlo)
 
         start_idx = (s-1) * hours
         if monte_carlo == false
@@ -314,12 +314,16 @@ end
 function read_demand_data(year; mc = false, country = "it")
     if country == "it"
         if mc == false
+            if year > 2
+                error("Only 2 scenarios are supported")
+            end
+            y = year + 2017
             # Read demand CSV files
-            demand_north = CSV.read(normpath(@__DIR__,"../../test/data/demand_north_$year.csv"),DataFrames.DataFrame)[:,3]
-            demand_center_north = CSV.read(normpath(@__DIR__,"../../test/data/demand_center_north_$year.csv"),DataFrames.DataFrame)[:,3]
-            demand_center_south = CSV.read(normpath(@__DIR__,"../../test/data/demand_center_south_$year.csv"),DataFrames.DataFrame)[:,3]
-            demand_south = CSV.read(normpath(@__DIR__,"../../test/data/demand_south_$year.csv"),DataFrames.DataFrame)[:,3]
-            demand_sardinia = CSV.read(normpath(@__DIR__,"../../test/data/demand_sardinia_$year.csv"),DataFrames.DataFrame)[:,3]
+            demand_north = CSV.read(normpath(@__DIR__,"../../test/data/demand_north_$y.csv"),DataFrames.DataFrame)[:,3]
+            demand_center_north = CSV.read(normpath(@__DIR__,"../../test/data/demand_center_north_$y.csv"),DataFrames.DataFrame)[:,3]
+            demand_center_south = CSV.read(normpath(@__DIR__,"../../test/data/demand_center_south_$y.csv"),DataFrames.DataFrame)[:,3]
+            demand_south = CSV.read(normpath(@__DIR__,"../../test/data/demand_south_$y.csv"),DataFrames.DataFrame)[:,3]
+            demand_sardinia = CSV.read(normpath(@__DIR__,"../../test/data/demand_sardinia_$y.csv"),DataFrames.DataFrame)[:,3]
 
             # Convert demand_profile to pu of maxximum
             demand_north_pu = demand_north ./ maximum(demand_north)
@@ -328,17 +332,23 @@ function read_demand_data(year; mc = false, country = "it")
             demand_center_south_pu = demand_center_south ./ maximum(demand_center_south)
             demand_sardinia_pu = demand_sardinia ./ maximum(demand_sardinia)
         else
-            demand_north_pu = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_demand_$year.csv"),DataFrames.DataFrame)[:,3]
-            demand_center_north_pu = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_demand_$year.csv"),DataFrames.DataFrame)[:,2]
-            demand_center_south_pu = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_demand_$year.csv"),DataFrames.DataFrame)[:,4]
-            demand_south_pu = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_demand_$year.csv"),DataFrames.DataFrame)[:,5]
-            demand_sardinia_pu = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_demand_$year.csv"),DataFrames.DataFrame)[:,6]
+            if year > 35
+                error("Only 35 scenarios are supported")
+            end
+            y = year - 1
+            demand_north_pu = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_demand_$y.csv"),DataFrames.DataFrame)[:,3]
+            demand_center_north_pu = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_demand_$y.csv"),DataFrames.DataFrame)[:,2]
+            demand_center_south_pu = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_demand_$y.csv"),DataFrames.DataFrame)[:,4]
+            demand_south_pu = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_demand_$y.csv"),DataFrames.DataFrame)[:,5]
+            demand_sardinia_pu = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_demand_$y.csv"),DataFrames.DataFrame)[:,6]
         end
 
         return demand_north_pu, demand_center_north_pu, demand_center_south_pu, demand_south_pu, demand_sardinia_pu
     elseif country == "de"
-        years = [2017, 2018, 2019]
-        y = years[year]
+        if year > 3
+            error("Only 3 scenarios are supported")
+        end
+        y = year + 2016
         demand = CSV.read(normpath(@__DIR__,"../../test/data/multiple_years/case67/demand$y.csv"),DataFrames.DataFrame)[:,3]
         demand_pu = demand ./ maximum(demand)
         return demand_pu[1:4:end]
@@ -348,32 +358,42 @@ end
 function read_res_data(year; mc = false, country = "it")
     if country == "it"
         if mc == false
+            if year > 2
+                error("Only 2 scenarios are supported")
+            end
+            y = year + 2017
             pv_sicily = Dict()
-            open(normpath(@__DIR__,"../../test/data/pv_sicily_$year.json")) do f
+            open(normpath(@__DIR__,"../../test/data/pv_sicily_$y.json")) do f
                 dicttxt = read(f, String)  # file information to string
                 pv_sicily = JSON.parse(dicttxt)  # parse and transform data
             end
 
             pv_south_central = Dict()
-            open(normpath(@__DIR__,"../../test/data/pv_south_central_$year.json")) do f
+            open(normpath(@__DIR__,"../../test/data/pv_south_central_$y.json")) do f
                 dicttxt = read(f, String)  # file information to string
                 pv_south_central = JSON.parse(dicttxt)  # parse and transform data
             end
 
             wind_sicily = Dict()
-            open(normpath(@__DIR__,"../../test/data/wind_sicily_$year.json")) do f
+            open(normpath(@__DIR__,"../../test/data/wind_sicily_$y.json")) do f
                 dicttxt = read(f, String)  # file information to string
                 wind_sicily = JSON.parse(dicttxt)  # parse and transform data
             end
         else
-            pv_sicily = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_PV_$year.csv"),DataFrames.DataFrame)[:,7]
-            pv_south_central = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_PV_$year.csv"),DataFrames.DataFrame)[:,4]
-            wind_sicily = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_wind_$year.csv"),DataFrames.DataFrame)[:,7]
+            if year > 35
+                error("Only 35 scenarios are supported")
+            end
+            y = year - 1
+            pv_sicily = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_PV_$y.csv"),DataFrames.DataFrame)[:,7]
+            pv_south_central = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_PV_$y.csv"),DataFrames.DataFrame)[:,4]
+            wind_sicily = CSV.read(normpath(@__DIR__,"../../test/data/MC_scenarios/35_yearly_clusters/case_6_wind_$y.csv"),DataFrames.DataFrame)[:,7]
         end
         return pv_sicily, pv_south_central, wind_sicily
     elseif country == "de"
-        years = [2017, 2018, 2019]
-        y = years[year]
+        if year > 3
+            error("Only 3 scenarios are supported")
+        end
+        y = year + 2016
         wind_profile = Dict{String, Any}()
         open(normpath(@__DIR__,"../../test/data/multiple_years/case67/wind_bus2_$y.json")) do f
             dicttxt = read(f, String)  # file information to string
