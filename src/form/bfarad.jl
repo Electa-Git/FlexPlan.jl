@@ -86,7 +86,7 @@ function _PM.variable_ne_branch_power_real(pm::BFARadPowerModel; nw::Int=_PM.nw_
     report && _IM.sol_component_value_edge(pm, _PM.pm_it_sym, nw, :ne_branch, :pf, :pt, _PM.ref(pm, nw, :ne_arcs_from), _PM.ref(pm, nw, :ne_arcs_to), p_ne_expr)
 end
 
-# Adapted from variable_branch_power_real(pm::BFARadPowerModels; nw::Int, bounded::Bool, report::Bool)
+# Adapted from variable_branch_power_real(pm::BFARadPowerModel; nw::Int, bounded::Bool, report::Bool)
 ""
 function _PM.variable_branch_power_imaginary(pm::BFARadPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     q = _PM.var(pm, nw)[:q] = JuMP.@variable(pm.model,
@@ -123,7 +123,7 @@ function _PM.variable_branch_power_imaginary(pm::BFARadPowerModel; nw::Int=_PM.n
     report && _IM.sol_component_value_edge(pm, _PM.pm_it_sym, nw, :branch, :qf, :qt, _PM.ref(pm, nw, :arcs_from), _PM.ref(pm, nw, :arcs_to), q_expr)
 end
 
-# Adapted from variable_ne_branch_power_real(pm::BFARadPowerModels; nw::Int, bounded::Bool, report::Bool)
+# Adapted from variable_ne_branch_power_real(pm::BFARadPowerModel; nw::Int, bounded::Bool, report::Bool)
 ""
 function _PM.variable_ne_branch_power_imaginary(pm::BFARadPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     q_ne = _PM.var(pm, nw)[:q_ne] = JuMP.@variable(pm.model,
