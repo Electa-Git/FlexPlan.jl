@@ -12,7 +12,7 @@ optimizer = _FP.optimizer_with_attributes(Ipopt.Optimizer, "print_level"=>0, "sb
 ## Load and preprocess data
 
 data_file = "test/data/CIGRE_MV_benchmark_network_with_costs.m"
-data = _PM.parse_file(data_file)
+data = _FP.parse_file(data_file; flex_load=false)
 
 
 ## Solve problem

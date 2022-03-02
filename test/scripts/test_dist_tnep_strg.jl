@@ -22,22 +22,16 @@ scale_gen       =  4.9 # Scaling factor of generators (increase to get an infeas
 
 ## Load and preprocess data
 
-# Create PowerModels data dictionary (AC networks and storage)
-data = _PM.parse_file(data_file)
-
-# Handle missing fields of the MATPOWER case file
-data["ne_branch"] = Dict{String,Any}()
+# Create FlexPlan single-network data dictionary
+data = _FP.parse_file(data_file; flex_load=false)
 
 # Generate hourly time profiles for loads and generators, based on CIGRE benchmark distribution network.
-extradata = create_profile_data_cigre(data, number_of_hours; scale_load = scale_load, scale_gen = scale_gen)
-
-# Add storage data to the data dictionary
-_FP.add_storage_data!(data)
+time_series = create_profile_data_cigre(data, number_of_hours; scale_load, scale_gen)
 
 # Create multi-period data dictionary where time series data is included at the right place
 _FP.add_dimension!(data, :hour, number_of_hours)
 _FP.add_dimension!(data, :year, 1)
-mn_data = _FP.make_multinetwork(data, extradata)
+mn_data = _FP.make_multinetwork(data, time_series)
 
 
 ## Solve problem

@@ -12,7 +12,7 @@ optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 ## Load and preprocess data
 
 data_file = "test/data/CIGRE_MV_benchmark_network_tnep.m"
-data = _PM.parse_file(data_file)
+data = _FP.parse_file(data_file)
 
 
 ## Solve problem
