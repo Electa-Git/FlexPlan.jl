@@ -210,13 +210,13 @@ function create_profile_data_norway(data, number_of_hours)
 end
 
 "Create load and generation profiles for CIGRE distribution network."
-function create_profile_data_cigre(data, number_of_hours; start_period = 1, scale_load = 1.0, scale_gen = 1.0, file_profiles_pu = "./test/data/CIGRE_profiles_per_unit.csv")
+function create_profile_data_cigre(data, number_of_hours; start_period = 1, scale_load = 1.0, scale_gen = 1.0, file_profiles_pu = normpath(@__DIR__,"..","data","CIGRE_profiles_per_unit.csv"))
 
     ## Fixed parameters
 
-    file_load_ind    = "./test/data/CIGRE_industrial_loads.csv"
-    file_load_res    = "./test/data/CIGRE_residential_loads.csv"
-    scale_unit       = 0.001 # scale factor from CSV power data to FlexPlan power base: here converts from kVA to MVA
+    file_load_ind = normpath(@__DIR__,"..","data","CIGRE_industrial_loads.csv")
+    file_load_res = normpath(@__DIR__,"..","data","CIGRE_residential_loads.csv")
+    scale_unit    = 0.001 # scale factor from CSV power data to FlexPlan power base: here converts from kVA to MVA
 
     ## Import data
 
