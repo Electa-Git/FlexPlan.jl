@@ -33,7 +33,7 @@ juniper = _FP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "
 
 ################# INPUT PARAMETERS ######################
 number_of_hours = 60 # Number of time points
-file = "./test/data/case6_reliability.m"  #Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines and candidate storage
+file = "./test/data/case6_reliability.m"  #Input case, in Matpower m-file format: here 6-bus case with candidate AC, DC lines and candidate storage
 
 scenario = Dict{String, Any}("hours" => number_of_hours, "contingency" => Dict{String, Any}())
 scenario["contingency"]["0"] = Dict{String, Any}()

@@ -21,7 +21,7 @@ cbc = _FP.optimizer_with_attributes(Cbc.Optimizer, "tol"=>1e-4, "print_level"=>0
 
 # Input parameters:
 number_of_hours = 60 # Number of time points
-file = "./test/data/case6_reliability.m";  #Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines and candidate storage
+file = "./test/data/case6_reliability.m";  #Input case, in Matpower m-file format: here 6-bus case with candidate AC, DC lines and candidate storage
 
 
 # Define contingency scenarios for base case (no contingecies):

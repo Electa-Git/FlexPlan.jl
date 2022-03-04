@@ -10,7 +10,7 @@ Load an extended version of CIGRE MV benchmark network (EU configuration).
 Source: <https://e-cigre.org/publication/ELT_273_8-benchmark-systems-for-network-integration-of-renewable-and-distributed-energy-resources>, chapter 6.2
 
 Extensions:
-- storage at bus 14 (in addition to storage at buses 5 and 10, altready present);
+- storage at bus 14 (in addition to storage at buses 5 and 10, already present);
 - candidate storage at buses 5, 10, and 14;
 - time series (8760 hours) for loads and RES generators.
 

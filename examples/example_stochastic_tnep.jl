@@ -34,10 +34,10 @@ optimizer = cbc
 
 number_of_hours = 24 # Number of time points
 planning_horizon = 10 # Years to scale generation costs
-file = "./test/data/multiple_years/case6/t_case6_2030.m" # Input case, in matpower m-file format: Here 6bus case with candidate AC, DC lines and candidate storage
+file = "./test/data/multiple_years/case6/t_case6_2030.m" # Input case, in Matpower m-file format: here 6-bus case with candidate AC, DC lines and candidate storage
 scenario_properties = Dict(
-    1 => Dict{String,Any}("probability"=>0.5, "start"=>1514764800000), # 1514764800000 is 2018-01-01T00:00, needed by `create_profile_data_italy!` when `"mc"=false`
-    2 => Dict{String,Any}("probability"=>0.5, "start"=>1546300800000), # 1546300800000 is 2019-01-01T00:00, needed by `create_profile_data_italy!` when `"mc"=false`
+    1 => Dict{String,Any}("probability"=>0.5, "start"=>1514764800000), # 1514764800000 is 2018-01-01T00:00, needed by `create_profile_data_italy!` when `mc=false`
+    2 => Dict{String,Any}("probability"=>0.5, "start"=>1546300800000), # 1546300800000 is 2019-01-01T00:00, needed by `create_profile_data_italy!` when `mc=false`
 )
 scenario_metadata = Dict{String,Any}("mc"=>false) # Needed by `create_profile_data_italy!`
 
