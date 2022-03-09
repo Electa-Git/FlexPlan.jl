@@ -119,11 +119,6 @@
         @test ids == [10,22]
     end
 
-    @testset "require_dim" begin
-        @test_throws ErrorException _FP.require_dim(Dict{String,Any}()) # Missing `dim` dict
-        @test_throws ErrorException _FP.require_dim(dt, :newdim) # Missing `newdim` dimension
-    end
-
     @testset "nw_ids" begin
         @test _FP.nw_ids(dim)                         == collect(1:24)
         @test _FP.nw_ids(dim, hour=4)                 == [4,8,12,16,20,24]
@@ -277,6 +272,24 @@
         @test _FP.is_last_id(dim_shift, 44, :scenario) == false
         @test _FP.is_last_id(dt, 20, :hour) == _FP.is_last_id(dim, 20, :hour)
         @test _FP.is_last_id(pm, 20, :hour) == _FP.is_last_id(dim, 20, :hour)
+    end
+
+    @testset "has_dim" begin
+        @test _FP.has_dim(dim, :hour) == true
+        @test _FP.has_dim(dim, :newdim) == false
+        @test _FP.has_dim(dt, :hour) == _FP.has_dim(dim, :hour)
+        @test _FP.has_dim(pm, :hour) == _FP.has_dim(dim, :hour)
+    end
+
+    @testset "require_dim" begin
+        @test_throws ErrorException _FP.require_dim(Dict{String,Any}()) # Missing `dim` dict
+        @test_throws ErrorException _FP.require_dim(dt, :newdim) # Missing `newdim` dimension
+    end
+
+    @testset "dim_names" begin
+        @test _FP.dim_names(dim) == (:hour, :scenario, :sub_nw)
+        @test _FP.dim_names(dt) == _FP.dim_names(dim)
+        @test _FP.dim_names(pm) == _FP.dim_names(dim)
     end
 
     @testset "dim_prop" begin

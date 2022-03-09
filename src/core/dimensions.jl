@@ -183,22 +183,6 @@ function slice_dim(dim::Dict{Symbol,Any}; kwargs...)
     return slice, ids
 end
 
-"""
-    require_dim(data, dimensions...)
-
-Verify that the specified `dimensions` are present in `data`; if not, raise an error.
-"""
-function require_dim(data::Dict{String,Any}, dimensions::Symbol...)
-    if !haskey(data, "dim")
-        Memento.error(_LOGGER, "Missing `dim` dict in `data`. Use `add_dimension!` to fix.")
-    end
-    for d in dimensions
-        if !haskey(dim(data)[:prop], d)
-            Memento.error(_LOGGER, "Missing dimension \"$d\" in `data`. Use `add_dimension!` to fix.")
-        end
-    end
-end
-
 
 ## Access (subsets of) nw ids
 
@@ -493,6 +477,46 @@ Return `dim` data structure.
 function dim end
 dim(data::Dict{String,Any}) = data["dim"]
 dim(pm::_PM.AbstractPowerModel) = pm.ref[:it][_PM.pm_it_sym][:dim]
+
+"""
+    has_dim(dim::Dict{Symbol,Any}, dimension)
+    has_dim(data::Dict{String,Any}, dimension)
+    has_dim(pm::PowerModels.AbstractPowerModel, dimension)
+
+Whether `dimension` is defined.
+"""
+function has_dim end
+has_dim(dim::Dict{Symbol,Any}, dimension::Symbol) = haskey(dim[:prop], dimension)
+has_dim(data::Dict{String,Any}, args...) = has_dim(dim(data), args...)
+has_dim(pm::_PM.AbstractPowerModel, args...) = has_dim(dim(pm), args...)
+
+"""
+    require_dim(data, dimensions...)
+
+Verify that the specified `dimensions` are present in `data`; if not, raise an error.
+"""
+function require_dim(data::Dict{String,Any}, dimensions::Symbol...)
+    if !haskey(data, "dim")
+        Memento.error(_LOGGER, "Missing `dim` dict in `data`. Use `add_dimension!` to fix.")
+    end
+    for d in dimensions
+        if !haskey(dim(data)[:prop], d)
+            Memento.error(_LOGGER, "Missing dimension \"$d\" in `data`. Use `add_dimension!` to fix.")
+        end
+    end
+end
+
+"""
+    dim_names(dim::Dict{Symbol,Any})
+    dim_names(data::Dict{String,Any})
+    dim_names(pm::PowerModels.AbstractPowerModel)
+
+Names of the defined dimensions, as `Tuple` of `Symbol`s.
+"""
+function dim_names end
+dim_names(dim::Dict{Symbol,Any}) = keys(dim[:pos])
+dim_names(data::Dict{String,Any}) = dim_names(dim(data))
+dim_names(pm::_PM.AbstractPowerModel) = dim_names(dim(pm))
 
 """
     dim_prop(dim::Dict{Symbol,Any}[, dimension[, id[, key]]])
