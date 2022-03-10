@@ -216,10 +216,14 @@ end
 """
     sol_td_coupling!(pm, solution)
 
-Add T&D coupling data to solution.
+Add T&D coupling data to `solution`` and remove the fake generator from `solution`.
 
-Report in `solution` the active and reactive power that distribution network `pm` exchanges with the
-transmission network (positive if from transmission to distribution) in units of `baseMVA` of `pm`.
+Report in `solution["td_coupling"]["p"]` and `solution["td_coupling"]["q"]` the active and
+reactive power that distribution network `pm` exchanges with the transmission network
+(positive if from transmission to distribution) in units of `baseMVA` of `pm`.
+
+Delete from `solution` the generator representing the transmission network, so that only the
+actual generators remain in `solution["gen"]`.
 """
 function sol_td_coupling!(pm::_PM.AbstractBFModel, solution::Dict{String,Any})
     solution = _PM.get_pm_data(solution)
@@ -234,10 +238,11 @@ function sol_td_coupling!(pm::_PM.AbstractBFModel, solution::Dict{String,Any})
         if !(haskey(dim_prop(pm), :sub_nw) && haskey(dim_prop(pm, n, :sub_nw), "d_gen"))
                 Memento.error(_LOGGER, "T&D coupling data is missing from the model of nw $nw.")
         end
-        d_gen = dim_prop(pm, n, :sub_nw, "d_gen")
+        d_gen = string(dim_prop(pm, n, :sub_nw, "d_gen"))
         nw_sol["td_coupling"] = Dict{String,Any}()
-        nw_sol["td_coupling"]["p"] = nw_sol["gen"]["$d_gen"]["pg"]
-        nw_sol["td_coupling"]["q"] = nw_sol["gen"]["$d_gen"]["qg"]
+        nw_sol["td_coupling"]["p"] = nw_sol["gen"][d_gen]["pg"]
+        nw_sol["td_coupling"]["q"] = nw_sol["gen"][d_gen]["qg"]
+        delete!(nw_sol["gen"], d_gen)
     end
 end
 
