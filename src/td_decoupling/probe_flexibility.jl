@@ -4,63 +4,31 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; optimizer, s
         Memento.error(_LOGGER, "A single distribution network is required ($(dim_length(mn_data, :sub_nw)) found)")
     end
 
-    r_base = run_td_decoupling_model(mn_data, _FP.post_simple_stoch_flex_tnep, optimizer; setting)
+    sol_base = run_td_decoupling_model(mn_data, _FP.post_simple_stoch_flex_tnep, optimizer; setting)
 
-    add_ne_branch_indicator!(mn_data, r_base)
-    add_ne_storage_indicator!(mn_data, r_base)
-    add_flex_load_indicator!(mn_data, r_base)
+    add_ne_branch_indicator!(mn_data, sol_base)
+    add_ne_storage_indicator!(mn_data, sol_base)
+    add_flex_load_indicator!(mn_data, sol_base)
 
     mn_data_up = deepcopy(mn_data)
-    r_up = run_td_decoupling_model(mn_data_up, build_max_import_with_current_investments, optimizer; setting)
-    apply_td_coupling_power_active!(mn_data_up, r_up)
-    apply_gen_power_active_ub!(mn_data_up, r_base)
-    add_storage_power_active_lb!(mn_data_up, r_base)
-    add_ne_storage_power_active_lb!(mn_data_up, r_base)
-    add_load_power_active_lb!(mn_data_up, r_base)
-    r_up = run_td_decoupling_model(mn_data_up, build_min_cost_at_max_import, optimizer; setting)
+    apply_gen_power_active_ub!(mn_data_up, sol_base)
+    add_storage_power_active_lb!(mn_data_up, sol_base)
+    add_ne_storage_power_active_lb!(mn_data_up, sol_base)
+    add_load_power_active_lb!(mn_data_up, sol_base)
+    sol_up = run_td_decoupling_model(mn_data_up, build_max_import_with_current_investments_monotonic, optimizer; setting)
+    apply_td_coupling_power_active!(mn_data_up, sol_up)
+    sol_up = run_td_decoupling_model(mn_data_up, build_min_cost_at_max_import_monotonic, optimizer; setting)
 
     mn_data_down = deepcopy(mn_data)
-    r_down = run_td_decoupling_model(mn_data_down, build_max_export_with_current_investments, optimizer; setting)
-    apply_td_coupling_power_active!(mn_data_down, r_down)
-    apply_gen_power_active_lb!(mn_data_down, r_base)
-    add_storage_power_active_ub!(mn_data_down, r_base)
-    add_ne_storage_power_active_ub!(mn_data_down, r_base)
-    add_load_power_active_ub!(mn_data_down, r_base)
-    r_down = run_td_decoupling_model(mn_data_down, build_min_cost_at_max_export, optimizer; setting)
+    apply_gen_power_active_lb!(mn_data_down, sol_base)
+    add_storage_power_active_ub!(mn_data_down, sol_base)
+    add_ne_storage_power_active_ub!(mn_data_down, sol_base)
+    add_load_power_active_ub!(mn_data_down, sol_base)
+    sol_down = run_td_decoupling_model(mn_data_down, build_max_export_with_current_investments_monotonic, optimizer; setting)
+    apply_td_coupling_power_active!(mn_data_down, sol_down)
+    sol_down = run_td_decoupling_model(mn_data_down, build_min_cost_at_max_export_monotonic, optimizer; setting)
 
-    # Store sorted ids of components (nw, branch, etc.).
-    ids = Dict{String,Any}("nw" => string.(_FP.nw_ids(mn_data)))
-    first_nw = r_base["solution"]["nw"][ids["nw"][1]] # Cannot use mn_data here because it may contain inactive components
-    for comp in ("branch", "ne_branch", "storage", "ne_storage", "load")
-        if haskey(first_nw, comp)
-            ids[comp] = string.(sort(parse.(Int, keys(first_nw[comp]))))
-        end
-    end
-
-    # Check that investment decisions are the same in each result (only first period is used);
-    # create a component key only if component is present in results.
-    investment = Dict{String,Any}()
-    function _isbuilt(result, component, built_keyword)
-        result_comp = result["solution"]["nw"][ids["nw"][1]][component]
-        Bool.(round.(result_comp[k][built_keyword] for k in ids[component]))
-    end
-    for (comp, built_keyword) in ("ne_branch"=>"built", "ne_storage"=>"isbuilt", "load"=>"flex")
-        if !isempty(ids[comp])
-            built = _isbuilt(r_base, comp, built_keyword)
-            for res in (r_up, r_down)
-                if built ≠ _isbuilt(res, comp, built_keyword)
-                    Memento.error(_LOGGER, "Results of flex candidate \"$name\" have different $comp investment decisions.")
-                end
-            end
-            investment[comp] = Dict{String,Any}(ids[comp] .=> built)
-        end
-    end
-
-    return Dict{String,Any}(
-        "result"     => Dict{String,Any}("up"=>r_up, "base"=>r_base, "down"=>r_down),
-        "ids"        => ids,
-        "investment" => investment,
-    )
+    return sol_up, sol_base, sol_down
 end
 
 "Run a model with usual parameters and model type; error if not solved to optimality."
@@ -77,7 +45,7 @@ function run_td_decoupling_model(data::Dict{String,Any}, build_function::Functio
     if result["termination_status"] ∉ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED)
         Memento.error(_LOGGER, "Unable to solve $(String(nameof(build_function))) ($(result["optimizer"]) termination status: $(result["termination_status"]))")
     end
-    return result
+    return result["solution"]
 end
 
 
@@ -98,11 +66,11 @@ function _copy_comp_key!(target_data::Dict{String,Any}, comp::String, target_key
     end
 end
 
-function add_ne_branch_indicator!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+function add_ne_branch_indicator!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
     # Cannot use `_copy_comp_key!` because `ne_branch`es have a `br_status` parameter:
     # those whose `br_status` is 0 are not reported in solution dict.
     for (n, data_nw) in mn_data["nw"]
-        sol_nw = result["solution"]["nw"][n]
+        sol_nw = solution["nw"][n]
         for (b, data_branch) in data_nw["ne_branch"]
             if data_branch["br_status"] == 1
                 data_branch["sol_built"] = sol_nw["ne_branch"][b]["built"]
@@ -111,25 +79,25 @@ function add_ne_branch_indicator!(mn_data::Dict{String,Any}, result::Dict{String
     end
 end
 
-function add_ne_storage_indicator!(mn_data::Dict{String,Any}, result::Dict{String,Any})
-    _copy_comp_key!(mn_data, "ne_storage", "sol_built", result["solution"], "isbuilt")
+function add_ne_storage_indicator!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
+    _copy_comp_key!(mn_data, "ne_storage", "sol_built", solution, "isbuilt")
 end
 
-function add_flex_load_indicator!(mn_data::Dict{String,Any}, result::Dict{String,Any})
-    _copy_comp_key!(mn_data, "load", "sol_built", result["solution"], "flex")
+function add_flex_load_indicator!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
+    _copy_comp_key!(mn_data, "load", "sol_built", solution, "flex")
 end
 
-function add_load_power_active_ub!(mn_data::Dict{String,Any}, result::Dict{String,Any})
-    _copy_comp_key!(mn_data, "load", "pflex_ub", result["solution"], "pflex")
+function add_load_power_active_ub!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
+    _copy_comp_key!(mn_data, "load", "pflex_ub", solution, "pflex")
 end
 
-function add_load_power_active_lb!(mn_data::Dict{String,Any}, result::Dict{String,Any})
-    _copy_comp_key!(mn_data, "load", "pflex_lb", result["solution"], "pflex")
+function add_load_power_active_lb!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
+    _copy_comp_key!(mn_data, "load", "pflex_lb", solution, "pflex")
 end
 
-function apply_td_coupling_power_active!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+function apply_td_coupling_power_active!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
     for (n, data_nw) in mn_data["nw"]
-        p = result["solution"]["nw"][n]["td_coupling"]["p"]
+        p = solution["nw"][n]["td_coupling"]["p"]
         d_gen_id = _FP.dim_prop(mn_data, parse(Int,n), :sub_nw, "d_gen")
         d_gen = data_nw["gen"]["$d_gen_id"] = deepcopy(data_nw["gen"]["$d_gen_id"]) # Gen data is shared among nws originally.
         d_gen["pmax"] = p
@@ -137,11 +105,11 @@ function apply_td_coupling_power_active!(mn_data::Dict{String,Any}, result::Dict
     end
 end
 
-function apply_gen_power_active_ub!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+function apply_gen_power_active_ub!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
     # Cannot use `_copy_comp_key!` because `d_gen` must not be changed.
     for (n, data_nw) in mn_data["nw"]
         d_gen_id = string(_FP.dim_prop(mn_data, parse(Int,n), :sub_nw, "d_gen"))
-        sol_nw = result["solution"]["nw"][n]
+        sol_nw = solution["nw"][n]
         for (g, data_gen) in data_nw["gen"]
             if g ≠ d_gen_id
                 data_gen["pmax"] = sol_nw["gen"][g]["pg"]
@@ -150,11 +118,11 @@ function apply_gen_power_active_ub!(mn_data::Dict{String,Any}, result::Dict{Stri
     end
 end
 
-function apply_gen_power_active_lb!(mn_data::Dict{String,Any}, result::Dict{String,Any})
+function apply_gen_power_active_lb!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
     # Cannot use `_copy_comp_key!` because `d_gen` must not be changed.
     for (n, data_nw) in mn_data["nw"]
         d_gen_id = string(_FP.dim_prop(mn_data, parse(Int,n), :sub_nw, "d_gen"))
-        sol_nw = result["solution"]["nw"][n]
+        sol_nw = solution["nw"][n]
         for (g, data_gen) in data_nw["gen"]
             if g ≠ d_gen_id
                 data_gen["pmin"] = sol_nw["gen"][g]["pg"]
@@ -163,25 +131,35 @@ function apply_gen_power_active_lb!(mn_data::Dict{String,Any}, result::Dict{Stri
     end
 end
 
-function add_storage_power_active_ub!(mn_data::Dict{String,Any}, result::Dict{String,Any})
-    _copy_comp_key!(mn_data, "storage", "ps_ub", result["solution"], "ps")
+function add_storage_power_active_ub!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
+    _copy_comp_key!(mn_data, "storage", "ps_ub", solution, "ps")
 end
 
-function add_storage_power_active_lb!(mn_data::Dict{String,Any}, result::Dict{String,Any})
-    _copy_comp_key!(mn_data, "storage", "ps_lb", result["solution"], "ps")
+function add_storage_power_active_lb!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
+    _copy_comp_key!(mn_data, "storage", "ps_lb", solution, "ps")
 end
 
-function add_ne_storage_power_active_ub!(mn_data::Dict{String,Any}, result::Dict{String,Any})
-    _copy_comp_key!(mn_data, "ne_storage", "ps_ne_ub", result["solution"], "ps_ne")
+function add_ne_storage_power_active_ub!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
+    _copy_comp_key!(mn_data, "ne_storage", "ps_ne_ub", solution, "ps_ne")
 end
 
-function add_ne_storage_power_active_lb!(mn_data::Dict{String,Any}, result::Dict{String,Any})
-    _copy_comp_key!(mn_data, "ne_storage", "ps_ne_lb", result["solution"], "ps_ne")
+function add_ne_storage_power_active_lb!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
+    _copy_comp_key!(mn_data, "ne_storage", "ps_ne_lb", solution, "ps_ne")
 end
 
 
 
 ## Problems
+
+function build_max_import(pm::_PM.AbstractBFModel)
+    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
+    objective_max_import(pm)
+end
+
+function build_max_export(pm::_PM.AbstractBFModel)
+    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
+    objective_max_export(pm)
+end
 
 function build_max_import_with_current_investments(pm::_PM.AbstractBFModel)
     _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
@@ -203,7 +181,35 @@ function build_max_export_with_current_investments(pm::_PM.AbstractBFModel)
     objective_max_export(pm)
 end
 
-function build_min_cost_at_max_import(pm::_PM.AbstractBFModel)
+function build_max_import_with_current_investments_monotonic(pm::_PM.AbstractBFModel)
+    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
+    for n in _PM.nw_ids(pm)
+        constraint_ne_branch_indicator_fix(pm, n)
+        constraint_ne_storage_indicator_fix(pm, n)
+        constraint_flex_load_indicator_fix(pm, n)
+        # gen_power_active_ub already applied in data
+        constraint_storage_power_active_lb(pm, n)
+        constraint_ne_storage_power_active_lb(pm, n)
+        constraint_load_power_active_lb(pm, n)
+    end
+    objective_max_import(pm)
+end
+
+function build_max_export_with_current_investments_monotonic(pm::_PM.AbstractBFModel)
+    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
+    for n in _PM.nw_ids(pm)
+        constraint_ne_branch_indicator_fix(pm, n)
+        constraint_ne_storage_indicator_fix(pm, n)
+        constraint_flex_load_indicator_fix(pm, n)
+        # gen_power_active_lb already applied in data
+        constraint_storage_power_active_ub(pm, n)
+        constraint_ne_storage_power_active_ub(pm, n)
+        constraint_load_power_active_ub(pm, n)
+    end
+    objective_max_export(pm)
+end
+
+function build_min_cost_at_max_import_monotonic(pm::_PM.AbstractBFModel)
     _FP.post_simple_stoch_flex_tnep(pm; objective = true, intertemporal_constraints = false)
     for n in _PM.nw_ids(pm)
         constraint_ne_branch_indicator_fix(pm, n)
@@ -217,7 +223,7 @@ function build_min_cost_at_max_import(pm::_PM.AbstractBFModel)
     end
 end
 
-function build_min_cost_at_max_export(pm::_PM.AbstractBFModel)
+function build_min_cost_at_max_export_monotonic(pm::_PM.AbstractBFModel)
     _FP.post_simple_stoch_flex_tnep(pm; objective = true, intertemporal_constraints = false)
     for n in _PM.nw_ids(pm)
         constraint_ne_branch_indicator_fix(pm, n)
@@ -321,12 +327,14 @@ end
 ## Objectives
 
 function objective_max_import(pm::_PM.AbstractPowerModel)
+    # There is no need to distinguish between scenarios because they are independent.
     return JuMP.@objective(pm.model, Max,
         sum( calc_td_coupling_power_active(pm, n) for (n, nw_ref) in _PM.nws(pm) )
     )
 end
 
 function objective_max_export(pm::_PM.AbstractPowerModel)
+    # There is no need to distinguish between scenarios because they are independent.
     return JuMP.@objective(pm.model, Min,
         sum( calc_td_coupling_power_active(pm, n) for (n, nw_ref) in _PM.nws(pm) )
     )
