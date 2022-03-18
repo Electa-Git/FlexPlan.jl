@@ -19,7 +19,7 @@ function plot_flex_load(mn_data, result)
     res_load(i,key) = [result["solution"]["nw"]["$n"]["load"]["$i"][key] for n in 1:number_of_hours]
     data_load(i,key) = [mn_data["nw"]["$n"]["load"]["$i"][key] for n in 1:number_of_hours]
     load_matrix = hcat(res_load.(1,["pshift_up" "pshift_down" "pred" "pcurt" "pflex"])...) # Rows: hours; columns: power categories
-    load_matrix[:,5] -= load_matrix[:,1] # min(pd,pflex) == pflex-pshift_up
+    load_matrix[:,5] -= load_matrix[:,1] # The grey bar in the plot, needed to stack the other bars at the correct height.
     plt = groupedbar(load_matrix;
         yguide = "Power [p.u.]",
         xguide = "Time [h]",
