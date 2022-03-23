@@ -1,4 +1,4 @@
-function mpc = case2_d_flex
+function mpc = case2_d_strg
 mpc.version = '2';
 mpc.baseMVA = 1.0;
 mpc.time_elapsed = 1.0;
