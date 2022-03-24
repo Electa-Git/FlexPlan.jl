@@ -32,7 +32,7 @@ result_file = "test/data/output_files/test_dist_nw_model_result.txt"
 
 ## Load and preprocess data
 
-data_file = "test/data/CIGRE_MV_benchmark_network_tnep.m"
+data_file = "test/data/cigre_mv_eu/cigre_mv_eu_unit_test.m"
 data = _FP.parse_file(data_file)
 _FP.add_dimension!(data, :hour, 1)
 _FP.add_dimension!(data, :year, 1)

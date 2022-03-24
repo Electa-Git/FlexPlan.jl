@@ -39,7 +39,7 @@ function load_cigre_mv_eu(;
         cost_scale_factor::Float64 = 1.0,
     )
 
-    grid_file = normpath(@__DIR__,"..","data","combined_td_model","d_cigre_more_storage.m")
+    grid_file = normpath(@__DIR__,"..","data","cigre_mv_eu","cigre_mv_eu_more_storage.m")
     sn_data = _FP.parse_file(grid_file)
     _FP.add_dimension!(sn_data, :hour, number_of_hours)
     _FP.add_dimension!(sn_data, :scenario, Dict(1 => Dict{String,Any}("probability"=>1)), metadata = Dict{String,Any}("mc"=>true))
@@ -68,7 +68,7 @@ function load_cigre_mv_eu(;
 
     _FP.scale_data!(sn_data; cost_scale_factor)
     _FP.add_td_coupling_data!(sn_data; sub_nw = 1)
-    d_time_series = create_profile_data_cigre(sn_data, number_of_hours; start_period, scale_load, scale_gen, file_profiles_pu=normpath(@__DIR__,"..","data","CIGRE_profiles_per_unit_Italy.csv"))
+    d_time_series = create_profile_data_cigre(sn_data, number_of_hours; start_period, scale_load, scale_gen, file_profiles_pu=normpath(@__DIR__,"..","data","cigre_mv_eu","time_series","CIGRE_profiles_per_unit_Italy.csv"))
     d_mn_data = _FP.make_multinetwork(sn_data, d_time_series)
 
     return d_mn_data

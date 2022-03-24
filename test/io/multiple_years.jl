@@ -14,7 +14,7 @@
 function create_multi_year_network_data(case, number_of_hours, number_of_scenarios, number_of_years; kwargs...)
     my_data = Dict{String, Any}("multinetwork"=>true, "name"=>case, "nw"=>Dict{String,Any}(), "per_unit"=>true)
     if case == "case6"
-        base_file = normpath(@__DIR__,"..","..","test","data","multiple_years","case6","t_case6_")
+        base_file = normpath(@__DIR__,"..","..","test","data","case6","case6_")
         planning_years = [2030, 2040, 2050]
 
         _FP.add_dimension!(my_data, :hour, number_of_hours)
@@ -22,7 +22,7 @@ function create_multi_year_network_data(case, number_of_hours, number_of_scenari
         _FP.add_dimension!(my_data, :scenario, scenario, metadata = Dict{String,Any}("mc"=>get(kwargs, :mc, true)))
         _FP.add_dimension!(my_data, :year, number_of_years; metadata = Dict{String,Any}("scale_factor"=>10))
     elseif case == "case67"
-        base_file = normpath(@__DIR__,"..","..","test","data","multiple_years","case67","case67_tnep_")
+        base_file = normpath(@__DIR__,"..","..","test","data","case67","case67_tnep_")
         planning_years = [2030, 2040, 2050]
 
         _FP.add_dimension!(my_data, :hour, number_of_hours)

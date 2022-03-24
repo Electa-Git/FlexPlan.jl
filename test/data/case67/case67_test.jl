@@ -10,10 +10,10 @@ import Juniper
 import FlexPlan
 const _FP = FlexPlan
 
-file = normpath(@__DIR__,"../../test/data/multiple_years/case67/case67.m")
-file_2030 = normpath(@__DIR__,"../../test/data/multiple_years/case67/case67_tnep_2030.m")
-file_2040 = normpath(@__DIR__,"../../test/data/multiple_years/case67/case67_tnep_2040.m")
-file_2050 = normpath(@__DIR__,"../../test/data/multiple_years/case67/case67_tnep_2050.m")
+file = normpath(@__DIR__,"../../test/data/case67/case67.m")
+file_2030 = normpath(@__DIR__,"../../test/data/case67/case67_tnep_2030.m")
+file_2040 = normpath(@__DIR__,"../../test/data/case67/case67_tnep_2040.m")
+file_2050 = normpath(@__DIR__,"../../test/data/case67/case67_tnep_2050.m")
 
 ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol" => 1e-6, "print_level" => 0)
 gurobi = JuMP.optimizer_with_attributes(Gurobi.Optimizer)

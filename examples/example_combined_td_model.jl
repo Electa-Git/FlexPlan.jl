@@ -25,7 +25,7 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false)
 
 ## Transmission network instance (all data preparation except for `make_multinetwork` call)
 
-t_file = "./test/data/combined_td_model/t_case6.m" # Input case for transmission network
+t_file = "./test/data/case6/case6_2030.m" # Input case for transmission network
 
 t_data = _FP.parse_file(t_file)
 _FP.add_dimension!(t_data, :hour, number_of_hours)
@@ -39,7 +39,7 @@ t_time_series = create_profile_data(number_of_hours, t_data, t_loadprofile, t_ge
 
 ## Distribution network instance 1 (all data preparation except for `make_multinetwork` call)
 
-d_file     = "test/data/combined_td_model/d_cigre.m" # Input case for distribution networks
+d_file     = "test/data/cigre_mv_eu/cigre_mv_eu.m" # Input case for distribution networks
 scale_load = 1.0 # Scaling factor of loads
 scale_gen  = 1.0 # Scaling factor of generators
 

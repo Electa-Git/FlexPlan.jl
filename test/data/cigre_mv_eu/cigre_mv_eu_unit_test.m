@@ -1,5 +1,5 @@
-function mpc = CIGRE_MV_benchmark_network_tnep
-% CIGRE_MV_BENCHMARK_NETWORK_TNEP Returns MATPOWER case for the CIGRE medium-voltage benchmark network with edits
+function mpc = cigre_mv_eu
+% cigre_mv_eu Returns MATPOWER case for the CIGRE medium-voltage benchmark network with edits
 %
 % References:
 % [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed
