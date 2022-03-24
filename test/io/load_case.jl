@@ -10,20 +10,21 @@ Load an extended version of CIGRE MV benchmark network (EU configuration).
 Source: <https://e-cigre.org/publication/ELT_273_8-benchmark-systems-for-network-integration-of-renewable-and-distributed-energy-resources>, chapter 6.2
 
 Extensions:
-- storage at bus 14 (in addition to storage at buses 5 and 10, altready present);
+- storage at bus 14 (in addition to storage at buses 5 and 10, already present);
 - candidate storage at buses 5, 10, and 14;
 - time series (8760 hours) for loads and RES generators.
 
 # Arguments
 - `flex_load::Bool = false`: toggles flexibility of loads.
 - `ne_storage::Bool = false`: toggles candidate storage.
-- `scale_gen::Float64 = 1.0`: scaling factor of all generators, wind included.
+- `scale_gen::Float64 = 1.0`: scale factor of all generators, wind included.
 - `scale_wind::Float64 = 1.0`: further scaling factor of wind generator.
-- `scale_load::Float64 = 1.0`: scaling factor of loads.
-- `energy_cost::Float64 = 50.0`: cost of energy exchanged with transmission network [€/MWh].
-- `year_scale_factor::Int = 10`: how many years a representative year should represent [years].
+- `scale_load::Float64 = 1.0`: scale factor of loads.
 - `number_of_hours::Int = 8760`: number of hourly optimization periods.
 - `start_period::Int = 1`: first period of time series to use.
+- `year_scale_factor::Int = 10`: how many years a representative year should represent [years].
+- `energy_cost::Float64 = 50.0`: cost of energy exchanged with transmission network [€/MWh].
+- `cost_scale_factor::Float64 = 1.0`: scale factor for all costs.
 """
 function load_cigre_mv_eu(;
         flex_load::Bool = false,
@@ -31,13 +32,14 @@ function load_cigre_mv_eu(;
         scale_gen::Float64 = 1.0,
         scale_wind::Float64 = 1.0,
         scale_load::Float64 = 1.0,
-        energy_cost::Float64 = 50.0, # €/MWh
-        year_scale_factor::Int = 10, # years
         number_of_hours::Int = 8760,
         start_period::Int = 1,
+        year_scale_factor::Int = 10, # years
+        energy_cost::Float64 = 50.0, # €/MWh
+        cost_scale_factor::Float64 = 1.0,
     )
 
-    grid_file = "test/data/combined_td_model/d_cigre_more_storage.m"
+    grid_file = normpath(@__DIR__,"..","data","cigre_mv_eu","cigre_mv_eu_more_storage.m")
     sn_data = _FP.parse_file(grid_file)
     _FP.add_dimension!(sn_data, :hour, number_of_hours)
     _FP.add_dimension!(sn_data, :scenario, Dict(1 => Dict{String,Any}("probability"=>1)), metadata = Dict{String,Any}("mc"=>true))
@@ -64,9 +66,9 @@ function load_cigre_mv_eu(;
         sn_data["ne_storage"] = Dict{String,Any}()
     end
 
-    _FP.scale_data!(sn_data)
+    _FP.scale_data!(sn_data; cost_scale_factor)
     _FP.add_td_coupling_data!(sn_data; sub_nw = 1)
-    d_time_series = create_profile_data_cigre(sn_data, number_of_hours; start_period, scale_load, scale_gen, file_profiles_pu="test/data/CIGRE_profiles_per_unit_Italy.csv")
+    d_time_series = create_profile_data_cigre(sn_data, number_of_hours; start_period, scale_load, scale_gen, file_profiles_pu=normpath(@__DIR__,"..","data","cigre_mv_eu","time_series","CIGRE_profiles_per_unit_Italy.csv"))
     d_mn_data = _FP.make_multinetwork(sn_data, d_time_series)
 
     return d_mn_data
