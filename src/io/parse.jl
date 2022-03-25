@@ -164,11 +164,6 @@ function add_flexible_demand_data!(data)
         # Expected lifetime of flexibility-enabling equipment (years)
         data["load"]["$idx"]["lifetime"] = load_extra["lifetime"]
 
-        # Value of Lost Load (VOLL), i.e. costs for load curtailment due to contingencies (€/MWh)
-        if haskey(load_extra, "cost_voll")
-            data["load"]["$idx"]["cost_voll"] = load_extra["cost_voll"]
-        end
-
         # CO2 costs for enabling flexible demand (€)
         if haskey(load_extra, "co2_cost")
             data["load"]["$idx"]["co2_cost"] = load_extra["co2_cost"]
@@ -185,9 +180,6 @@ function add_flexible_demand_data!(data)
         _PM._apply_func!(data["load"]["$idx"], "cost_red", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_shift", rescale_cost)
         _PM._apply_func!(data["load"]["$idx"], "cost_curt", rescale_cost)
-        if haskey(load_extra, "cost_voll")
-            _PM._apply_func!(data["load"]["$idx"], "cost_voll", rescale_cost)
-        end
     end
     delete!(data, "load_extra")
     return data

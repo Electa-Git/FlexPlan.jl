@@ -7,7 +7,7 @@
 
 ## Settings
 
-file = normpath(@__DIR__,"..","test","data","case2_d_flex.m") # Input case. Here 2-bus distribution network having 1 generator and 1 load, both on bus 1 (bus 2 is empty).
+file = normpath(@__DIR__,"..","test","data","case2","case2_d_flex.m") # Input case. Here 2-bus distribution network having 1 generator and 1 load, both on bus 1 (bus 2 is empty).
 number_of_hours = 24 # Number of time periods
 
 ## Plot function

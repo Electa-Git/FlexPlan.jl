@@ -137,11 +137,12 @@ function add_td_coupling_data!(d_data::Dict{String,Any}; sub_nw::Int, qs_ratio_b
     if isempty(d_ref_gens)
         d_gen_idx = length(d_data["gen"]) + 1 # Assumes that gens have contiguous indices starting from 1, as should be
         d_data["gen"]["$d_gen_idx"] = Dict{String,Any}(
-            "gen_bus" => d_ref_bus,
-            "index"   => d_gen_idx,
-            "model"   => 2, # Cost model (2 => polynomial cost)
-            "ncost"   => 0, # Number of cost coefficients
-            "cost"    => Any[]
+            "gen_bus"      => d_ref_bus,
+            "index"        => d_gen_idx,
+            "dispatchable" => true,
+            "model"        => 2, # Cost model (2 => polynomial cost)
+            "ncost"        => 0, # Number of cost coefficients
+            "cost"         => Any[]
         )
     else
         d_gen_idx = parse(Int, first(d_ref_gens))
@@ -190,17 +191,18 @@ function add_td_coupling_data!(t_data::Dict{String,Any}, d_data::Dict{String,Any
     t_s_rate = (d_data["baseMVA"]/t_data["baseMVA"]) * d_data["gen"]["$d_gen_idx"]["pmax"]
     t_gen_idx = length(t_data["gen"]) + 1 # Assumes that gens have contiguous indices starting from 1, as should be
     t_data["gen"]["$t_gen_idx"] = Dict{String,Any}(
-        "gen_bus"    => t_bus,
-        "index"      => t_gen_idx,
-        "mbase"      => t_data["baseMVA"],
-        "pmin"       => -t_s_rate,
-        "pmax"       =>  t_s_rate,
-        "qmin"       => -t_s_rate,
-        "qmax"       =>  t_s_rate,
-        "gen_status" => 1,
-        "model"      => 2, # Cost model (2 => polynomial cost)
-        "ncost"      => 0, # Number of cost coefficients
-        "cost"       => Any[]
+        "gen_bus"      => t_bus,
+        "index"        => t_gen_idx,
+        "dispatchable" => true,
+        "mbase"        => t_data["baseMVA"],
+        "pmin"         => -t_s_rate,
+        "pmax"         =>  t_s_rate,
+        "qmin"         => -t_s_rate,
+        "qmax"         =>  t_s_rate,
+        "gen_status"   => 1,
+        "model"        => 2, # Cost model (2 => polynomial cost)
+        "ncost"        => 0, # Number of cost coefficients
+        "cost"         => Any[]
     )
 
     # Add generator id to T&D coupling parameters

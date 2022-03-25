@@ -79,26 +79,6 @@ function constraint_power_balance_acne_flex(pm::_PM.AbstractPowerModel, i::Int; 
     constraint_power_balance_acne_flex(pm, nw, i, bus_arcs, bus_arcs_ne, bus_gens, bus_loads, bus_shunts, bus_storage, bus_storage_ne, gs, bs)
 end
 
-"Power balance with power interrupted by contingency - pinter (including candidate storage & flexible demand)"
-function constraint_power_balance_reliability(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
-    bus = _PM.ref(pm, nw, :bus, i)
-    bus_arcs = _PM.ref(pm, nw, :bus_arcs, i)
-    bus_arcs_ne = _PM.ref(pm, nw, :ne_bus_arcs, i)
-    bus_arcs_dc = _PM.ref(pm, nw, :bus_arcs_dc, i)
-    bus_gens = _PM.ref(pm, nw, :bus_gens, i)
-    bus_convs_ac = _PM.ref(pm, nw, :bus_convs_ac, i)
-    bus_convs_ac_ne = _PM.ref(pm, nw, :bus_convs_ac_ne, i)
-    bus_loads = _PM.ref(pm, nw, :bus_loads, i)
-    bus_shunts = _PM.ref(pm, nw, :bus_shunts, i)
-    bus_storage = _PM.ref(pm, nw, :bus_storage, i)
-    bus_storage_ne = _PM.ref(pm, nw, :bus_storage_ne, i)
-
-    gs = Dict(k => _PM.ref(pm, nw, :shunt, k, "gs") for k in bus_shunts)
-    bs = Dict(k => _PM.ref(pm, nw, :shunt, k, "bs") for k in bus_shunts)
-
-    constraint_power_balance_reliability(pm, nw, i, bus_arcs, bus_arcs_ne, bus_arcs_dc, bus_gens, bus_convs_ac, bus_convs_ac_ne, bus_loads, bus_shunts, bus_storage, bus_storage_ne, gs, bs)
-end
-
 
 ## AC candidate branches
 

@@ -18,6 +18,8 @@ function nw(source::AbstractDict, lookup::AbstractDict, y::Int)
     )
     if haskey(source["genericParameters"], "basePower")
         target["baseMVA"] = source["genericParameters"]["basePower"]
+    else
+        Memento.error(_LOGGER, "\"genericParameters.basePower\" is a required parameter.")
     end
 
     # AC branches are split between `acBranches` and `transformers` dicts in JSON files
@@ -331,6 +333,7 @@ function make_convdc(source::AbstractDict, index::Int, source_id::Vector{String}
         "Pacrated"    => source["ratedActivePowerAC"][y],
         "Pacmin"      => -source["ratedActivePowerAC"][y],
         "Pacmax"      => source["ratedActivePowerAC"][y],
+        "Qacrated"    => 0.0, # Required by PowerModelsACDC, but unused in active power only models.
         "LossA"       => source["auxiliaryLosses"][y],
         "LossB"       => source["linearLosses"][y],
         "LossCinv"    => 0.0,
