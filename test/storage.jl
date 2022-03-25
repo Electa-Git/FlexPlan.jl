@@ -7,7 +7,7 @@
 
 ## Settings
 
-file = normpath(@__DIR__,"..","test","data","case2","case2_d_strg.m") # Input case. Here 2-bus distribution network having 1 generator, 1 load, 1 storage, and 1 candidate storage, all on bus 1 (bus 2 is empty).
+file = normpath(@__DIR__,"..","test","data","case2","case2_d_strg.m") # Input case. Here 2-bus distribution network having 1 generator, 1 load, 1 storage device, and 1 candidate storage device, all on bus 1 (bus 2 is empty).
 number_of_hours = 4 # Number of time periods
 
 ## Plot function
@@ -34,7 +34,7 @@ function plot_storage(mn_data, result; candidate::Bool, id::Int=1)
     plot!(p, 0:number_of_hours, hcat(repeatfirst(data_storage("charge_rating")), -repeatfirst(data_storage("discharge_rating")));
         seriestype=:steppre, linewidth=2, linestyle=:dot, seriescolor=HSLA(203,1,0.49,1)
     )
-    e = plot(0:number_of_hours, vcat(mn_data["nw"]["1"][storage_type][id]["energy"], res_storage(candidate ? "se_ne" : "se"));
+    e = plot(0:number_of_hours, vcat(mn_data["nw"]["1"][storage_type][id]["energy"]*get(result["solution"]["nw"]["1"][storage_type][id],"isbuilt",1), res_storage(candidate ? "se_ne" : "se"));
         yguide = "Energy [p.u.]",
         xguide = "Time [h]",
         legend = :none,
@@ -58,11 +58,11 @@ end
 
     @testset "Common features" begin
 
-        # Case with a storage and a candidate storage. As demand exceeds by far the
-        # available generation in the second half of the time horizon, both storage and
-        # candidate storage are charged in the first half of the time horizon and discharged
-        # in the second half. Involuntary curtailment of the load covers the remaining
-        # excess of demand.
+        # Case with a storage device and a candidate storage device. As demand exceeds by
+        # far the available generation in the second half of the time horizon, both storage
+        # devices are charged in the first half of the time horizon and discharged in the
+        # second half. Involuntary curtailment of the load covers the remaining excess of
+        # demand.
         data = _FP.parse_file(file)
         _FP.add_dimension!(data, :hour, number_of_hours)
         _FP.add_dimension!(data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>1))
@@ -86,7 +86,7 @@ end
             @test result["solution"]["nw"]["2"]["storage"]["1"]["ps"]               ≈  1.0    rtol=1e-3
             @test result["solution"]["nw"]["3"]["storage"]["1"]["ps"]               ≈ -1.0    rtol=1e-3 # Storage model uses load convention: negative power when injected into the grid
             @test result["solution"]["nw"]["4"]["storage"]["1"]["ps"]               ≈ -0.6098 rtol=1e-3
-            @test result["solution"]["nw"]["1"]["storage"]["1"]["se"]               ≈  2.898  rtol=1e-3 # Greater than 2.0 because refers to the end of the period
+            @test result["solution"]["nw"]["1"]["storage"]["1"]["se"]               ≈  2.898  rtol=1e-3 # Greater than 2.0 because refers to the end of period
             @test result["solution"]["nw"]["2"]["storage"]["1"]["se"]               ≈  3.795  rtol=1e-3
             @test result["solution"]["nw"]["3"]["storage"]["1"]["se"]               ≈  2.680  rtol=1e-3
             @test result["solution"]["nw"]["4"]["storage"]["1"]["se"]               ≈  2.0    rtol=1e-3 # Must match "energy" parameter in data model
@@ -95,8 +95,8 @@ end
 
         @testset "Candidate storage" begin
             #plot_storage(mn_data, result; candidate=true)
-            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["investment"]    ≈  1.0    atol=1e-3 # Invested in candidate storage because it costs less than load curtailment
-            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["isbuilt"]       ≈  1.0    atol=1e-3 # Candidate storage is built accordingly to investment decision
+            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["investment"]    ≈  1.0    atol=1e-3 # Invested in candidate storage device because it costs less than load curtailment
+            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["isbuilt"]       ≈  1.0    atol=1e-3 # Candidate storage device is built accordingly to investment decision
             @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["sc_ne"]         ≈  1.0    rtol=1e-3
             @test result["solution"]["nw"]["2"]["ne_storage"]["1"]["sc_ne"]         ≈  1.0    rtol=1e-3
             @test result["solution"]["nw"]["3"]["ne_storage"]["1"]["sc_ne"]         ≈  0.0    atol=1e-3
@@ -109,7 +109,7 @@ end
             @test result["solution"]["nw"]["2"]["ne_storage"]["1"]["ps_ne"]         ≈  1.0    rtol=1e-3
             @test result["solution"]["nw"]["3"]["ne_storage"]["1"]["ps_ne"]         ≈ -1.0    rtol=1e-3 # Storage model uses load convention: negative power when injected into the grid
             @test result["solution"]["nw"]["4"]["ne_storage"]["1"]["ps_ne"]         ≈ -0.6098 rtol=1e-3
-            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["se_ne"]         ≈  2.898  rtol=1e-3 # Greater than 2.0 because refers to the end of the period
+            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["se_ne"]         ≈  2.898  rtol=1e-3 # Greater than 2.0 because refers to the end of period
             @test result["solution"]["nw"]["2"]["ne_storage"]["1"]["se_ne"]         ≈  3.795  rtol=1e-3
             @test result["solution"]["nw"]["3"]["ne_storage"]["1"]["se_ne"]         ≈  2.680  rtol=1e-3
             @test result["solution"]["nw"]["4"]["ne_storage"]["1"]["se_ne"]         ≈  2.0    rtol=1e-3 # Must match "energy" parameter in data model
@@ -120,10 +120,10 @@ end
 
     @testset "Bounded absorption" begin
 
-        # Same as base case, but the two storages have bounded absorption.
+        # Same as base case, but the two storage devices have bounded absorption.
         data = _FP.parse_file(file)
-        data["storage"]["1"]["max_energy_absorption"] = 1.0 # Limit the maximum energy absorption of existing storage
-        data["ne_storage"]["1"]["max_energy_absorption"] = 1.0 # Limit the maximum energy absorption of candidate storage
+        data["storage"]["1"]["max_energy_absorption"] = 1.0 # Limit the maximum energy absorption of existing storage device
+        data["ne_storage"]["1"]["max_energy_absorption"] = 1.0 # Limit the maximum energy absorption of candidate storage device
         _FP.add_dimension!(data, :hour, number_of_hours)
         _FP.add_dimension!(data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>1))
         _FP.scale_data!(data; cost_scale_factor=1e-6)
@@ -148,6 +148,45 @@ end
             @test result["solution"]["nw"]["3"]["ne_storage"]["1"]["ps_ne"]         ≈ -0.8020 rtol=1e-3
             @test result["solution"]["nw"]["4"]["ne_storage"]["1"]["ps_ne"]         ≈  0.0    atol=1e-3
             @test result["solution"]["nw"]["4"]["ne_storage"]["1"]["e_abs_ne"]      ≈  1.0    rtol=1e-3 # Must match "max_energy_absorption" parameter
+        end
+
+    end
+
+    @testset "Candidate storage only" begin
+
+        # Case with a storage device and a candidate storage device. The high demand in
+        # period 4 requires using existing storage at full power and some load curtailment.
+        # The candidate storage device is not built even though it would avoid load
+        # curtailment because its construction costs more than load curtailment.
+        data = _FP.parse_file(file)
+        _FP.add_dimension!(data, :hour, number_of_hours)
+        _FP.add_dimension!(data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>1))
+        _FP.scale_data!(data; cost_scale_factor=1e-6)
+        loadprofile = collect(reshape(range(0,1.1005;length=number_of_hours),:,1)) # Create a load profile: ramp from 0 to 1.1005 times the rated value of load
+        time_series = _FP.make_time_series(data; loadprofile) # Compute time series by multiplying the rated value by the profile
+        mn_data = _FP.make_multinetwork(data, time_series)
+        result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc)
+
+        @testset "Not built if not needed" begin
+            #plot_storage(mn_data, result; candidate=true)
+            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["investment"]    ≈  0.0    atol=1e-3 # Not invested in candidate storage device because it costs more than the small amount of load curtailment needed to satisfy all power bounds in the last period
+            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["isbuilt"]       ≈  0.0    atol=1e-3 # Candidate storage device is not built, accordingly to investment decision
+            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["sc_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["2"]["ne_storage"]["1"]["sc_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["3"]["ne_storage"]["1"]["sc_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["4"]["ne_storage"]["1"]["sc_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["sd_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["2"]["ne_storage"]["1"]["sd_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["3"]["ne_storage"]["1"]["sd_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["4"]["ne_storage"]["1"]["sd_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["ps_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["2"]["ne_storage"]["1"]["ps_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["3"]["ne_storage"]["1"]["ps_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["4"]["ne_storage"]["1"]["ps_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["1"]["ne_storage"]["1"]["se_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["2"]["ne_storage"]["1"]["se_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["3"]["ne_storage"]["1"]["se_ne"]         ≈  0.0    atol=1e-3
+            @test result["solution"]["nw"]["4"]["ne_storage"]["1"]["se_ne"]         ≈  0.0    atol=1e-3 # Even if "energy" parameter in data model is positive, this must be zero because the candidate storage device is not built
         end
 
     end
