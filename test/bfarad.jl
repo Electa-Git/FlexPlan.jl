@@ -1,7 +1,7 @@
 @testset "BFARadPowerModel" begin
 
     @testset "CIGRE TNEP single-period" begin
-        data = _FP.parse_file(normpath(@__DIR__,"../test/data/CIGRE_MV_benchmark_network_tnep.m"))
+        data = _FP.parse_file(normpath(@__DIR__,"../test/data/cigre_mv_eu/cigre_mv_eu_unit_test.m"))
         _FP.add_dimension!(data, :hour, 1)
         _FP.add_dimension!(data, :year, 1)
         data = _FP.make_multinetwork(data)

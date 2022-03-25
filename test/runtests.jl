@@ -7,6 +7,7 @@ using Memento
 
 include(normpath(@__DIR__,"..","test","io","create_profile.jl"))
 include(normpath(@__DIR__,"..","test","io","multiple_years.jl"))
+include(normpath(@__DIR__,"..","test","io","load_case.jl"))
 
 # Suppress warnings during testing.
 Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")

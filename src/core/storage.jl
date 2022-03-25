@@ -460,7 +460,7 @@ function constraint_storage_state_initial_ne(pm::_PM.AbstractPowerModel, n::Int,
     se = _PM.var(pm, n, :se_ne, i)
     z = _PM.var(pm, n, :z_strg_ne, i)
 
-    JuMP.@constraint(pm.model, se == ((1-self_discharge_rate)^time_elapsed)*energy + time_elapsed*(charge_eff*sc - sd/discharge_eff + inflow * z - outflow * z))
+    JuMP.@constraint(pm.model, se == ((1-self_discharge_rate)^time_elapsed)*energy*z + time_elapsed*(charge_eff*sc - sd/discharge_eff + inflow * z - outflow * z))
 end
 
 function constraint_storage_state(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int, charge_eff, discharge_eff, inflow, outflow, self_discharge_rate, time_elapsed)
@@ -490,8 +490,9 @@ end
 
 function constraint_storage_state_final_ne(pm::_PM.AbstractPowerModel, n::Int, i::Int, energy)
     se = _PM.var(pm, n, :se_ne, i)
+    z = _PM.var(pm, n, :z_strg_ne, i)
 
-    JuMP.@constraint(pm.model, se >= energy)
+    JuMP.@constraint(pm.model, se >= energy * z)
 end
 
 function constraint_maximum_absorption_initial(pm::_PM.AbstractPowerModel, n::Int, i::Int, time_elapsed)
@@ -606,4 +607,12 @@ function constraint_ne_storage_activation(pm::_PM.AbstractPowerModel, n::Int, i:
     investments = _PM.var.(Ref(pm), horizon, :z_strg_ne_investment, i)
 
     JuMP.@constraint(pm.model, indicator == sum(investments))
+end
+
+# Force investment decisions in two different nws to be the same.
+function constraint_ne_storage_investment_same(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int)
+    investment_1 = _PM.var(pm, n_1, :z_strg_ne_investment, i)
+    investment_2 = _PM.var(pm, n_2, :z_strg_ne_investment, i)
+
+    JuMP.@constraint(pm.model, investment_1 == investment_2)
 end

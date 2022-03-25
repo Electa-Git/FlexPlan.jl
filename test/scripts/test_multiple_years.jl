@@ -40,7 +40,7 @@ data = create_multi_year_network_data(test_case, number_of_hours, number_of_scen
 
 ## Solve problem
 
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "process_data_internally" => false, "add_co2_cost" => false)
+s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "add_co2_cost" => false)
 
 # One-step alternative, does not expose pm
 #result = _FP.stoch_flex_tnep(data, model_type, optimizer, multinetwork=_PM._IM.ismultinetwork(data); setting=s)

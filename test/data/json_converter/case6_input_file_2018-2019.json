@@ -1,5 +1,6 @@
 {
   "genericParameters": {
+    "basePower": 1.0,
     "nbScenarios": 2,
     "years": [
       2030,
