@@ -42,13 +42,13 @@ function load_cigre_mv_eu(;
     grid_file = normpath(@__DIR__,"..","data","cigre_mv_eu","cigre_mv_eu_more_storage.m")
     sn_data = _FP.parse_file(grid_file)
     _FP.add_dimension!(sn_data, :hour, number_of_hours)
-    _FP.add_dimension!(sn_data, :scenario, Dict(1 => Dict{String,Any}("probability"=>1)), metadata = Dict{String,Any}("mc"=>true))
+    _FP.add_dimension!(sn_data, :scenario, Dict(1 => Dict{String,Any}("probability"=>1)))
     _FP.add_dimension!(sn_data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>year_scale_factor))
     _FP.add_dimension!(sn_data, :sub_nw, 1)
 
     # Set cost of energy exchanged with transmission network
-    sn_data["gen"]["14"]["ncost"] = 2
-    sn_data["gen"]["14"]["cost"] = [energy_cost, 0.0]
+    sn_data["gen"]["1"]["ncost"] = 2
+    sn_data["gen"]["1"]["cost"] = [energy_cost, 0.0]
 
     # Scale wind generation
     sn_data["gen"]["6"]["pmin"] *= scale_wind

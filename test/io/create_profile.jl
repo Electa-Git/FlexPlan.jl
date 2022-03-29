@@ -154,19 +154,19 @@ function create_profile_data_cigre(data, number_of_hours; start_period = 1, scal
 
     # Define a Dict for the technology of generators, indexed by the gen ids used by `data`
     gen_tech = Dict{String,Symbol}()
-    gen_tech["1"]  = :pv
     gen_tech["2"]  = :pv
     gen_tech["3"]  = :pv
-    gen_tech["4"]  = :fuel_cell
-    gen_tech["5"]  = :pv
-    gen_tech["6"]  = :wind
-    gen_tech["7"]  = :pv
+    gen_tech["4"]  = :pv
+    gen_tech["5"]  = :fuel_cell
+    gen_tech["6"]  = :pv
+    gen_tech["7"]  = :wind
     gen_tech["8"]  = :pv
-    gen_tech["9"]  = :chp_diesel
-    gen_tech["10"] = :chp_fuel_cell
-    gen_tech["11"] = :pv
-    gen_tech["12"] = :fuel_cell
-    gen_tech["13"] = :pv
+    gen_tech["9"]  = :pv
+    gen_tech["10"]  = :chp_diesel
+    gen_tech["11"] = :chp_fuel_cell
+    gen_tech["12"] = :pv
+    gen_tech["13"] = :fuel_cell
+    gen_tech["14"] = :pv
 
     # Compute active and reactive power profiles of each generator
     extradata["gen"]  = Dict{String,Any}()
