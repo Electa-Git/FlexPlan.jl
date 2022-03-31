@@ -216,7 +216,7 @@ end
 """
     sol_td_coupling!(pm, solution)
 
-Add T&D coupling data to `solution`` and remove the fake generator from `solution`.
+Add T&D coupling data to `solution` and remove the fake generator from `solution`.
 
 Report in `solution["td_coupling"]["p"]` and `solution["td_coupling"]["q"]` the active and
 reactive power that distribution network `pm` exchanges with the transmission network
