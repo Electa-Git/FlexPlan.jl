@@ -144,8 +144,8 @@ function convert_JSON(source::AbstractDict;
 
     for y in 1:number_of_years
         sn_data = haskey(source, "candidatesInputFile") ? nw(source, lookup, cand_availability, y) : nw(source, lookup, y)
-        _FP.scale_data!(sn_data; year_idx=y, number_of_years, year_scale_factor, cost_scale_factor)
         sn_data["dim"] = target["dim"]
+        _FP.scale_data!(sn_data; year_idx=y, cost_scale_factor)
 
         # Apply single network data extensions
         for f! in sn_data_extensions
