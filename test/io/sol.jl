@@ -57,6 +57,50 @@ function _sol_graph(sol::Dict{String,Any}, data::Dict{String,Any})
             edge_power[(f_bus,t_bus)] = prev_p + curr_p # Sum power in case a candidate branch is added in parallel to an existing one.
         end
     end
+    n_bus = length(sol["bus"])
+    node_names = string.(1:n_bus)
+
+    if haskey(sol,"convdc") || haskey(sol,"convdc_ne") || haskey(sol,"branchdc")
+        n_ac_bus = n_bus
+        node_names = "AC" .* string.(1:n_bus)
+        for (c,sol_conv) in get(sol,"convdc",Dict())
+            data_conv = data["convdc"][c]
+            ac_bus = data_conv["busac_i"]
+            dc_bus = data_conv["busdc_i"]
+            p = sol_conv["pconv"] # Converters are lossy; here we take the AC side power (load convention).
+            edge_power[(ac_bus,dc_bus+n_ac_bus)] = p
+        end
+        for (c,sol_conv) in get(sol,"convdc_ne",Dict())
+            if sol_conv["isbuilt"] > 0.5
+                data_conv = data["convdc_ne"][c]
+                ac_bus = data_conv["busac_i"]
+                dc_bus = data_conv["busdc_i"]
+                curr_p = sol_conv["pconv"] # Converters are lossy; here we take the AC side power (load convention).
+                prev_p = get(edge_power, (ac_bus,dc_bus+n_ac_bus), 0.0)
+                edge_power[(ac_bus,dc_bus+n_ac_bus)] = prev_p + curr_p # Sum power in case a candidate converter is added in parallel to an existing one.
+            end
+        end
+        for (b,sol_br) in sol["branchdc"]
+            data_br = data["branchdc"][b]
+            f_bus = data_br["fbusdc"]
+            t_bus = data_br["tbusdc"]
+            p = sol_br["pf"]
+            edge_power[(f_bus+n_ac_bus,t_bus+n_ac_bus)] = p
+        end
+        for (b,sol_br) in get(sol, "branchdc_ne", Dict())
+            if sol_br["isbuilt"] > 0.5
+                data_br = data["branchdc_ne"][b]
+                f_bus = data_br["fbusdc"]
+                t_bus = data_br["tbusdc"]
+                curr_p = sol_br["pf"]
+                prev_p = get(edge_power, (f_bus+n_ac_bus,t_bus+n_ac_bus), 0.0)
+                edge_power[(f_bus+n_ac_bus,t_bus+n_ac_bus)] = prev_p + curr_p # Sum power in case a candidate branch is added in parallel to an existing one.
+            end
+        end
+        n_bus = maximum([max(i,j) for (i,j) in keys(edge_power)])
+        n_dc_bus = n_bus - n_ac_bus
+        append!(node_names, "DC" .* string.(1:n_dc_bus))
+    end
 
     # Orient digraph edges according to power flow
     for (s,d) in collect(keys(edge_power)) # collect is needed because we want to mutate edge_power.
@@ -67,7 +111,6 @@ function _sol_graph(sol::Dict{String,Any}, data::Dict{String,Any})
     end
 
     # Generate digraph
-    n_bus = length(sol["bus"])
     g = SimpleDiGraph(n_bus)
     for (s,d) in keys(edge_power)
         add_edge!(g, s, d)
@@ -75,15 +118,20 @@ function _sol_graph(sol::Dict{String,Any}, data::Dict{String,Any})
 
     # Generate plot
     edge_power_rounded = Dict(e => round(p;sigdigits=2) for (e,p) in edge_power) # Shorten edge labels preserving only most useful information.
+    node_weights = 1 ./ length.(node_names)
+    function calc_node_weight(name) # Hack to make all nodes the same size.
+        len = length(name)
+        len == 1 ? 10.0 : 1/len
+    end
     Random.seed!(1) # To get reproducible results. Keep until GraphRecipes allows to pass seed as an argument to NetworkLayout functions.
-    GR.setarrowsize(0.4) # Keep until Plots implements arrow size.
+    GR.setarrowsize(10/n_bus) # Keep until Plots implements arrow size.
     plt = graphplot(g;
         size = (300*sqrt(n_bus),300*sqrt(n_bus)),
         method = :stress,
-        names = 1:n_bus,
+        names = node_names,
         nodeshape = :circle,
         nodesize = 0.15,
-        node_weights = n_bus ≤ 9 ? nothing : vcat(10*ones(9), ones(n_bus-9)),
+        node_weights = calc_node_weight.(node_names),
         nodecolor = HSL(0,0,1),
         nodestrokecolor = HSL(0,0,0.5),
         linewidth = 2,
@@ -128,24 +176,30 @@ function sol_report_cost_summary(sol::Dict{String,Any}, data::Dict{String,Any}; 
     df = DataFrame(component=String[], inv=Float64[], op=Float64[], shift=Float64[], red=Float64[], curt=Float64[])
 
     inv = sum_investment_cost((d,s) -> sum(d["ne_branch"][i]["construction_cost"] for (i,branch) in get(s,"ne_branch",Dict()) if branch["investment"]>0.5; init=0.0))
-    push!(df, ("branch", inv, 0.0, 0.0, 0.0, 0.0))
+    push!(df, ("AC branches", inv, 0.0, 0.0, 0.0, 0.0))
+
+    inv = sum_investment_cost((d,s) -> sum(d["convdc_ne"][i]["cost"] for (i,conv) in get(s,"convdc_ne",Dict()) if conv["investment"]>0.5; init=0.0))
+    push!(df, ("converters", inv, 0.0, 0.0, 0.0, 0.0))
+
+    inv = sum_investment_cost((d,s) -> sum(d["branchdc_ne"][i]["cost"] for (i,branch) in get(s,"branchdc_ne",Dict()) if branch["investment"]>0.5; init=0.0))
+    push!(df, ("DC branches", inv, 0.0, 0.0, 0.0, 0.0))
 
     inv = sum_investment_cost((d,s) -> sum(d["load"][i]["cost_inv"] for (i,load) in s["load"] if load["investment"]>0.5; init=0.0))
     shift = sum_operation_cost((d,s,n) -> sum(get(d["load"][i],"cost_shift",0.0) * 0.5*(load["pshift_up"]+load["pshift_down"]) for (i,load) in s["load"]; init=0.0))
     red = sum_operation_cost((d,s,n) -> sum(get(d["load"][i],"cost_red",0.0) * load["pred"] for (i,load) in s["load"]; init=0.0))
     curt = sum_operation_cost((d,s,n) -> sum(d["load"][i]["cost_curt"] * load["pcurt"] for (i,load) in s["load"]; init=0.0))
-    push!(df, ("load", inv, 0.0, shift, red, curt))
+    push!(df, ("loads", inv, 0.0, shift, red, curt))
 
     inv = sum_investment_cost((d,s) -> sum(d["ne_storage"][i]["eq_cost"]+d["ne_storage"][i]["inst_cost"] for (i,storage) in get(s,"ne_storage",Dict()) if storage["investment"]>0.5; init=0.0))
     push!(df, ("storage", inv, 0.0, 0.0, 0.0, 0.0))
 
     op = sum_operation_cost((d,s,n) -> sum(d["gen"][i]["cost"][end-1] * gen["pg"] for (i,gen) in s["gen"]; init=0.0))
     curt = sum_operation_cost((d,s,n) -> sum(get(d["gen"][i],"cost_curt",0.0) * gen["pgcurt"] for (i,gen) in s["gen"]; init=0.0))
-    push!(df, ("gen", 0.0, op, 0.0, 0.0, curt))
+    push!(df, ("generators", 0.0, op, 0.0, 0.0, curt))
 
     if _FP.has_dim(data, :sub_nw)
         op = sum_operation_cost((d,s,n) -> d["gen"][string(_FP.dim_prop(dim,:sub_nw,_FP.coord(dim,parse(Int,n),:sub_nw),"d_gen"))]["cost"][end-1] * s["td_coupling"]["p"])
-        push!(df, ("td_coupling", 0.0, op, 0.0, 0.0, 0.0))
+        push!(df, ("T-D coupling", 0.0, op, 0.0, 0.0, 0.0))
     end
 
     if !isempty(table)
@@ -162,7 +216,9 @@ function sol_report_cost_summary(sol::Dict{String,Any}, data::Dict{String,Any}; 
             plot_titlevspan = 0.07,
             title = total_cost_string,
             titlefontsize = 8,
+            legend_position = :topleft,
             xguide = "Network components",
+            xtickfontsize = nrow(df) ≤ 6 ? 8 : 7,
             framestyle = :zerolines,
             xgrid = :none,
             linecolor = HSLA(0,0,1,0),
@@ -208,22 +264,34 @@ function sol_report_investment_summary(sol::Dict{String,Any}, data::Dict{String,
         candidate = length(get(sol_nw,"ne_branch",Dict()))
         candidate_on = round(Int, sum(br["built"] for br in values(get(sol_nw,"ne_branch",Dict())); init=0.0))
         candidate_off = candidate - candidate_on
-        push!(df, ("branch", y, existing, candidate_on, candidate_off))
+        push!(df, ("AC branches", y, existing, candidate_on, candidate_off))
+
+        existing = length(get(sol_nw,"convdc",Dict()))
+        candidate = length(get(sol_nw,"convdc_ne",Dict()))
+        candidate_on = round(Int, sum(st["isbuilt"] for st in values(get(sol_nw,"convdc_ne",Dict())); init=0.0))
+        candidate_off = candidate - candidate_on
+        push!(df, ("AC/DC converters", y, existing, candidate_on, candidate_off))
+
+        existing = length(get(sol_nw,"branchdc",Dict()))
+        candidate = length(get(sol_nw,"branchdc_ne",Dict()))
+        candidate_on = round(Int, sum(br["isbuilt"] for br in values(get(sol_nw,"branchdc_ne",Dict())); init=0.0))
+        candidate_off = candidate - candidate_on
+        push!(df, ("DC branches", y, existing, candidate_on, candidate_off))
 
         existing = length(sol_nw["gen"])
-        push!(df, ("gen", y, existing, 0, 0))
+        push!(df, ("generators", y, existing, 0, 0))
 
         existing = length(get(sol_nw,"storage",Dict()))
         candidate = length(get(sol_nw,"ne_storage",Dict()))
         candidate_on = round(Int, sum(st["isbuilt"] for st in values(get(sol_nw,"ne_storage",Dict())); init=0.0))
         candidate_off = candidate - candidate_on
-        push!(df, ("storage", y, existing, candidate_on, candidate_off))
+        push!(df, ("storage devices", y, existing, candidate_on, candidate_off))
 
         candidate = round(Int, sum(load["flex"] for load in values(data_nw["load"])))
         existing = length(sol_nw["load"]) - candidate
         candidate_on = round(Int, sum(load["flex"] for load in values(sol_nw["load"])))
         candidate_off = candidate - candidate_on
-        push!(df, ("load", y, existing, candidate_on, candidate_off))
+        push!(df, ("loads", y, existing, candidate_on, candidate_off))
     end
     sort!(df, [:component, :year])
 
@@ -396,6 +464,83 @@ function sol_report_branch(sol::Dict{String,Any}, data::Dict{String,Any}; out_di
                 fillalpha = 0.05,
                 seriescolor = few_branches ? :auto : HSL(210,0.75,0.5),
                 linewidth = few_branches ? 1.0 : 0.5,
+            )
+            name, ext = splitext(plot)
+            savefig(plt, joinpath(out_dir,"$(name)_y$(k.year)_s$(k.scenario)$ext"))
+        end
+    end
+
+    return df
+end
+
+"""
+    sol_report_bus_voltage_angle(sol, data; <keyword arguments>)
+
+Report bus voltage angle.
+
+Return a DataFrame; optionally write a CSV table and a plot.
+
+# Arguments
+- `sol::Dict{String,Any}`: the solution Dict contained in the result Dict of a FlexPlan
+  optimization problem.
+- `data::Dict{String,Any}`: the multinetwork data Dict used for the same FlexPlan
+  optimization problem.
+- `out_dir::String=pwd()`: directory for output files.
+- `table::String=""`: if not empty, output a CSV table to `table` file.
+- `plot::String=""`: if not empty, output a plot to `plot` file; file type is based on
+  `plot` extension.
+"""
+function sol_report_bus_voltage_angle(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir::String=pwd(), table::String="", plot::String="")
+    _FP.require_dim(data, :hour, :scenario, :year)
+    dim = data["dim"]
+
+    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], id=Int[], va=Float64[])
+    for n in _FP.nw_ids(dim)
+        sol_nw = sol["nw"]["$n"]
+        data_nw = data["nw"]["$n"]
+        h = _FP.coord(dim, n, :hour)
+        s = _FP.coord(dim, n, :scenario)
+        y = _FP.coord(dim, n, :year)
+        for (i,bus) in sol_nw["bus"]
+            push!(df, (h, s, y, parse(Int,i), bus["va"]))
+        end
+    end
+    sort!(df, [:year, :scenario, :id, :hour])
+
+    if !isempty(table)
+        CSV.write(joinpath(out_dir,table), df)
+    end
+
+    if !isempty(plot)
+        gd = groupby(df, [:scenario, :year])
+        for k in keys(gd)
+            sdf = select(gd[k], :hour, :id, :va)
+            few_buses = length(unique(sdf.id)) ≤ 24
+            plt = Plots.plot(
+                title = "scenario $(k.scenario), year $(k.year)",
+                titlefontsize = 8,
+                yguide = "Voltage angle [rad]",
+                xguide = "Time [periods]",
+                framestyle = :zerolines,
+                legend_position = few_buses ? :outertopright : :none,
+            )
+            gsd = groupby(sdf, :id)
+            for i in keys(gsd)
+                ssdf = select(gsd[i], :hour, :va)
+                sort!(ssdf, :hour)
+                @df ssdf plot!(plt, :va;
+                    seriestype = :stepmid,
+                    fillrange = 0.0,
+                    fillalpha = 0.05,
+                    linewidth = few_buses ? 1.0 : 0.5,
+                    seriescolor = few_buses ? :auto : HSL(0,0,0),
+                    label = "bus_$(i.id)",
+                )
+            end
+            # Needed to add below data after the for loop because otherwise an unwanted second axes frame is rendered under the plot_title.
+            plot!(plt,
+                plot_title = "Buses",
+                plot_titlevspan = 0.07,
             )
             name, ext = splitext(plot)
             savefig(plt, joinpath(out_dir,"$(name)_y$(k.year)_s$(k.scenario)$ext"))
@@ -614,7 +759,7 @@ function sol_report_load(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir:
     if !isempty(plot)
         gd = groupby(df, [:scenario, :year])
         for k in keys(gd)
-            sdf = select(gd[k], :hour, :id, :pflex, [:pd,:pflex] => min => :up, [:pd,:pflex] => max => :dn)
+            sdf = select(gd[k], :hour, :id, :pflex, [:pd,:pflex] => ByRow(min) => :up, [:pd,:pflex] => ByRow(max) => :dn)
             few_loads = length(unique(sdf.id)) ≤ 24
             plt = Plots.plot(
                 title = "scenario $(k.scenario), year $(k.year)",
@@ -859,8 +1004,8 @@ function sol_report_storage_summary(sol::Dict{String,Any}, data::Dict{String,Any
         data_nw = data["nw"]["$n"]
         s = _FP.coord(dim, n, :scenario)
         y = _FP.coord(dim, n, :year)
-        energy = sum(st["energy"] for st in values(get(data_nw,"storage",Dict())); init=0.0) + sum(data_nw["ne_storage"][s]["energy"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
-        energy_rating = sum(st["energy_rating"] for st in values(get(data_nw,"storage",Dict())); init=0.0) + sum(data_nw["ne_storage"][s]["energy_rating"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
+        energy = sum(st["energy"] for st in values(get(data_nw,"storage",Dict())) if st["status"]>0; init=0.0) + sum(data_nw["ne_storage"][s]["energy"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
+        energy_rating = sum(st["energy_rating"] for st in values(get(data_nw,"storage",Dict())) if st["status"]>0; init=0.0) + sum(data_nw["ne_storage"][s]["energy_rating"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
         push!(df, (0, s, y, energy, energy_rating))
     end
     # Read from `sol` the final energy of each period, indexing it with the corresponding period.
@@ -870,8 +1015,8 @@ function sol_report_storage_summary(sol::Dict{String,Any}, data::Dict{String,Any
         h = _FP.coord(dim, n, :hour)
         s = _FP.coord(dim, n, :scenario)
         y = _FP.coord(dim, n, :year)
-        energy = sum(st["se"] for st in values(get(sol_nw,"storage",Dict())); init=0.0) + sum(st["se_ne"] for st in values(get(sol_nw,"ne_storage",Dict())) if st["isbuilt"]>0.5; init=0.0)
-        energy_rating = sum(st["energy_rating"] for st in values(get(data_nw,"storage",Dict())); init=0.0) + sum(data_nw["ne_storage"][s]["energy_rating"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
+        energy = sum(st["se"] for (s,st) in get(sol_nw,"storage",Dict()) if data_nw["storage"][s]["status"]>0; init=0.0) + sum(st["se_ne"] for st in values(get(sol_nw,"ne_storage",Dict())) if st["isbuilt"]>0.5; init=0.0)
+        energy_rating = sum(st["energy_rating"] for st in values(get(data_nw,"storage",Dict())) if st["status"]>0; init=0.0) + sum(data_nw["ne_storage"][s]["energy_rating"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
         push!(df, (h, s, y, energy, energy_rating))
     end
     sort!(df, [:year, :scenario, :hour])
