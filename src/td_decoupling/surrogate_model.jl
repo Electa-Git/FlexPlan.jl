@@ -100,6 +100,8 @@ function surrogate_load_const(od, bs)
         load["flex"]       = true
         load["cost_red"]   = od["load"][a_flex_load_id]["cost_red"] # Assumption: all flexible loads have the same cost for voluntary reduction.
         load["cost_shift"] = od["load"][a_flex_load_id]["cost_shift"] # Assumption: all flexible loads have the same cost for time shifting.
+        load["lifetime"]   = 1
+        load["cost_inv"]   = 0.0
     end
     return load
 end
@@ -128,14 +130,16 @@ function surrogate_storage_const(od, bs; standalone)
         "status"              => 1,
         "storage_bus"         => 1,
     )
-    storage["charge_efficiency"] = (
+    charge_efficiency = (
         (sum(s["charge_efficiency"]*s["charge_rating"] for s in values(od["storage"]); init=0.0) + sum(s["charge_efficiency"]*s["charge_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
         / (sum(s["charge_rating"] for s in values(od["storage"]); init=0.0) + sum(s["charge_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
     )
-    storage["discharge_efficiency"] = (
+    storage["charge_efficiency"] = isnan(charge_efficiency) ? 0.0 : charge_efficiency
+    discharge_efficiency = (
         (sum(s["discharge_efficiency"]*s["discharge_rating"] for s in values(od["storage"]); init=0.0) + sum(s["discharge_efficiency"]*s["discharge_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
         / (sum(s["discharge_rating"] for s in values(od["storage"]); init=0.0) + sum(s["discharge_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
     )
+    storage["discharge_efficiency"] = isnan(discharge_efficiency) ? 0.0 : discharge_efficiency
     storage["energy_rating"] = sum(s["energy_rating"] for s in values(od["storage"]); init=0.0) + sum(s["energy_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0)
     if standalone
         storage["p_loss"] = 0.0
