@@ -19,7 +19,7 @@ function scale_data!(
         year_scale_factor::Int = haskey(data, "dim") ? dim_meta(data, :year, "scale_factor") : 1,
         number_of_years::Int = haskey(data, "dim") ? dim_length(data, :year) : 1,
         year_idx::Int = 1,
-        cost_scale_factor::Float64 = 1.0
+        cost_scale_factor::Real = 1.0
     )
     if _IM.ismultinetwork(data)
         Memento.error(_LOGGER, "`scale_data!` can only be applied to single-network data dictionaries.")

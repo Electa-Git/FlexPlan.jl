@@ -64,26 +64,26 @@ Extensions:
 # Arguments
 - `flex_load::Bool = false`: toggles flexibility of loads.
 - `ne_storage::Bool = false`: toggles candidate storage.
-- `scale_gen::Float64 = 1.0`: scale factor of all generators, wind included.
-- `scale_wind::Float64 = 1.0`: further scaling factor of wind generator.
-- `scale_load::Float64 = 1.0`: scale factor of loads.
+- `scale_gen::Real = 1.0`: scale factor of all generators, wind included.
+- `scale_wind::Real = 1.0`: further scaling factor of wind generator.
+- `scale_load::Real = 1.0`: scale factor of loads.
 - `number_of_hours::Int = 8760`: number of hourly optimization periods.
 - `start_period::Int = 1`: first period of time series to use.
 - `year_scale_factor::Int = 10`: how many years a representative year should represent [years].
-- `energy_cost::Float64 = 50.0`: cost of energy exchanged with transmission network [€/MWh].
-- `cost_scale_factor::Float64 = 1.0`: scale factor for all costs.
+- `energy_cost::Real = 50.0`: cost of energy exchanged with transmission network [€/MWh].
+- `cost_scale_factor::Real = 1.0`: scale factor for all costs.
 """
 function load_cigre_mv_eu(;
         flex_load::Bool = false,
         ne_storage::Bool = false,
-        scale_gen::Float64 = 1.0,
-        scale_wind::Float64 = 1.0,
-        scale_load::Float64 = 1.0,
+        scale_gen::Real = 1.0,
+        scale_wind::Real = 1.0,
+        scale_load::Real = 1.0,
         number_of_hours::Int = 8760,
         start_period::Int = 1,
         year_scale_factor::Int = 10, # years
-        energy_cost::Float64 = 50.0, # €/MWh
-        cost_scale_factor::Float64 = 1.0,
+        energy_cost::Real = 50.0, # €/MWh
+        cost_scale_factor::Real = 1.0,
     )
 
     grid_file = normpath(@__DIR__,"..","data","cigre_mv_eu","cigre_mv_eu_more_storage.m")
@@ -132,23 +132,35 @@ Extensions:
 - time series (672 hours, 4 scenarios) for loads and RES generators.
 
 # Arguments
+- `scale_gen::Real = 1.0`: scale factor of all generators.
+- `scale_load::Real = 1.0`: scale factor of loads.
 - `number_of_hours::Int = 672`: number of hourly optimization periods.
 - `number_of_scenarios::Int = 4`: number of scenarios (different time series for loads and
   RES generators).
+- `number_of_years::Int = 3`: number of years (different investment sets).
+- `cost_scale_factor::Real = 1.0`: scale factor for all costs.
 """
 function load_ieee_33(;
+        scale_gen::Real = 1.0,
+        scale_load::Real = 1.0,
         number_of_hours::Int = 672,
         number_of_scenarios::Int = 4,
+        number_of_years::Int = 3,
+        cost_scale_factor::Real = 1.0,
     )
-    file = "test/data/ieee_33/ieee_33_28days.json"
-    mn_data = _FP.convert_JSON(
+    file = normpath(@__DIR__,"..","data","ieee_33","ieee_33_672h_4s_3y.json")
+
+    return _FP.convert_JSON(
         file;
+        scale_gen,
+        scale_load,
         number_of_hours,
         number_of_scenarios,
+        number_of_years,
+        cost_scale_factor,
         init_data_extensions = [data -> _FP.add_dimension!(data, :sub_nw, 1)],
         sn_data_extensions = [sn_data -> _FP.add_td_coupling_data!(sn_data; sub_nw=1)],
     )
-    return mn_data
 end
 
 

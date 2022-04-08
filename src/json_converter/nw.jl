@@ -1,5 +1,5 @@
 # Single-network containing only fixed data (i.e. data that does not depend on year), method without candidates
-function nw(source::AbstractDict, lookup::AbstractDict, y::Int)
+function nw(source::AbstractDict, lookup::AbstractDict, y::Int; scale_gen::Real)
     target = Dict{String,Any}(
         "branch"       => Dict{String,Any}(),
         "branchdc"     => Dict{String,Any}(),
@@ -78,7 +78,7 @@ function nw(source::AbstractDict, lookup::AbstractDict, y::Int)
         index     = lookup["generators"][comp["id"]]
         source_id = push!(copy(gen_path), comp["id"])
         gen_bus   = lookup["acBuses"][comp["acBusConnected"]]
-        target["gen"]["$index"] = make_gen(comp, index, source_id, gen_bus, y)
+        target["gen"]["$index"] = make_gen(comp, index, source_id, gen_bus, y; scale_gen)
     end
 
     load_path = ["gridModelInputFile", "loads"]
@@ -101,9 +101,9 @@ function nw(source::AbstractDict, lookup::AbstractDict, y::Int)
 end
 
 # Single-network containing only fixed data (i.e. data that does not depend on year), method with candidates
-function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::AbstractDict, y::Int)
+function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::AbstractDict, y::Int; scale_gen::Real)
 
-    target = nw(source, lookup, y)
+    target = nw(source, lookup, y; scale_gen)
     target["branchdc_ne"] = Dict{String,Any}()
     target["busdc_ne"]    = Dict{String,Any}()
     target["convdc_ne"]   = Dict{String,Any}()
@@ -352,7 +352,7 @@ function make_convdc(source::AbstractDict, index::Int, source_id::Vector{String}
     return target
 end
 
-function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, gen_bus::Int, y::Int)
+function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, gen_bus::Int, y::Int; scale_gen::Real)
     target = Dict{String,Any}(
         "index"        => index,
         "source_id"    => source_id,
@@ -367,14 +367,14 @@ function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, g
     )
     pmin = source["minActivePower"][y]
     pmax = source["maxActivePower"][y]
-    target["pmax"] = pmax
+    target["pmax"] = scale_gen * pmax
     if pmin == pmax # Non-dispatchable generators are characterized in JSON file by having coincident power bounds
         target["dispatchable"] = false
         target["pmin"] = 0.0 # Must be zero to allow for curtailment
         target["cost_curt"] = source["curtailmentCosts"][y]
     else
         target["dispatchable"] = true
-        target["pmin"] = pmin
+        target["pmin"] = scale_gen * pmin
     end
     return target
 end

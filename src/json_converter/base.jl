@@ -7,13 +7,15 @@ Convert a JSON `file` or a `dict` conforming to the FlexPlan WP3 API into a Flex
 Costs are scaled with the assumption that every representative year represents 10 years.
 
 # Arguments
+- `scale_gen::Real=1.0`: scale factor of all generators.
+- `scale_load::Real=1.0`: scale factor of loads.
 - `number_of_hours::Union{Int,Nothing}=nothing`: parse only the first hours of the
   file/dict.
 - `number_of_scenarios::Union{Int,Nothing}=nothing`: parse only the first scenarios of the
   file/dict.
 - `number_of_years::Union{Int,Nothing}=nothing`: parse only the first years of the
   file/dict.
-- `cost_scale_factor::Float64=1.0`: scale factor for all costs.
+- `cost_scale_factor::Real=1.0`: scale factor for all costs.
 - `init_data_extensions::Vector{<:Function}=Function[]`: functions to be applied to the
   target dict after its initialization. They must have exactly one argument (the target
   dict) and can modify it; the return value is unused.
@@ -28,7 +30,6 @@ Features of FlexPlan WP3 API not supported in FlexPlan.jl:
 - number of hours depending on scenario (all scenarios must have the same number of hours);
 - combined transmission and distribution networks;
 - PSTs;
-- curtailment of renewable generators;
 - `gridModelInputFile.converters.ratedActivePowerDC`;
 - `gridModelInputFile.storage.minEnergy`;
 - `gridModelInputFile.storage.maxAbsRamp`;
@@ -44,10 +45,12 @@ function convert_JSON(file::String; kwargs...)
 end
 
 function convert_JSON(source::AbstractDict;
+        scale_gen::Real = 1.0,
+        scale_load::Real = 1.0,
         number_of_hours::Union{Int,Nothing} = nothing,
         number_of_scenarios::Union{Int,Nothing} = nothing,
         number_of_years::Union{Int,Nothing} = nothing,
-        cost_scale_factor::Float64 = 1.0,
+        cost_scale_factor::Real = 1.0,
         init_data_extensions::Vector{<:Function} = Function[],
         sn_data_extensions::Vector{<:Function} = Function[],
     )
@@ -143,7 +146,7 @@ function convert_JSON(source::AbstractDict;
     # Build data year by year
 
     for y in 1:number_of_years
-        sn_data = haskey(source, "candidatesInputFile") ? nw(source, lookup, cand_availability, y) : nw(source, lookup, y)
+        sn_data = haskey(source, "candidatesInputFile") ? nw(source, lookup, cand_availability, y; scale_gen) : nw(source, lookup, y; scale_gen)
         sn_data["dim"] = target["dim"]
         _FP.scale_data!(sn_data; year_idx=y, cost_scale_factor)
 
@@ -152,7 +155,7 @@ function convert_JSON(source::AbstractDict;
             f!(sn_data)
         end
 
-        time_series = make_time_series(source, lookup, y, sn_data; number_of_hours, number_of_scenarios)
+        time_series = make_time_series(source, lookup, y, sn_data; number_of_hours, number_of_scenarios, scale_load)
         year_data = _FP.make_multinetwork(sn_data, time_series; number_of_nws=number_of_hours*number_of_scenarios, nw_id_offset=number_of_hours*number_of_scenarios*(y-1))
         add_singular_data!(year_data, source, lookup, y)
         _FP.import_nws!(target, year_data)
