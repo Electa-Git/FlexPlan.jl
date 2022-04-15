@@ -113,8 +113,9 @@ function calc_gen_cost(pm::_PM.AbstractPowerModel, n::Int)
 
     gen = _PM.ref(pm, n, :gen)
     cost = sum(calc_single_gen_cost(i,g["cost"]) for (i,g) in gen)
-    if get(pm.setting, "add_co2_cost", false)
-        cost += sum(g["emission_factor"] * _PM.var(pm,n,:pg,i) * pm.ref[:it][_PM.pm_it_sym][:co2_emission_cost] for (i,g) in gen)
+    dgen = _PM.ref(pm, n, :dgen)
+    if get(pm.setting, "add_co2_cost", false) && !isempty(dgen)
+        cost += sum(g["emission_factor"] * _PM.var(pm,n,:pg,i) * pm.ref[:it][_PM.pm_it_sym][:co2_emission_cost] for (i,g) in dgen)
     end
     ndgen = _PM.ref(pm, n, :ndgen)
     if !isempty(ndgen)

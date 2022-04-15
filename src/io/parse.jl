@@ -60,6 +60,7 @@ function add_gen_data!(data::Dict{String,Any})
 
             # Convert the cost of power produced by non-dispatchable generators into
             # polynomial form (the same used by dispatchable generators).
+            ndgen["model"] = 2 # Cost model (2 => polynomial cost)
             ndgen["cost"] = [ndgen["cost_gen"], 0.0]
             delete!(ndgen, "cost_gen")
 

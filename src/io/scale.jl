@@ -71,6 +71,7 @@ function _scale_operational_cost_data!(data, number_of_hours, year_scale_factor,
     rescale = x -> (8760*year_scale_factor / number_of_hours) * cost_scale_factor * x # scale hourly costs to the planning horizon
     for (g, gen) in data["gen"]
         _PM._apply_func!(gen, "cost", rescale)
+        _PM._apply_func!(gen, "cost_curt", rescale)
     end
     for (l, load) in data["load"]
         _PM._apply_func!(load, "cost_shift", rescale) # Compensation for demand shifting
