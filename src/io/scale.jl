@@ -121,3 +121,210 @@ function _scale_investment_cost_data!(data, number_of_years, year_idx, cost_scal
         _PM._apply_func!(load, "co2_cost", rescale)
     end
 end
+
+"""
+    convert_mva_base(data, mva_base)
+
+Convert a data or solution Dict to a different per-unit system MVA base value.
+
+`data` can be single-network or multinetwork, but must already be in p.u.
+
+!!! danger
+    In case of multinetworks, make sure that variables from different networks are not bound
+    to the same value in memory (i.e., it must not happen that
+    `data["nw"][n1][...][key] === data["nw"][n2][...][key]`), otherwise the conversion of
+    those variables may be applied multiple times.
+"""
+function convert_mva_base!(data::Dict{String,<:Any}, mva_base::Real)
+    if haskey(data, "nw")
+        nws = data["nw"]
+    else
+        nws = Dict("0" => data)
+    end
+
+    for data_nw in values(nws)
+        if data_nw["baseMVA"] ≠ mva_base
+            mva_base_ratio = mva_base / data_nw["baseMVA"]
+
+            rescale         = x -> x / mva_base_ratio
+            rescale_inverse = x -> x * mva_base_ratio
+
+            _PM._apply_func!(data_nw, "baseMVA", rescale_inverse)
+
+            if haskey(data_nw, "bus")
+                for (i, bus) in data_nw["bus"]
+                    _PM._apply_func!(bus, "lam_kcl_i", rescale_inverse)
+                    _PM._apply_func!(bus, "lam_kcl_r", rescale_inverse)
+                end
+            end
+
+            for comp in ["branch", "ne_branch"]
+                if haskey(data_nw, comp)
+                    for (i, branch) in data_nw[comp]
+                        _PM._apply_func!(branch, "b_fr", rescale)
+                        _PM._apply_func!(branch, "b_to", rescale)
+                        _PM._apply_func!(branch, "br_r", rescale_inverse)
+                        _PM._apply_func!(branch, "br_x", rescale_inverse)
+                        _PM._apply_func!(branch, "c_rating_a", rescale)
+                        _PM._apply_func!(branch, "c_rating_b", rescale)
+                        _PM._apply_func!(branch, "c_rating_c", rescale)
+                        _PM._apply_func!(branch, "g_fr", rescale)
+                        _PM._apply_func!(branch, "g_to", rescale)
+                        _PM._apply_func!(branch, "rate_a", rescale)
+                        _PM._apply_func!(branch, "rate_b", rescale)
+                        _PM._apply_func!(branch, "rate_c", rescale)
+
+                        _PM._apply_func!(branch, "mu_sm_fr", rescale_inverse)
+                        _PM._apply_func!(branch, "mu_sm_to", rescale_inverse)
+                        _PM._apply_func!(branch, "pf", rescale)
+                        _PM._apply_func!(branch, "pt", rescale)
+                        _PM._apply_func!(branch, "qf", rescale)
+                        _PM._apply_func!(branch, "qt", rescale)
+                    end
+                end
+            end
+
+            if haskey(data_nw, "switch")
+                for (i, switch) in data_nw["switch"]
+                    _PM._apply_func!(switch, "current_rating", rescale)
+                    _PM._apply_func!(switch, "psw", rescale)
+                    _PM._apply_func!(switch, "qsw", rescale)
+                    _PM._apply_func!(switch, "thermal_rating", rescale)
+                end
+            end
+
+            for comp in ["busdc", "busdc_ne"]
+                if haskey(data_nw, comp)
+                    for (i, bus) in data_nw[comp]
+                        _PM._apply_func!(bus, "Pdc", rescale)
+                    end
+                end
+            end
+
+            for comp in ["branchdc", "branchdc_ne"]
+                if haskey(data_nw, comp)
+                    for (i, branch) in data_nw[comp]
+                        _PM._apply_func!(branch, "l", rescale_inverse)
+                        _PM._apply_func!(branch, "r", rescale_inverse)
+                        _PM._apply_func!(branch, "rateA", rescale)
+                        _PM._apply_func!(branch, "rateB", rescale)
+                        _PM._apply_func!(branch, "rateC", rescale)
+
+                        _PM._apply_func!(branch, "pf", rescale)
+                        _PM._apply_func!(branch, "pt", rescale)
+                    end
+                end
+            end
+
+            for comp in ["convdc", "convdc_ne"]
+                if haskey(data_nw, comp)
+                    for (i, conv) in data_nw[comp]
+                        _PM._apply_func!(conv, "bf", rescale)
+                        _PM._apply_func!(conv, "droop", rescale)
+                        _PM._apply_func!(conv, "Imax", rescale)
+                        _PM._apply_func!(conv, "LossA", rescale)
+                        _PM._apply_func!(conv, "LossCinv", rescale_inverse)
+                        _PM._apply_func!(conv, "LossCrec", rescale_inverse)
+                        _PM._apply_func!(conv, "P_g", rescale)
+                        _PM._apply_func!(conv, "Pacmax", rescale)
+                        _PM._apply_func!(conv, "Pacmin", rescale)
+                        _PM._apply_func!(conv, "Pacrated", rescale)
+                        _PM._apply_func!(conv, "Pdcset", rescale)
+                        _PM._apply_func!(conv, "Q_g", rescale)
+                        _PM._apply_func!(conv, "Qacmax", rescale)
+                        _PM._apply_func!(conv, "Qacmin", rescale)
+                        _PM._apply_func!(conv, "Qacrated", rescale)
+                        _PM._apply_func!(conv, "rc", rescale_inverse)
+                        _PM._apply_func!(conv, "rtf", rescale_inverse)
+                        _PM._apply_func!(conv, "xc", rescale_inverse)
+                        _PM._apply_func!(conv, "xtf", rescale_inverse)
+
+                        _PM._apply_func!(conv, "pconv", rescale)
+                        _PM._apply_func!(conv, "pdc", rescale)
+                        _PM._apply_func!(conv, "pgrid", rescale)
+                        _PM._apply_func!(conv, "ppr_fr", rescale)
+                        _PM._apply_func!(conv, "ptf_to", rescale)
+                    end
+                end
+            end
+
+            if haskey(data_nw, "gen")
+                for (i, gen) in data_nw["gen"]
+                    _PM._rescale_cost_model!(gen, mva_base_ratio)
+                    _PM._apply_func!(gen, "cost_curt", rescale_inverse)
+                    _PM._apply_func!(gen, "mbase", rescale_inverse)
+                    _PM._apply_func!(gen, "pmax", rescale)
+                    _PM._apply_func!(gen, "pmin", rescale)
+                    _PM._apply_func!(gen, "qmax", rescale)
+                    _PM._apply_func!(gen, "qmin", rescale)
+                    _PM._apply_func!(gen, "ramp_10", rescale)
+                    _PM._apply_func!(gen, "ramp_30", rescale)
+                    _PM._apply_func!(gen, "ramp_agc", rescale)
+                    _PM._apply_func!(gen, "ramp_q", rescale)
+
+                    _PM._apply_func!(gen, "pg", rescale)
+                    _PM._apply_func!(gen, "pgcurt", rescale)
+                    _PM._apply_func!(gen, "qg", rescale)
+                end
+            end
+
+            for comp in ["storage", "ne_storage"]
+                if haskey(data_nw, comp)
+                    for (i, strg) in data_nw[comp]
+                        _PM._apply_func!(strg, "charge_rating", rescale)
+                        _PM._apply_func!(strg, "current_rating", rescale)
+                        _PM._apply_func!(strg, "discharge_rating", rescale)
+                        _PM._apply_func!(strg, "energy_rating", rescale)
+                        _PM._apply_func!(strg, "energy", rescale)
+                        _PM._apply_func!(strg, "p_loss", rescale)
+                        _PM._apply_func!(strg, "q_loss", rescale)
+                        _PM._apply_func!(strg, "qmax", rescale)
+                        _PM._apply_func!(strg, "qmin", rescale)
+                        _PM._apply_func!(strg, "r", rescale_inverse)
+                        _PM._apply_func!(strg, "stationary_energy_inflow", rescale)
+                        _PM._apply_func!(strg, "stationary_energy_outflow", rescale)
+                        _PM._apply_func!(strg, "thermal_rating", rescale)
+                        _PM._apply_func!(strg, "x", rescale_inverse)
+
+                        _PM._apply_func!(strg, "ps", rescale_inverse)
+                        _PM._apply_func!(strg, "qs", rescale_inverse)
+                        _PM._apply_func!(strg, "qsc", rescale_inverse)
+                        _PM._apply_func!(strg, "sc", rescale_inverse)
+                        _PM._apply_func!(strg, "sd", rescale_inverse)
+                        _PM._apply_func!(strg, "se", rescale_inverse)
+                    end
+                end
+            end
+
+            if haskey(data_nw, "load")
+                for (i, load) in data_nw["load"]
+                    _PM._apply_func!(load, "cost_curt", rescale_inverse)
+                    _PM._apply_func!(load, "cost_red", rescale_inverse)
+                    _PM._apply_func!(load, "cost_shift", rescale_inverse)
+                    _PM._apply_func!(load, "ed", rescale)
+                    _PM._apply_func!(load, "pd", rescale)
+                    _PM._apply_func!(load, "qd", rescale)
+
+                    _PM._apply_func!(load, "pcurt", rescale)
+                    _PM._apply_func!(load, "pflex", rescale)
+                    _PM._apply_func!(load, "pred", rescale)
+                    _PM._apply_func!(load, "pshift_down", rescale)
+                    _PM._apply_func!(load, "pshift_up", rescale)
+                end
+            end
+
+            if haskey(data_nw, "shunt")
+                for (i, shunt) in data_nw["shunt"]
+                    _PM._apply_func!(shunt, "bs", rescale)
+                    _PM._apply_func!(shunt, "gs", rescale)
+                end
+            end
+
+            if haskey(data_nw, "td_coupling")
+                td_coupling = data_nw["td_coupling"]
+                _PM._apply_func!(td_coupling, "p", rescale)
+                _PM._apply_func!(td_coupling, "q", rescale)
+            end
+        end
+    end
+end
