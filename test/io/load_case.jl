@@ -18,6 +18,9 @@ Load `case6`, a 6-bus transmission network with data contributed by FlexPlan res
 - `number_of_years::Int = 3`: number of years (different investment sets).
 - `year_scale_factor::Int = 10`: how many years a representative year should represent [years].
 - `cost_scale_factor::Real = 1.0`: scale factor for all costs.
+- `share_data::Bool=true`: whether constant data is shared across networks (faster) or
+  duplicated (uses more memory, but ensures networks are independent; useful if further
+  transformations will be applied).
 """
 function load_case6(;
         flex_load::Bool = true,
@@ -28,6 +31,7 @@ function load_case6(;
         number_of_years::Int = 3,
         year_scale_factor::Int = 10, # years
         cost_scale_factor::Real = 1.0,
+        share_data::Bool = true,
     )
 
     sn_data_extensions = Function[]
@@ -46,7 +50,7 @@ function load_case6(;
         push!(sn_data_extensions, data_scale_load(scale_load))
     end
 
-    return create_multi_year_network_data("case6", number_of_hours, number_of_scenarios, number_of_years; year_scale_factor, cost_scale_factor, sn_data_extensions, mc=true)
+    return create_multi_year_network_data("case6", number_of_hours, number_of_scenarios, number_of_years; year_scale_factor, cost_scale_factor, sn_data_extensions, share_data, mc=true)
 end
 
 """
@@ -72,6 +76,9 @@ Extensions:
 - `year_scale_factor::Int = 10`: how many years a representative year should represent [years].
 - `energy_cost::Real = 50.0`: cost of energy exchanged with transmission network [€/MWh].
 - `cost_scale_factor::Real = 1.0`: scale factor for all costs.
+- `share_data::Bool=true`: whether constant data is shared across networks (faster) or
+  duplicated (uses more memory, but ensures networks are independent; useful if further
+  transformations will be applied).
 """
 function load_cigre_mv_eu(;
         flex_load::Bool = false,
@@ -84,6 +91,7 @@ function load_cigre_mv_eu(;
         year_scale_factor::Int = 10, # years
         energy_cost::Real = 50.0, # €/MWh
         cost_scale_factor::Real = 1.0,
+        share_data::Bool = true,
     )
 
     grid_file = normpath(@__DIR__,"..","data","cigre_mv_eu","cigre_mv_eu_more_storage.m")
@@ -116,7 +124,7 @@ function load_cigre_mv_eu(;
     _FP.scale_data!(sn_data; cost_scale_factor)
     _FP.add_td_coupling_data!(sn_data; sub_nw = 1)
     d_time_series = create_profile_data_cigre(sn_data, number_of_hours; start_period, scale_load, scale_gen, file_profiles_pu=normpath(@__DIR__,"..","data","cigre_mv_eu","time_series","CIGRE_profiles_per_unit_Italy.csv"))
-    d_mn_data = _FP.make_multinetwork(sn_data, d_time_series)
+    d_mn_data = _FP.make_multinetwork(sn_data, d_time_series; share_data)
 
     return d_mn_data
 end
@@ -139,6 +147,9 @@ Extensions:
   RES generators).
 - `number_of_years::Int = 3`: number of years (different investment sets).
 - `cost_scale_factor::Real = 1.0`: scale factor for all costs.
+- `share_data::Bool=true`: whether constant data is shared across networks (faster) or
+  duplicated (uses more memory, but ensures networks are independent; useful if further
+  transformations will be applied).
 """
 function load_ieee_33(;
         scale_gen::Real = 1.0,
@@ -147,6 +158,7 @@ function load_ieee_33(;
         number_of_scenarios::Int = 4,
         number_of_years::Int = 3,
         cost_scale_factor::Real = 1.0,
+        share_data::Bool = true,
     )
     file = normpath(@__DIR__,"..","data","ieee_33","ieee_33_672h_4s_3y.json")
 
@@ -160,6 +172,7 @@ function load_ieee_33(;
         cost_scale_factor,
         init_data_extensions = [data -> _FP.add_dimension!(data, :sub_nw, 1)],
         sn_data_extensions = [sn_data -> _FP.add_td_coupling_data!(sn_data; sub_nw=1)],
+        share_data,
     )
 end
 

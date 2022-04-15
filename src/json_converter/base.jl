@@ -23,6 +23,9 @@ Costs are scaled with the assumption that every representative year represents 1
   single-network dictionaries containing data for each single year, just before
   `_FP.make_multinetwork` is called. They must have exactly one argument (the single-network
   dict) and can modify it; the return value is unused.
+- `share_data::Bool=true`: whether constant data is shared across networks (faster) or
+  duplicated (uses more memory, but ensures networks are independent; useful if further
+  transformations will be applied).
 
 # Extended help
 Features of FlexPlan WP3 API not supported in FlexPlan.jl:
@@ -53,6 +56,7 @@ function convert_JSON(source::AbstractDict;
         cost_scale_factor::Real = 1.0,
         init_data_extensions::Vector{<:Function} = Function[],
         sn_data_extensions::Vector{<:Function} = Function[],
+        share_data::Bool = true,
     )
 
     # Define target dict
@@ -156,7 +160,7 @@ function convert_JSON(source::AbstractDict;
         end
 
         time_series = make_time_series(source, lookup, y, sn_data; number_of_hours, number_of_scenarios, scale_load)
-        year_data = _FP.make_multinetwork(sn_data, time_series; number_of_nws=number_of_hours*number_of_scenarios, nw_id_offset=number_of_hours*number_of_scenarios*(y-1))
+        year_data = _FP.make_multinetwork(sn_data, time_series; number_of_nws=number_of_hours*number_of_scenarios, nw_id_offset=number_of_hours*number_of_scenarios*(y-1), share_data)
         add_singular_data!(year_data, source, lookup, y)
         _FP.import_nws!(target, year_data)
     end

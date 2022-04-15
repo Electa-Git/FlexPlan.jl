@@ -19,6 +19,9 @@ year{...
   single-network dictionaries containing data for each single year, just before
   `_FP.make_multinetwork` is called. They must have exactly one argument (the single-network
   dict) and can modify it; the return value is unused.
+- `share_data::Bool=true`: whether constant data is shared across networks (faster) or
+  duplicated (uses more memory, but ensures networks are independent; useful if further
+  transformations will be applied).
 - `kwargs...`: other parameters used by specific test cases.
 """
 function create_multi_year_network_data(
@@ -29,6 +32,7 @@ function create_multi_year_network_data(
         year_scale_factor::Int = 10,
         cost_scale_factor::Real = 1.0,
         sn_data_extensions::Vector{<:Function} = Function[],
+        share_data::Bool = true,
         kwargs...
     )
     my_data = Dict{String, Any}("multinetwork"=>true, "name"=>case, "nw"=>Dict{String,Any}(), "per_unit"=>true)
@@ -70,13 +74,13 @@ function create_multi_year_network_data(
             f!(data)
         end
 
-        add_one_year!(my_data, case, data, year_idx)
+        add_one_year!(my_data, case, data, year_idx; share_data)
     end
 
     return my_data
 end
 
-function add_one_year!(my_data, case, data, year_idx)
+function add_one_year!(my_data, case, data, year_idx; share_data)
     number_of_nws = _FP.dim_length(data, :hour) * _FP.dim_length(data, :scenario)
     nw_id_offset = number_of_nws * (year_idx - 1)
     if case == "case6"
@@ -87,7 +91,7 @@ function add_one_year!(my_data, case, data, year_idx)
         error("Case \"$(case)\" not (yet) supported.")
     end
     time_series = create_profile_data(number_of_nws, data, loadprofile, genprofile)
-    mn_data = _FP.make_multinetwork(data, time_series; number_of_nws, nw_id_offset)
+    mn_data = _FP.make_multinetwork(data, time_series; number_of_nws, nw_id_offset, share_data)
     _FP.import_nws!(my_data, mn_data)
     return my_data
 end
