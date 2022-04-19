@@ -140,6 +140,7 @@ Extensions:
 - time series (672 hours, 4 scenarios) for loads and RES generators.
 
 # Arguments
+- `oltc::Bool=true`: whether to add an OLTC with ±10% voltage regulation to the transformer.
 - `scale_gen::Real = 1.0`: scale factor of all generators.
 - `scale_load::Real = 1.0`: scale factor of loads.
 - `number_of_hours::Int = 672`: number of hourly optimization periods.
@@ -152,6 +153,7 @@ Extensions:
   transformations will be applied).
 """
 function load_ieee_33(;
+        oltc::Bool = true,
         scale_gen::Real = 1.0,
         scale_load::Real = 1.0,
         number_of_hours::Int = 672,
@@ -164,6 +166,7 @@ function load_ieee_33(;
 
     return _FP.convert_JSON(
         file;
+        oltc,
         scale_gen,
         scale_load,
         number_of_hours,

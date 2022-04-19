@@ -7,6 +7,8 @@ Convert a JSON `file` or a `dict` conforming to the FlexPlan WP3 API into a Flex
 Costs are scaled with the assumption that every representative year represents 10 years.
 
 # Arguments
+- `oltc::Bool=true`: in distribution networks, whether to add OLTCs with ±10% voltage
+  regulation to existing and candidate transformers.
 - `scale_gen::Real=1.0`: scale factor of all generators.
 - `scale_load::Real=1.0`: scale factor of loads.
 - `number_of_hours::Union{Int,Nothing}=nothing`: parse only the first hours of the
@@ -48,6 +50,7 @@ function convert_JSON(file::String; kwargs...)
 end
 
 function convert_JSON(source::AbstractDict;
+        oltc::Bool = true,
         scale_gen::Real = 1.0,
         scale_load::Real = 1.0,
         number_of_hours::Union{Int,Nothing} = nothing,
@@ -150,7 +153,7 @@ function convert_JSON(source::AbstractDict;
     # Build data year by year
 
     for y in 1:number_of_years
-        sn_data = haskey(source, "candidatesInputFile") ? nw(source, lookup, cand_availability, y; scale_gen) : nw(source, lookup, y; scale_gen)
+        sn_data = haskey(source, "candidatesInputFile") ? nw(source, lookup, cand_availability, y; oltc, scale_gen) : nw(source, lookup, y; oltc, scale_gen)
         sn_data["dim"] = target["dim"]
         _FP.scale_data!(sn_data; year_idx=y, cost_scale_factor)
 
