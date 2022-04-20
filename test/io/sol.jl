@@ -184,7 +184,7 @@ function sol_report_cost_summary(sol::Dict{String,Any}, data::Dict{String,Any}; 
     inv = sum_investment_cost((d,s) -> sum(d["branchdc_ne"][i]["cost"] for (i,branch) in get(s,"branchdc_ne",Dict()) if branch["investment"]>0.5; init=0.0))
     push!(df, ("DC branches", inv, 0.0, 0.0, 0.0, 0.0))
 
-    inv = sum_investment_cost((d,s) -> sum(d["load"][i]["cost_inv"] for (i,load) in s["load"] if load["investment"]>0.5; init=0.0))
+    inv = sum_investment_cost((d,s) -> sum(d["load"][i]["cost_inv"] for (i,load) in s["load"] if get(load,"investment",0.0)>0.5; init=0.0))
     shift = sum_operation_cost((d,s,n) -> sum(get(d["load"][i],"cost_shift",0.0) * 0.5*(load["pshift_up"]+load["pshift_down"]) for (i,load) in s["load"]; init=0.0))
     red = sum_operation_cost((d,s,n) -> sum(get(d["load"][i],"cost_red",0.0) * load["pred"] for (i,load) in s["load"]; init=0.0))
     curt = sum_operation_cost((d,s,n) -> sum(d["load"][i]["cost_curt"] * load["pcurt"] for (i,load) in s["load"]; init=0.0))
@@ -745,7 +745,7 @@ function sol_report_load(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir:
         s = _FP.coord(dim, n, :scenario)
         y = _FP.coord(dim, n, :year)
         for (i,load) in sol_nw["load"]
-            flex = Bool(round(Int,load["flex"]))
+            flex = Bool(round(Int,get(load,"flex",data_nw["load"][i]["flex"])))
             pd = data_nw["load"][i]["pd"]
             push!(df, (h, s, y, parse(Int,i), flex, pd, load["pflex"], load["pshift_up"], load["pshift_down"], load["pred"], load["pcurt"]))
         end
