@@ -4,7 +4,6 @@ function make_time_series(source::AbstractDict, lookup::AbstractDict, y::Int, sn
         "gen"        => Dict{String,Any}(),
         "load"       => Dict{String,Any}(),
         "storage"    => Dict{String,Any}(),
-        "ne_storage" => Dict{String,Any}(),
     )
 
     for comp in source["scenarioDataInputFile"]["generators"]
@@ -41,6 +40,7 @@ function make_time_series(source::AbstractDict, lookup::AbstractDict, y::Int, sn
     end
 
     if haskey(source, "candidatesInputFile")
+        target["ne_storage"] = Dict{String,Any}()
         for cand in source["candidatesInputFile"]["storage"]
             comp = cand["storageData"]
             index = lookup["cand_storage"][comp["id"]]
