@@ -15,30 +15,31 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; optimizer, s
     add_storage_power_active_lb!(mn_data_up, sol_base)
     add_ne_storage_power_active_lb!(mn_data_up, sol_base)
     add_load_power_active_lb!(mn_data_up, sol_base)
-    sol_up = run_td_decoupling_model(mn_data_up, build_max_import_with_current_investments_monotonic, optimizer; setting)
+    sol_up = run_td_decoupling_model(mn_data_up, build_max_import_with_current_investments_monotonic, optimizer; relax_integrality=true, setting)
     apply_td_coupling_power_active!(mn_data_up, sol_up)
-    sol_up = run_td_decoupling_model(mn_data_up, build_min_cost_at_max_import_monotonic, optimizer; setting)
+    sol_up = run_td_decoupling_model(mn_data_up, build_min_cost_at_max_import_monotonic, optimizer; relax_integrality=true, setting)
 
     mn_data_down = deepcopy(mn_data)
     apply_gen_power_active_lb!(mn_data_down, sol_base)
     add_storage_power_active_ub!(mn_data_down, sol_base)
     add_ne_storage_power_active_ub!(mn_data_down, sol_base)
     add_load_power_active_ub!(mn_data_down, sol_base)
-    sol_down = run_td_decoupling_model(mn_data_down, build_max_export_with_current_investments_monotonic, optimizer; setting)
+    sol_down = run_td_decoupling_model(mn_data_down, build_max_export_with_current_investments_monotonic, optimizer; relax_integrality=true, setting)
     apply_td_coupling_power_active!(mn_data_down, sol_down)
-    sol_down = run_td_decoupling_model(mn_data_down, build_min_cost_at_max_export_monotonic, optimizer; setting)
+    sol_down = run_td_decoupling_model(mn_data_down, build_min_cost_at_max_export_monotonic, optimizer; relax_integrality=true, setting)
 
     return sol_up, sol_base, sol_down
 end
 
 "Run a model with usual parameters and model type; error if not solved to optimality."
-function run_td_decoupling_model(data::Dict{String,Any}, build_function::Function, optimizer; kwargs...)
+function run_td_decoupling_model(data::Dict{String,Any}, build_function::Function, optimizer; relax_integrality=false, kwargs...)
     Memento.info(_LOGGER, "running $(String(nameof(build_function)))...")
     result = _PM.run_model(
         data, _FP.BFARadPowerModel, optimizer, build_function;
         ref_extensions = [_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!],
         solution_processors = [_PM.sol_data_model!, _FP.sol_td_coupling!],
         multinetwork = true,
+        relax_integrality,
         kwargs...
     )
     Memento.info(_LOGGER, "solved $(String(nameof(build_function))) in $(round(Int,result["solve_time"])) seconds")
