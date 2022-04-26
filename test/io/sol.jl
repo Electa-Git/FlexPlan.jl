@@ -882,7 +882,7 @@ end
 """
     sol_report_storage(sol, data; <keyword arguments>)
 
-Report energy level and energy rating of each storage.
+Report energy and power of each storage.
 
 Return a DataFrame; optionally write a CSV table and a plot.
 
@@ -900,7 +900,7 @@ function sol_report_storage(sol::Dict{String,Any}, data::Dict{String,Any}; out_d
     _FP.require_dim(data, :hour, :scenario, :year)
     dim = data["dim"]
 
-    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], component=String[], id=Int[], energy=Float64[], energy_rating=Float64[])
+    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], component=String[], id=Int[], energy=Float64[], energy_rating=Float64[], power=Float64[], power_min=Float64[], power_max=Float64[])
 
     # Read from `data` the initial energy of the first period, indexing it as hour 0.
     for n in _FP.nw_ids(dim; hour=1)
@@ -909,14 +909,16 @@ function sol_report_storage(sol::Dict{String,Any}, data::Dict{String,Any}; out_d
         s = _FP.coord(dim, n, :scenario)
         y = _FP.coord(dim, n, :year)
         for (i, st) in get(sol_nw, "storage", Dict{String,Any}())
-            push!(df, (0, s, y, "storage", parse(Int,i), data_nw["storage"][i]["energy"], data_nw["storage"][i]["energy_rating"]))
+            data_st = data_nw["storage"][i]
+            push!(df, (0, s, y, "storage", parse(Int,i), data_st["energy"], data_st["energy_rating"], NaN, NaN, NaN))
         end
         for (i, st) in get(sol_nw, "ne_storage", Dict{String,Any}())
             built = st["isbuilt"] > 0.5
-            push!(df, (0, s, y, "ne_storage", parse(Int,i), data_nw["ne_storage"][i]["energy"]*built, data_nw["ne_storage"][i]["energy_rating"]*built))
+            data_st = data_nw["ne_storage"][i]
+            push!(df, (0, s, y, "ne_storage", parse(Int,i), data_st["energy"]*built, data_st["energy_rating"]*built, NaN, NaN, NaN))
         end
     end
-    # Read from `sol` the final energy of each period, indexing it with the corresponding period.
+    # Read from `sol` power and final energy of each period.
     for n in _FP.nw_ids(dim)
         sol_nw = sol["nw"]["$n"]
         data_nw = data["nw"]["$n"]
@@ -924,11 +926,13 @@ function sol_report_storage(sol::Dict{String,Any}, data::Dict{String,Any}; out_d
         s = _FP.coord(dim, n, :scenario)
         y = _FP.coord(dim, n, :year)
         for (i, st) in get(sol_nw, "storage", Dict{String,Any}())
-            push!(df, (h, s, y, "storage", parse(Int,i), st["se"], data_nw["storage"][i]["energy_rating"]))
+            data_st = data_nw["storage"][i]
+            push!(df, (h, s, y, "storage", parse(Int,i), st["se"], data_st["energy_rating"], st["ps"], -data_st["discharge_rating"], data_st["charge_rating"]))
         end
         for (i, st) in get(sol_nw, "ne_storage", Dict{String,Any}())
             built = st["isbuilt"] > 0.5
-            push!(df, (h, s, y, "ne_storage", parse(Int,i), st["se_ne"]*built, data_nw["ne_storage"][i]["energy_rating"]*built))
+            data_st = data_nw["ne_storage"][i]
+            push!(df, (h, s, y, "ne_storage", parse(Int,i), st["se_ne"]*built, data_st["energy_rating"]*built, st["ps_ne"], -data_st["discharge_rating"], data_st["charge_rating"]))
         end
     end
     sort!(df, [:year, :scenario, order(:component, rev=true), :id, :hour])
@@ -940,6 +944,7 @@ function sol_report_storage(sol::Dict{String,Any}, data::Dict{String,Any}; out_d
     if !isempty(plot)
         gd = groupby(df, [:scenario, :year])
         for k in keys(gd)
+            # Energy plot
             sdf = select(gd[k], :hour, [:component,:id] => ByRow((c,i)->"$(c)_$i") => :comp_id, :energy, [:energy_rating,:energy] => ByRow(-) => :ribbon_up, :energy => :ribbon_dn)
             few_storage = length(unique(sdf.comp_id)) ≤ 24
             plt = Plots.plot(
@@ -968,7 +973,39 @@ function sol_report_storage(sol::Dict{String,Any}, data::Dict{String,Any}; out_d
                 plot_titlevspan = 0.07,
             )
             name, ext = splitext(plot)
-            savefig(plt, joinpath(out_dir,"$(name)_y$(k.year)_s$(k.scenario)$ext"))
+            savefig(plt, joinpath(out_dir,"$(name)_energy_y$(k.year)_s$(k.scenario)$ext"))
+
+            # Power plot
+            sdf = select(gd[k], :hour, [:component,:id] => ByRow((c,i)->"$(c)_$i") => :comp_id, :power, [:power_max,:power] => ByRow(-) => :ribbon_up, [:power,:power_min] => ByRow(-) => :ribbon_dn)
+            few_storage = length(unique(sdf.comp_id)) ≤ 24
+            plt = Plots.plot(
+                title = "scenario $(k.scenario), year $(k.year)",
+                titlefontsize = 8,
+                yguide = "Absorbed power [p.u.]",
+                xguide = "Time [periods]",
+                framestyle = :zerolines,
+                legend_position = few_storage ? :outertopright : :none,
+            )
+            gsd = groupby(sdf, :comp_id)
+            for i in keys(gsd)
+                ssdf = select(gsd[i], :hour, :power, :ribbon_up, :ribbon_dn)
+                sort!(ssdf, :hour)
+                @df ssdf plot!(plt, :hour, :power;
+                    fillalpha = 0.05,
+                    ribbon = (:ribbon_dn, :ribbon_up),
+                    seriestype = :stepmid,
+                    seriescolor = few_storage ? :auto : HSL(210,0.75,0.5),
+                    linewidth = few_storage ? 1.0 : 0.5,
+                    label = "$(i.comp_id)",
+                )
+            end
+            # Needed to add below data after the for loop because otherwise an unwanted second axes frame is rendered under the plot_title.
+            plot!(plt,
+                plot_title = "Storage",
+                plot_titlevspan = 0.07,
+            )
+            name, ext = splitext(plot)
+            savefig(plt, joinpath(out_dir,"$(name)_power_y$(k.year)_s$(k.scenario)$ext"))
         end
     end
 
@@ -978,7 +1015,7 @@ end
 """
     sol_report_storage_summary(sol, data; <keyword arguments>)
 
-Report the aggregated energy and energy rating of connected storage.
+Report aggregated energy and power of connected storage.
 
 Return a DataFrame; optionally write a CSV table and a plot.
 
@@ -996,7 +1033,7 @@ function sol_report_storage_summary(sol::Dict{String,Any}, data::Dict{String,Any
     _FP.require_dim(data, :hour, :scenario, :year)
     dim = data["dim"]
 
-    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], energy=Float64[], energy_rating=Float64[])
+    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], energy=Float64[], energy_rating=Float64[], power=Float64[], power_min=Float64[], power_max=Float64[])
 
     # Read from `data` the initial energy of the first period, indexing it as hour 0.
     for n in _FP.nw_ids(dim; hour=1)
@@ -1006,9 +1043,9 @@ function sol_report_storage_summary(sol::Dict{String,Any}, data::Dict{String,Any
         y = _FP.coord(dim, n, :year)
         energy = sum(st["energy"] for st in values(get(data_nw,"storage",Dict())) if st["status"]>0; init=0.0) + sum(data_nw["ne_storage"][s]["energy"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
         energy_rating = sum(st["energy_rating"] for st in values(get(data_nw,"storage",Dict())) if st["status"]>0; init=0.0) + sum(data_nw["ne_storage"][s]["energy_rating"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
-        push!(df, (0, s, y, energy, energy_rating))
+        push!(df, (0, s, y, energy, energy_rating, NaN, NaN, NaN))
     end
-    # Read from `sol` the final energy of each period, indexing it with the corresponding period.
+    # Read from `sol` power and final energy of each period.
     for n in _FP.nw_ids(dim)
         sol_nw = sol["nw"]["$n"]
         data_nw = data["nw"]["$n"]
@@ -1017,7 +1054,10 @@ function sol_report_storage_summary(sol::Dict{String,Any}, data::Dict{String,Any
         y = _FP.coord(dim, n, :year)
         energy = sum(st["se"] for (s,st) in get(sol_nw,"storage",Dict()) if data_nw["storage"][s]["status"]>0; init=0.0) + sum(st["se_ne"] for st in values(get(sol_nw,"ne_storage",Dict())) if st["isbuilt"]>0.5; init=0.0)
         energy_rating = sum(st["energy_rating"] for st in values(get(data_nw,"storage",Dict())) if st["status"]>0; init=0.0) + sum(data_nw["ne_storage"][s]["energy_rating"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
-        push!(df, (h, s, y, energy, energy_rating))
+        power = sum(st["ps"] for (s,st) in get(sol_nw,"storage",Dict()) if data_nw["storage"][s]["status"]>0; init=0.0) + sum(st["ps_ne"] for st in values(get(sol_nw,"ne_storage",Dict())) if st["isbuilt"]>0.5; init=0.0)
+        power_min = -sum(st["discharge_rating"] for (s,st) in get(data_nw,"storage",Dict()) if st["status"]>0; init=0.0) - sum(data_nw["ne_storage"][s]["discharge_rating"] for st in values(get(sol_nw,"ne_storage",Dict())) if st["isbuilt"]>0.5; init=0.0)
+        power_max = sum(st["charge_rating"] for (s,st) in get(data_nw,"storage",Dict()) if st["status"]>0; init=0.0) + sum(data_nw["ne_storage"][s]["charge_rating"] for st in values(get(sol_nw,"ne_storage",Dict())) if st["isbuilt"]>0.5; init=0.0)
+        push!(df, (h, s, y, energy, energy_rating, power, power_min, power_max))
     end
     sort!(df, [:year, :scenario, :hour])
 
@@ -1028,6 +1068,7 @@ function sol_report_storage_summary(sol::Dict{String,Any}, data::Dict{String,Any
     if !isempty(plot)
         gd = groupby(df, [:scenario, :year])
         for k in keys(gd)
+            # Energy plot
             sdf = select(gd[k], :hour, :energy, [:energy_rating,:energy] => ByRow(-) => :ribbon_up, :energy => :ribbon_dn)
             sort!(sdf, :hour)
             plt = @df sdf Plots.plot(:hour, :energy;
@@ -1044,7 +1085,27 @@ function sol_report_storage_summary(sol::Dict{String,Any}, data::Dict{String,Any
                 seriescolor = HSL(210,0.75,0.5),
             )
             name, ext = splitext(plot)
-            savefig(plt, joinpath(out_dir,"$(name)_y$(k.year)_s$(k.scenario)$ext"))
+            savefig(plt, joinpath(out_dir,"$(name)_energy_y$(k.year)_s$(k.scenario)$ext"))
+
+            # Power plot
+            sdf = select(gd[k], :hour, :power, [:power_max,:power] => ByRow(-) => :ribbon_up, [:power,:power_min] => ByRow(-) => :ribbon_dn)
+            sort!(sdf, :hour)
+            plt = @df sdf Plots.plot(:hour, :power;
+                plot_title = "Aggregated storage",
+                plot_titlevspan = 0.07,
+                title = "scenario $(k.scenario), year $(k.year)",
+                titlefontsize = 8,
+                yguide = "Absorbed power [p.u.]",
+                xguide = "Time [periods]",
+                framestyle = :zerolines,
+                legend_position = :none,
+                seriestype = :stepmid,
+                fillalpha = 0.1,
+                ribbon = (:ribbon_dn, :ribbon_up),
+                seriescolor = HSL(210,0.75,0.5),
+            )
+            name, ext = splitext(plot)
+            savefig(plt, joinpath(out_dir,"$(name)_power_y$(k.year)_s$(k.scenario)$ext"))
         end
     end
 
