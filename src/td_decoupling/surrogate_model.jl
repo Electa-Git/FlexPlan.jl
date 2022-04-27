@@ -188,10 +188,11 @@ function surrogate_storage_ts(storage, od, up, bs, dn; standalone)
     storage["discharge_rating"]          = min(ps_bs - ps_dn, -dn["td_coupling"]["p"])
     storage["stationary_energy_inflow"]  = max.(ext_flow, 0.0)
     storage["stationary_energy_outflow"] = -min.(ext_flow, 0.0)
-
-    if standalone
-        storage["thermal_rating"] = 2 * max(storage["charge_rating"], storage["discharge_rating"]) # To avoid that thermal rating limits active power, even in the case of octagonal approximation of apparent power.
-    end
+    storage["thermal_rating"]            = 2 * max(storage["charge_rating"], storage["discharge_rating"]) # To avoid that thermal rating limits active power, even in the case of octagonal approximation of apparent power.
+    storage["p_loss"]                    = 0.0
+    storage["q_loss"]                    = 0.0
+    storage["r"]                         = 0.0
+    storage["x"]                         = 0.0
 
     return storage
 end
