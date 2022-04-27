@@ -15,6 +15,9 @@ year{...
 # Keyword arguments
 - `year_scale_factor::Int=10`: how many years a representative year should represent.
 - `cost_scale_factor`: scale factor for all costs (default: `1.0`).
+- `init_data_extensions::Vector{<:Function}=Function[]`: functions to be applied to the
+  target dict after its initialization. They must have exactly one argument (the target
+  dict) and can modify it; the return value is unused.
 - `sn_data_extensions::Vector{<:Function}=Function[]`: functions to be applied to the
   single-network dictionaries containing data for each single year, just before
   `_FP.make_multinetwork` is called. They must have exactly one argument (the single-network
@@ -31,6 +34,7 @@ function create_multi_year_network_data(
         number_of_years::Int;
         year_scale_factor::Int = 10,
         cost_scale_factor::Real = 1.0,
+        init_data_extensions::Vector{<:Function} = Function[],
         sn_data_extensions::Vector{<:Function} = Function[],
         share_data::Bool = true,
         kwargs...
@@ -60,6 +64,11 @@ function create_multi_year_network_data(
         _FP.add_dimension!(my_data, :year, number_of_years; metadata = Dict{String,Any}("scale_factor"=>year_scale_factor))
     else
         error("Case \"$(case)\" not (yet) supported.")
+    end
+
+    # Apply init data extensions
+    for f! in init_data_extensions
+        f!(my_data)
     end
 
     for year_idx = 1 : number_of_years

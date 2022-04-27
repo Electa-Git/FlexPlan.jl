@@ -18,6 +18,13 @@ Load `case6`, a 6-bus transmission network with data contributed by FlexPlan res
 - `number_of_years::Int = 3`: number of years (different investment sets).
 - `year_scale_factor::Int = 10`: how many years a representative year should represent [years].
 - `cost_scale_factor::Real = 1.0`: scale factor for all costs.
+- `init_data_extensions::Vector{<:Function}=Function[]`: functions to be applied to the
+  target dict after its initialization. They must have exactly one argument (the target
+  dict) and can modify it; the return value is unused.
+- `sn_data_extensions::Vector{<:Function}=Function[]`: functions to be applied to the
+  single-network dictionaries containing data for each single year, just before
+  `_FP.make_multinetwork` is called. They must have exactly one argument (the single-network
+  dict) and can modify it; the return value is unused.
 - `share_data::Bool=true`: whether constant data is shared across networks (faster) or
   duplicated (uses more memory, but ensures networks are independent; useful if further
   transformations will be applied).
@@ -31,10 +38,11 @@ function load_case6(;
         number_of_years::Int = 3,
         year_scale_factor::Int = 10, # years
         cost_scale_factor::Real = 1.0,
+        init_data_extensions::Vector{<:Function} = Function[],
+        sn_data_extensions::Vector{<:Function} = Function[],
         share_data::Bool = true,
     )
 
-    sn_data_extensions = Function[]
     if !flex_load
         function fixed_load!(data)
             for load in values(data["load"])
@@ -50,7 +58,7 @@ function load_case6(;
         push!(sn_data_extensions, data_scale_load(scale_load))
     end
 
-    return create_multi_year_network_data("case6", number_of_hours, number_of_scenarios, number_of_years; year_scale_factor, cost_scale_factor, sn_data_extensions, share_data, mc=true)
+    return create_multi_year_network_data("case6", number_of_hours, number_of_scenarios, number_of_years; year_scale_factor, cost_scale_factor, init_data_extensions, sn_data_extensions, share_data, mc=true)
 end
 
 """
