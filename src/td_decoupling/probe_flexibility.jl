@@ -1,10 +1,10 @@
-function probe_distribution_flexibility!(mn_data::Dict{String,Any}; optimizer, setting=Dict{String,Any}())
+function probe_distribution_flexibility!(mn_data::Dict{String,Any}; model_type, optimizer, build_method, ref_extensions, solution_processors, setting=Dict{String,Any}())
     _FP.require_dim(mn_data, :sub_nw)
     if _FP.dim_length(mn_data, :sub_nw) > 1
-        Memento.error(_LOGGER, "A single distribution network is required ($(dim_length(mn_data, :sub_nw)) found)")
+        Memento.error(_LOGGER, "A single distribution network is required ($(_FP.dim_length(mn_data, :sub_nw)) found)")
     end
 
-    sol_base = run_td_decoupling_model(mn_data, _FP.post_simple_stoch_flex_tnep, optimizer; setting)
+    sol_base = run_td_decoupling_model(mn_data; model_type, optimizer, build_method, ref_extensions, solution_processors, setting)
 
     add_ne_branch_indicator!(mn_data, sol_base)
     add_ne_storage_indicator!(mn_data, sol_base)
@@ -15,36 +15,37 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; optimizer, s
     add_storage_power_active_lb!(mn_data_up, sol_base)
     add_ne_storage_power_active_lb!(mn_data_up, sol_base)
     add_load_power_active_lb!(mn_data_up, sol_base)
-    sol_up = run_td_decoupling_model(mn_data_up, build_max_import_with_current_investments_monotonic, optimizer; relax_integrality=true, setting)
+    sol_up = run_td_decoupling_model(mn_data_up; model_type, optimizer, build_method=build_max_import_with_current_investments_monotonic(build_method), ref_extensions, solution_processors, setting, relax_integrality=true)
     apply_td_coupling_power_active!(mn_data_up, sol_up)
-    sol_up = run_td_decoupling_model(mn_data_up, build_min_cost_at_max_import_monotonic, optimizer; relax_integrality=true, setting)
+    sol_up = run_td_decoupling_model(mn_data_up; model_type, optimizer, build_method=build_min_cost_at_max_import_monotonic(build_method), ref_extensions, solution_processors, setting, relax_integrality=true)
 
     mn_data_down = deepcopy(mn_data)
     apply_gen_power_active_lb!(mn_data_down, sol_base)
     add_storage_power_active_ub!(mn_data_down, sol_base)
     add_ne_storage_power_active_ub!(mn_data_down, sol_base)
     add_load_power_active_ub!(mn_data_down, sol_base)
-    sol_down = run_td_decoupling_model(mn_data_down, build_max_export_with_current_investments_monotonic, optimizer; relax_integrality=true, setting)
+    sol_down = run_td_decoupling_model(mn_data_down; model_type, optimizer, build_method=build_max_export_with_current_investments_monotonic(build_method), ref_extensions, solution_processors, setting, relax_integrality=true)
     apply_td_coupling_power_active!(mn_data_down, sol_down)
-    sol_down = run_td_decoupling_model(mn_data_down, build_min_cost_at_max_export_monotonic, optimizer; relax_integrality=true, setting)
+    sol_down = run_td_decoupling_model(mn_data_down; model_type, optimizer, build_method=build_min_cost_at_max_export_monotonic(build_method), ref_extensions, solution_processors, setting, relax_integrality=true)
 
     return sol_up, sol_base, sol_down
 end
 
 "Run a model with usual parameters and model type; error if not solved to optimality."
-function run_td_decoupling_model(data::Dict{String,Any}, build_function::Function, optimizer; relax_integrality=false, kwargs...)
-    Memento.info(_LOGGER, "running $(String(nameof(build_function)))...")
+function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optimizer, build_method::Function, ref_extensions, solution_processors, setting, relax_integrality=false, kwargs...)
+    Memento.debug(_LOGGER, "┌ running $(String(nameof(build_method)))...")
     result = _PM.run_model(
-        data, _FP.BFARadPowerModel, optimizer, build_function;
-        ref_extensions = [_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!],
-        solution_processors = [_PM.sol_data_model!, _FP.sol_td_coupling!],
+        data, model_type, optimizer, build_method;
+        ref_extensions,
+        solution_processors,
         multinetwork = true,
         relax_integrality,
+        setting,
         kwargs...
     )
-    Memento.info(_LOGGER, "solved $(String(nameof(build_function))) in $(round(Int,result["solve_time"])) seconds")
+    Memento.debug(_LOGGER, "└ solved in $(round(Int,result["solve_time"])) seconds")
     if result["termination_status"] ∉ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED)
-        Memento.error(_LOGGER, "Unable to solve $(String(nameof(build_function))) ($(result["optimizer"]) termination status: $(result["termination_status"]))")
+        Memento.error(_LOGGER, "Unable to solve $(String(nameof(build_method))) ($(result["optimizer"]) termination status: $(result["termination_status"]))")
     end
     return result["solution"]
 end
@@ -152,89 +153,105 @@ end
 
 ## Problems
 
-function build_max_import(pm::_PM.AbstractBFModel)
-    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
-    objective_max_import(pm)
-end
-
-function build_max_export(pm::_PM.AbstractBFModel)
-    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
-    objective_max_export(pm)
-end
-
-function build_max_import_with_current_investments(pm::_PM.AbstractBFModel)
-    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
-    for n in _PM.nw_ids(pm)
-        constraint_ne_branch_indicator_fix(pm, n)
-        constraint_ne_storage_indicator_fix(pm, n)
-        constraint_flex_load_indicator_fix(pm, n)
-    end
-    objective_max_import(pm)
-end
-
-function build_max_export_with_current_investments(pm::_PM.AbstractBFModel)
-    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
-    for n in _PM.nw_ids(pm)
-        constraint_ne_branch_indicator_fix(pm, n)
-        constraint_ne_storage_indicator_fix(pm, n)
-        constraint_flex_load_indicator_fix(pm, n)
-    end
-    objective_max_export(pm)
-end
-
-function build_max_import_with_current_investments_monotonic(pm::_PM.AbstractBFModel)
-    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
-    for n in _PM.nw_ids(pm)
-        constraint_ne_branch_indicator_fix(pm, n)
-        constraint_ne_storage_indicator_fix(pm, n)
-        constraint_flex_load_indicator_fix(pm, n)
-        # gen_power_active_ub already applied in data
-        constraint_storage_power_active_lb(pm, n)
-        constraint_ne_storage_power_active_lb(pm, n)
-        constraint_load_power_active_lb(pm, n)
-    end
-    objective_max_import(pm)
-end
-
-function build_max_export_with_current_investments_monotonic(pm::_PM.AbstractBFModel)
-    _FP.post_simple_stoch_flex_tnep(pm; objective = false, intertemporal_constraints = false)
-    for n in _PM.nw_ids(pm)
-        constraint_ne_branch_indicator_fix(pm, n)
-        constraint_ne_storage_indicator_fix(pm, n)
-        constraint_flex_load_indicator_fix(pm, n)
-        # gen_power_active_lb already applied in data
-        constraint_storage_power_active_ub(pm, n)
-        constraint_ne_storage_power_active_ub(pm, n)
-        constraint_load_power_active_ub(pm, n)
-    end
-    objective_max_export(pm)
-end
-
-function build_min_cost_at_max_import_monotonic(pm::_PM.AbstractBFModel)
-    _FP.post_simple_stoch_flex_tnep(pm; objective = true, intertemporal_constraints = false)
-    for n in _PM.nw_ids(pm)
-        constraint_ne_branch_indicator_fix(pm, n)
-        constraint_ne_storage_indicator_fix(pm, n)
-        constraint_flex_load_indicator_fix(pm, n)
-        # td_coupling_power_active already fixed in data
-        # gen_power_active_ub already applied in data
-        constraint_storage_power_active_lb(pm, n)
-        constraint_ne_storage_power_active_lb(pm, n)
-        constraint_load_power_active_lb(pm, n)
+function build_max_import(build_method::Function)
+    function build_max_import(pm::_PM.AbstractBFModel)
+        build_method(pm; objective = false, intertemporal_constraints = false)
+        objective_max_import(pm)
     end
 end
 
-function build_min_cost_at_max_export_monotonic(pm::_PM.AbstractBFModel)
-    _FP.post_simple_stoch_flex_tnep(pm; objective = true, intertemporal_constraints = false)
-    for n in _PM.nw_ids(pm)
-        constraint_ne_branch_indicator_fix(pm, n)
-        constraint_ne_storage_indicator_fix(pm, n)
-        constraint_flex_load_indicator_fix(pm, n)
-        # td_coupling_power_active already fixed in data
-        # gen_power_active_lb already applied in data
-        constraint_storage_power_active_ub(pm, n)
-        constraint_ne_storage_power_active_ub(pm, n)
-        constraint_load_power_active_ub(pm, n)
+function build_max_export(build_method::Function)
+    function build_max_export(pm::_PM.AbstractBFModel)
+        build_method(pm; objective = false, intertemporal_constraints = false)
+        objective_max_export(pm)
+    end
+end
+
+function build_max_import_with_current_investments(build_method::Function)
+    function build_max_import_with_current_investments(pm::_PM.AbstractBFModel)
+        build_method(pm; objective = false, intertemporal_constraints = false)
+        for n in _PM.nw_ids(pm)
+            constraint_ne_branch_indicator_fix(pm, n)
+            constraint_ne_storage_indicator_fix(pm, n)
+            constraint_flex_load_indicator_fix(pm, n)
+        end
+        objective_max_import(pm)
+    end
+end
+
+function build_max_export_with_current_investments(build_method::Function)
+    function build_max_export_with_current_investments(pm::_PM.AbstractBFModel)
+        build_method(pm; objective = false, intertemporal_constraints = false)
+        for n in _PM.nw_ids(pm)
+            constraint_ne_branch_indicator_fix(pm, n)
+            constraint_ne_storage_indicator_fix(pm, n)
+            constraint_flex_load_indicator_fix(pm, n)
+        end
+        objective_max_export(pm)
+    end
+end
+
+function build_max_import_with_current_investments_monotonic(build_method::Function)
+    function build_max_import_with_current_investments_monotonic(pm::_PM.AbstractBFModel)
+        build_method(pm; objective = false, intertemporal_constraints = false)
+        for n in _PM.nw_ids(pm)
+            constraint_ne_branch_indicator_fix(pm, n)
+            constraint_ne_storage_indicator_fix(pm, n)
+            constraint_flex_load_indicator_fix(pm, n)
+            # gen_power_active_ub already applied in data
+            constraint_storage_power_active_lb(pm, n)
+            constraint_ne_storage_power_active_lb(pm, n)
+            constraint_load_power_active_lb(pm, n)
+        end
+        objective_max_import(pm)
+    end
+end
+
+function build_max_export_with_current_investments_monotonic(build_method::Function)
+    function build_max_export_with_current_investments_monotonic(pm::_PM.AbstractBFModel)
+        build_method(pm; objective = false, intertemporal_constraints = false)
+        for n in _PM.nw_ids(pm)
+            constraint_ne_branch_indicator_fix(pm, n)
+            constraint_ne_storage_indicator_fix(pm, n)
+            constraint_flex_load_indicator_fix(pm, n)
+            # gen_power_active_lb already applied in data
+            constraint_storage_power_active_ub(pm, n)
+            constraint_ne_storage_power_active_ub(pm, n)
+            constraint_load_power_active_ub(pm, n)
+        end
+        objective_max_export(pm)
+    end
+end
+
+function build_min_cost_at_max_import_monotonic(build_method::Function)
+    function build_min_cost_at_max_import_monotonic(pm::_PM.AbstractBFModel)
+        build_method(pm; objective = true, intertemporal_constraints = false)
+        for n in _PM.nw_ids(pm)
+            constraint_ne_branch_indicator_fix(pm, n)
+            constraint_ne_storage_indicator_fix(pm, n)
+            constraint_flex_load_indicator_fix(pm, n)
+            # td_coupling_power_active already fixed in data
+            # gen_power_active_ub already applied in data
+            constraint_storage_power_active_lb(pm, n)
+            constraint_ne_storage_power_active_lb(pm, n)
+            constraint_load_power_active_lb(pm, n)
+        end
+    end
+end
+
+function build_min_cost_at_max_export_monotonic(build_method::Function)
+    function build_min_cost_at_max_export_monotonic(pm::_PM.AbstractBFModel)
+        build_method(pm; objective = true, intertemporal_constraints = false)
+        for n in _PM.nw_ids(pm)
+            constraint_ne_branch_indicator_fix(pm, n)
+            constraint_ne_storage_indicator_fix(pm, n)
+            constraint_flex_load_indicator_fix(pm, n)
+            # td_coupling_power_active already fixed in data
+            # gen_power_active_lb already applied in data
+            constraint_storage_power_active_ub(pm, n)
+            constraint_ne_storage_power_active_ub(pm, n)
+            constraint_load_power_active_ub(pm, n)
+        end
     end
 end
 

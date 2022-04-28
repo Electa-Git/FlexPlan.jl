@@ -5,7 +5,7 @@ using DataFrames
 using StatsPlots
 
 """
-    sol_report_decoupling_pcc_power(sol_up, sol_base, sol_down, data, surrogate, optimizer; <keyword arguments>)
+    sol_report_decoupling_pcc_power(sol_up, sol_base, sol_down, data, surrogate; <keyword arguments>)
 
 Report the imported active power at PCC.
 
@@ -18,7 +18,12 @@ Return a DataFrame; optionally write a CSV table and a plot.
 - `data::Dict{String,Any}`: the multinetwork data Dict used for the same optimization.
 - `surrogate::Dict{String,Any}`: the surrogate model Dict, computed with `standalone=true`
   argument.
-- `optimizer`: the solver to be used.
+- `model_type::Type`: type of the model to instantiate.
+- `optimizer`: the solver to use.
+- `build_method::Function`: the function defining the optimization problem to solve.
+- `ref_extensions::Vector{<:Function}=Function[]`: functions to apply during model
+  instantiation.
+- `solution_processors::Vector{<:Function}=Function[]`: functions to apply to results.
 - `setting::Dict{String,Any}=Dict{String,Any}()`: to be passed to
   `_FP.TDDecoupling.run_td_decoupling_model`.
 - `out_dir::String=pwd()`: directory for output files.
@@ -26,7 +31,23 @@ Return a DataFrame; optionally write a CSV table and a plot.
 - `plot::String=""`: if not empty, output a plot to `plot` file; file type is based on
   `plot` extension.
 """
-function sol_report_decoupling_pcc_power(sol_up::Dict{String,Any}, sol_base::Dict{String,Any}, sol_down::Dict{String,Any}, data::Dict{String,Any}, surrogate::Dict{String,Any}, optimizer; setting::Dict{String,Any}=Dict{String,Any}(), out_dir::String=pwd(), table::String="", plot::String="")
+function sol_report_decoupling_pcc_power(
+        sol_up::Dict{String,Any},
+        sol_base::Dict{String,Any},
+        sol_down::Dict{String,Any},
+        data::Dict{String,Any},
+        surrogate::Dict{String,Any};
+        model_type::Type,
+        optimizer,
+        build_method::Function,
+        ref_extensions::Vector{<:Function} = Function[],
+        solution_processors::Vector{<:Function} = Function[],
+        setting::Dict{String,Any}=Dict{String,Any}(),
+        out_dir::String=pwd(),
+        table::String="",
+        plot::String=""
+    )
+
     _FP.require_dim(data, :hour, :scenario, :year, :sub_nw)
     data = deepcopy(data)
     dim = data["dim"]
@@ -34,12 +55,12 @@ function sol_report_decoupling_pcc_power(sol_up::Dict{String,Any}, sol_base::Dic
     _FP.TDDecoupling.add_ne_branch_indicator!(data, sol_base)
     _FP.TDDecoupling.add_ne_storage_indicator!(data, sol_base)
     _FP.TDDecoupling.add_flex_load_indicator!(data, sol_base)
-    sol_up_full = _FP.TDDecoupling.run_td_decoupling_model(data, _FP.TDDecoupling.build_max_import_with_current_investments, optimizer; setting)
-    sol_down_full = _FP.TDDecoupling.run_td_decoupling_model(data, _FP.TDDecoupling.build_max_export_with_current_investments, optimizer; setting)
+    sol_up_full = _FP.TDDecoupling.run_td_decoupling_model(data; model_type, optimizer, build_method=_FP.TDDecoupling.build_max_import_with_current_investments(build_method), ref_extensions, solution_processors, setting)
+    sol_down_full = _FP.TDDecoupling.run_td_decoupling_model(data; model_type, optimizer, build_method=_FP.TDDecoupling.build_max_export_with_current_investments(build_method), ref_extensions, solution_processors, setting)
 
-    sol_surrogate_up = _FP.TDDecoupling.run_td_decoupling_model(surrogate, _FP.TDDecoupling.build_max_import, optimizer; setting)
-    sol_surrogate_base = _FP.TDDecoupling.run_td_decoupling_model(surrogate, _FP.post_simple_stoch_flex_tnep, optimizer; setting)
-    sol_surrogate_down = _FP.TDDecoupling.run_td_decoupling_model(surrogate, _FP.TDDecoupling.build_max_export, optimizer; setting)
+    sol_surrogate_up = _FP.TDDecoupling.run_td_decoupling_model(surrogate; model_type, optimizer, build_method=_FP.TDDecoupling.build_max_import(build_method), ref_extensions, solution_processors, setting)
+    sol_surrogate_base = _FP.TDDecoupling.run_td_decoupling_model(surrogate; model_type, optimizer, build_method, ref_extensions, solution_processors, setting)
+    sol_surrogate_down = _FP.TDDecoupling.run_td_decoupling_model(surrogate; model_type, optimizer, build_method=_FP.TDDecoupling.build_max_export(build_method), ref_extensions, solution_processors, setting)
 
     df = DataFrame(hour=Int[], scenario=Int[], year=Int[], p_up=Float64[], p_up_monotonic=Float64[], p_base=Float64[], p_down_monotonic=Float64[], p_down=Float64[], surr_up=Float64[], surr_base=Float64[], surr_down=Float64[])
     for n in _FP.nw_ids(dim)
