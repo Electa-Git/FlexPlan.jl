@@ -400,10 +400,14 @@ function _PM.constraint_storage_thermal_limit(pm::BFARadPowerModel, n::Int, i, r
     c_perp = cos(π/8) # ~0.92
     c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
 
-    JuMP.@constraint(pm.model, -c_perp*rating <= ps      <= c_perp*rating)
-    JuMP.@constraint(pm.model, -c_perp*rating <=      qs <= c_perp*rating)
-    JuMP.@constraint(pm.model, -c_diag*rating <= ps + qs <= c_diag*rating)
-    JuMP.@constraint(pm.model, -c_diag*rating <= ps - qs <= c_diag*rating)
+    JuMP.@constraint(pm.model, ps      >= -c_perp*rating)
+    JuMP.@constraint(pm.model, ps      <=  c_perp*rating)
+    JuMP.@constraint(pm.model,      qs >= -c_perp*rating)
+    JuMP.@constraint(pm.model,      qs <=  c_perp*rating)
+    JuMP.@constraint(pm.model, ps + qs >= -c_diag*rating)
+    JuMP.@constraint(pm.model, ps + qs <=  c_diag*rating)
+    JuMP.@constraint(pm.model, ps - qs >= -c_diag*rating)
+    JuMP.@constraint(pm.model, ps - qs <=  c_diag*rating)
 end
 
 function constraint_storage_thermal_limit_ne(pm::_PM.AbstractActivePowerModel, n::Int, i, rating)
@@ -420,10 +424,14 @@ function constraint_storage_thermal_limit_ne(pm::BFARadPowerModel, n::Int, i, ra
     c_perp = cos(π/8) # ~0.92
     c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
 
-    JuMP.@constraint(pm.model, -c_perp*rating <= ps      <= c_perp*rating)
-    JuMP.@constraint(pm.model, -c_perp*rating <=      qs <= c_perp*rating)
-    JuMP.@constraint(pm.model, -c_diag*rating <= ps + qs <= c_diag*rating)
-    JuMP.@constraint(pm.model, -c_diag*rating <= ps - qs <= c_diag*rating)
+    JuMP.@constraint(pm.model, ps      >= -c_perp*rating)
+    JuMP.@constraint(pm.model, ps      <=  c_perp*rating)
+    JuMP.@constraint(pm.model,      qs >= -c_perp*rating)
+    JuMP.@constraint(pm.model,      qs <=  c_perp*rating)
+    JuMP.@constraint(pm.model, ps + qs >= -c_diag*rating)
+    JuMP.@constraint(pm.model, ps + qs <=  c_diag*rating)
+    JuMP.@constraint(pm.model, ps - qs >= -c_diag*rating)
+    JuMP.@constraint(pm.model, ps - qs <=  c_diag*rating)
 end
 
 function constraint_storage_losses_ne(pm::_PM.AbstractAPLossLessModels, n::Int, i, bus, r, x, p_loss, q_loss)
