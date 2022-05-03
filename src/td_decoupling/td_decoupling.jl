@@ -19,5 +19,6 @@ include("base.jl")
 include("probe_flexibility.jl")
 include("surrogate_model.jl")
 include("transmission.jl")
+include("distribution.jl")
 
 end

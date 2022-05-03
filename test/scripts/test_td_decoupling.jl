@@ -71,22 +71,17 @@ end
 # State that this distribution network is attached to bus 3 of transmission network
 _FP.dim_prop(d_data_sub_1, :sub_nw, 1)["t_bus"] = 3
 
-# Data dictionary for all distribution networks. As it will later be used together with transmission and nw ids must be unique, its nw ids are shifted.
-d_data = _FP.shift_nws!(d_data_sub_1, sub_nw_length)
-
 # Distribution network 2 data
 
 d_data_sub_2 = deepcopy(d_data_sub_1)
-_FP.shift_nws!(d_data_sub_2, sub_nw_length)
 _FP.dim_prop(d_data_sub_2, :sub_nw, 1)["t_bus"] = 6
 
-d_data = _FP.merge_multinetworks!(d_data, d_data_sub_2, :sub_nw)
+d_data = [d_data_sub_1, d_data_sub_2]
 
 
 ## Compute optimal planning using T&D decoupling procedure
 
-# The procedure is limited to planning the transmission network at the moment, so the returned value is `t_sol` provisionally
-t_sol = _FP.run_td_decoupling!(
+result = _FP.run_td_decoupling!(
     t_data, d_data, t_model_type, d_model_type, optimizer, build_method;
     t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting
 )
@@ -94,32 +89,32 @@ t_sol = _FP.run_td_decoupling!(
 
 ## Analyze surrogate model of distribution network 2
 
-info(_LOGGER, "Analyzing surrogate model of distribution network 2...")
+info(_LOGGER, "Analyzing surrogate model of distribution network 1...")
 
 # Intermediate solutions used for building the surrogate model
-sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_sub_2; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting)
+sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_sub_1; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting)
 
 for (sol,name) in [(sol_up,"up"), (sol_base,"base"), (sol_down,"down")]
     d_subdir = mkpath(joinpath(out_dir, "distribution", name))
-    sol_report_cost_summary(sol, d_data_sub_2; out_dir=d_subdir, table="t_cost.csv", plot="cost.pdf")
-    sol_report_power_summary(sol, d_data_sub_2; out_dir=d_subdir, table="t_power.csv", plot="power.pdf")
-    sol_report_branch(sol, d_data_sub_2; rated_power_scale_factor=cos(π/8), out_dir=d_subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFARadPowerModel`
-    sol_report_bus_voltage_magnitude(sol, d_data_sub_2; out_dir=d_subdir, table="t_bus.csv", plot="bus.pdf")
-    sol_report_gen(sol, d_data_sub_2; out_dir=d_subdir, table="t_gen.csv", plot="gen.pdf")
-    sol_report_load(sol, d_data_sub_2; out_dir=d_subdir, table="t_load.csv", plot="load.pdf")
-    sol_report_load_summary(sol, d_data_sub_2; out_dir=d_subdir, table="t_load_summary.csv", plot="load_summary.pdf")
+    sol_report_cost_summary(sol, d_data_sub_1; out_dir=d_subdir, table="t_cost.csv", plot="cost.pdf")
+    sol_report_power_summary(sol, d_data_sub_1; out_dir=d_subdir, table="t_power.csv", plot="power.pdf")
+    sol_report_branch(sol, d_data_sub_1; rated_power_scale_factor=cos(π/8), out_dir=d_subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFARadPowerModel`
+    sol_report_bus_voltage_magnitude(sol, d_data_sub_1; out_dir=d_subdir, table="t_bus.csv", plot="bus.pdf")
+    sol_report_gen(sol, d_data_sub_1; out_dir=d_subdir, table="t_gen.csv", plot="gen.pdf")
+    sol_report_load(sol, d_data_sub_1; out_dir=d_subdir, table="t_load.csv", plot="load.pdf")
+    sol_report_load_summary(sol, d_data_sub_1; out_dir=d_subdir, table="t_load_summary.csv", plot="load_summary.pdf")
     if name == "base"
-        sol_report_investment_summary(sol, d_data_sub_2; out_dir=d_subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
-        sol_report_storage(sol, d_data_sub_2; out_dir=d_subdir, table="t_storage.csv", plot="storage.pdf")
-        sol_report_storage_summary(sol, d_data_sub_2; out_dir=d_subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
+        sol_report_investment_summary(sol, d_data_sub_1; out_dir=d_subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
+        sol_report_storage(sol, d_data_sub_1; out_dir=d_subdir, table="t_storage.csv", plot="storage.pdf")
+        sol_report_storage_summary(sol, d_data_sub_1; out_dir=d_subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
     end
-    sol_graph(sol, d_data_sub_2; plot="map.pdf", out_dir=d_subdir, hour=1) # Just as an example; dimension coordinates can also be vectors, or be omitted, in which case one plot for each coordinate will be generated.
+    sol_graph(sol, d_data_sub_1; plot="map.pdf", out_dir=d_subdir, hour=1) # Just as an example; dimension coordinates can also be vectors, or be omitted, in which case one plot for each coordinate will be generated.
 end
 
 # Surrogate model
-surrogate_dist = _FP.TDDecoupling.calc_surrogate_model(d_data_sub_2, sol_up, sol_base, sol_down; standalone=true)
+surrogate_dist = _FP.TDDecoupling.calc_surrogate_model(d_data_sub_1, sol_up, sol_base, sol_down; standalone=true)
 surrogate_subdir = mkpath(joinpath(out_dir, "surrogate_distribution"))
-sol_report_decoupling_pcc_power(sol_up, sol_base, sol_down, d_data_sub_2, surrogate_dist; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, out_dir=surrogate_subdir, table="t_pcc_power.csv", plot="pcc_power.pdf")
+sol_report_decoupling_pcc_power(sol_up, sol_base, sol_down, d_data_sub_1, surrogate_dist; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, out_dir=surrogate_subdir, table="t_pcc_power.csv", plot="pcc_power.pdf")
 
 # Planning obtained by using the surrogate model as it were an ordinary distribution network
 sol_surr = _FP.TDDecoupling.run_td_decoupling_model(surrogate_dist; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting)
@@ -134,6 +129,7 @@ sol_report_storage_summary(sol_surr, surrogate_dist; out_dir=surrogate_subdir, t
 
 info(_LOGGER, "Analyzing transmission network...")
 
+t_sol = result["t_solution"]
 t_subdir = mkpath(joinpath(out_dir, "transmission"))
 sol_report_cost_summary(t_sol, t_data; out_dir=t_subdir, table="t_cost.csv", plot="cost.pdf")
 sol_report_power_summary(t_sol, t_data; out_dir=t_subdir, table="t_power.csv", plot="power.pdf")

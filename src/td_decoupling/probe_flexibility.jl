@@ -31,8 +31,9 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; model_type, 
     return sol_up, sol_base, sol_down
 end
 
-"Run a model with usual parameters and model type; error if not solved to optimality."
-function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optimizer, build_method::Function, ref_extensions, solution_processors, setting, relax_integrality=false, kwargs...)
+"Run a model, ensure it is solved to optimality (error otherwise), return solution."
+function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optimizer, build_method::Function, ref_extensions, solution_processors, setting, relax_integrality=false, return_solution::Bool=true, kwargs...)
+    start_time = time()
     Memento.debug(_LOGGER, "┌ running $(String(nameof(build_method)))...")
     result = _PM.run_model(
         data, model_type, optimizer, build_method;
@@ -43,11 +44,11 @@ function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optim
         setting,
         kwargs...
     )
-    Memento.debug(_LOGGER, "└ solved in $(round(Int,result["solve_time"])) seconds")
+    Memento.debug(_LOGGER, "└ solved in $(round(Int,time()-start_time)) seconds (of which $(round(Int,result["solve_time"])) seconds for solver)")
     if result["termination_status"] ∉ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED)
         Memento.error(_LOGGER, "Unable to solve $(String(nameof(build_method))) ($(result["optimizer"]) termination status: $(result["termination_status"]))")
     end
-    return result["solution"]
+    return return_solution ? result["solution"] : result
 end
 
 
