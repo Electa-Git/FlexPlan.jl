@@ -6,7 +6,7 @@
 # 3. Fix power exchanges between T&D and optimize planning of distribution networks
 
 
-## Import packages and choose a solver
+## Import packages
 
 using Memento
 _LOGGER = Logger(first(splitext(basename(@__FILE__)))) # A logger for this script, also used by included files.
@@ -17,10 +17,15 @@ import FlexPlan; const _FP = FlexPlan
 include("../io/load_case.jl")
 include("../io/sol.jl")
 include("../io/td_decoupling.jl")
+
+
+## Set up solver
+
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0, "threads"=>Threads.nthreads())
 #import CPLEX
 #optimizer = _FP.optimizer_with_attributes(CPLEX.Optimizer, "CPXPARAM_ScreenOutput"=>0)
+direct_model = false # Whether to construct JuMP models using JuMP.direct_model() instead of JuMP.Model(). direct_model is only supported by some solvers.
 
 
 ## Set script parameters
@@ -37,12 +42,13 @@ t_solution_processors = [_PM.sol_data_model!]
 d_solution_processors = [_PM.sol_data_model!, _FP.sol_td_coupling!]
 t_setting = Dict("output" => Dict("branch_flows"=>true), "conv_losses_mp" => false)
 d_setting = Dict{String,Any}()
-out_dir = "./test/data/output_files/td_decoupling/" # Directory of output files
+out_dir = mkpath("./test/data/output_files/td_decoupling/") # Directory of output files
 
 
 ## Set up logging
 
 setlevel!.(Memento.getpath(getlogger(_FP)), "debug") # FlexPlan logger verbosity level. Useful values: "info", "debug", "trace"
+time_start = time()
 
 
 ## Load data
@@ -50,7 +56,6 @@ setlevel!.(Memento.getpath(getlogger(_FP)), "debug") # FlexPlan logger verbosity
 # Transmission network instance
 
 t_data = load_case6(; number_of_hours, number_of_scenarios, number_of_years, share_data=false)
-sub_nw_length = _FP.dim_length(t_data) # Number of nws for each sub_nw
 
 # Distribution network 1 data
 
@@ -83,7 +88,7 @@ d_data = [d_data_sub_1, d_data_sub_2]
 
 result = _FP.run_td_decoupling!(
     t_data, d_data, t_model_type, d_model_type, optimizer, build_method;
-    t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting
+    t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting, direct_model
 )
 
 
@@ -92,7 +97,7 @@ result = _FP.run_td_decoupling!(
 info(_LOGGER, "Analyzing surrogate model of distribution network 1...")
 
 # Intermediate solutions used for building the surrogate model
-sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_sub_1; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting)
+sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_sub_1; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
 
 for (sol,name) in [(sol_up,"up"), (sol_base,"base"), (sol_down,"down")]
     d_subdir = mkpath(joinpath(out_dir, "distribution", name))
@@ -145,4 +150,4 @@ sol_report_storage_summary(t_sol, t_data; out_dir=t_subdir, table="t_storage_sum
 #sol_graph(t_sol, t_mn_data; plot="map.pdf", out_dir=t_subdir, hour=1) # Just as an example; dimension coordinates can also be vectors, or be omitted, in which case one plot for each coordinate will be generated.
 
 
-println("Test completed. Results saved in $out_dir")
+notice(_LOGGER, "Test completed in $(round(time()-time_start;sigdigits=3)) seconds. Results saved in $out_dir")

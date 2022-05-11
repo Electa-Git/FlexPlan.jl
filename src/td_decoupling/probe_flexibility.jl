@@ -1,10 +1,10 @@
-function probe_distribution_flexibility!(mn_data::Dict{String,Any}; model_type, optimizer, build_method, ref_extensions, solution_processors, setting=Dict{String,Any}())
+function probe_distribution_flexibility!(mn_data::Dict{String,Any}; model_type, optimizer, build_method, ref_extensions, solution_processors, setting=Dict{String,Any}(), direct_model=false)
     _FP.require_dim(mn_data, :sub_nw)
     if _FP.dim_length(mn_data, :sub_nw) > 1
         Memento.error(_LOGGER, "A single distribution network is required ($(_FP.dim_length(mn_data, :sub_nw)) found)")
     end
 
-    sol_base = run_td_decoupling_model(mn_data; model_type, optimizer, build_method, ref_extensions, solution_processors, setting)
+    sol_base = run_td_decoupling_model(mn_data; model_type, optimizer, build_method, ref_extensions, solution_processors, setting, direct_model)
 
     add_ne_branch_indicator!(mn_data, sol_base)
     add_ne_storage_indicator!(mn_data, sol_base)
@@ -15,36 +15,49 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; model_type, 
     add_storage_power_active_lb!(mn_data_up, sol_base)
     add_ne_storage_power_active_lb!(mn_data_up, sol_base)
     add_load_power_active_lb!(mn_data_up, sol_base)
-    sol_up = run_td_decoupling_model(mn_data_up; model_type, optimizer, build_method=build_max_import_with_current_investments_monotonic(build_method), ref_extensions, solution_processors, setting, relax_integrality=true)
+    sol_up = run_td_decoupling_model(mn_data_up; model_type, optimizer, build_method=build_max_import_with_current_investments_monotonic(build_method), ref_extensions, solution_processors, setting, direct_model, relax_integrality=true)
     apply_td_coupling_power_active!(mn_data_up, sol_up)
-    sol_up = run_td_decoupling_model(mn_data_up; model_type, optimizer, build_method=build_min_cost_at_max_import_monotonic(build_method), ref_extensions, solution_processors, setting, relax_integrality=true)
+    sol_up = run_td_decoupling_model(mn_data_up; model_type, optimizer, build_method=build_min_cost_at_max_import_monotonic(build_method), ref_extensions, solution_processors, setting, direct_model, relax_integrality=true)
 
     mn_data_down = deepcopy(mn_data)
     apply_gen_power_active_lb!(mn_data_down, sol_base)
     add_storage_power_active_ub!(mn_data_down, sol_base)
     add_ne_storage_power_active_ub!(mn_data_down, sol_base)
     add_load_power_active_ub!(mn_data_down, sol_base)
-    sol_down = run_td_decoupling_model(mn_data_down; model_type, optimizer, build_method=build_max_export_with_current_investments_monotonic(build_method), ref_extensions, solution_processors, setting, relax_integrality=true)
+    sol_down = run_td_decoupling_model(mn_data_down; model_type, optimizer, build_method=build_max_export_with_current_investments_monotonic(build_method), ref_extensions, solution_processors, setting, direct_model, relax_integrality=true)
     apply_td_coupling_power_active!(mn_data_down, sol_down)
-    sol_down = run_td_decoupling_model(mn_data_down; model_type, optimizer, build_method=build_min_cost_at_max_export_monotonic(build_method), ref_extensions, solution_processors, setting, relax_integrality=true)
+    sol_down = run_td_decoupling_model(mn_data_down; model_type, optimizer, build_method=build_min_cost_at_max_export_monotonic(build_method), ref_extensions, solution_processors, setting, direct_model, relax_integrality=true)
 
     return sol_up, sol_base, sol_down
 end
 
 "Run a model, ensure it is solved to optimality (error otherwise), return solution."
-function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optimizer, build_method::Function, ref_extensions, solution_processors, setting, relax_integrality=false, return_solution::Bool=true, kwargs...)
+function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optimizer, build_method::Function, ref_extensions, solution_processors, setting, relax_integrality=false, return_solution::Bool=true, direct_model=false, kwargs...)
     start_time = time()
     Memento.debug(_LOGGER, "┌ running $(String(nameof(build_method)))...")
-    result = _PM.run_model(
-        data, model_type, optimizer, build_method;
-        ref_extensions,
-        solution_processors,
-        multinetwork = true,
-        relax_integrality,
-        setting,
-        kwargs...
-    )
-    Memento.debug(_LOGGER, "└ solved in $(round(Int,time()-start_time)) seconds (of which $(round(Int,result["solve_time"])) seconds for solver)")
+    if direct_model
+        result = _PM.run_model(
+            data, model_type, nothing, build_method;
+            ref_extensions,
+            solution_processors,
+            multinetwork = true,
+            relax_integrality,
+            setting,
+            jump_model = JuMP.direct_model(optimizer),
+            kwargs...
+        )
+    else
+        result = _PM.run_model(
+            data, model_type, optimizer, build_method;
+            ref_extensions,
+            solution_processors,
+            multinetwork = true,
+            relax_integrality,
+            setting,
+            kwargs...
+        )
+    end
+    Memento.debug(_LOGGER, "└ solved in $(round(time()-start_time;sigdigits=3)) seconds (of which $(round(result["solve_time"];sigdigits=3)) seconds for solver)")
     if result["termination_status"] ∉ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED)
         Memento.error(_LOGGER, "Unable to solve $(String(nameof(build_method))) ($(result["optimizer"]) termination status: $(result["termination_status"]))")
     end
