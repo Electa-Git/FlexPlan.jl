@@ -1,6 +1,4 @@
-##################################################################
-##################### Objective with candidate storage
-##################################################################
+## Objective with candidate storage
 
 function objective_min_cost_storage(pm::_PM.AbstractPowerModel)
     investment = sum(
@@ -17,10 +15,32 @@ function objective_min_cost_storage(pm::_PM.AbstractPowerModel)
     JuMP.@objective(pm.model, Min, investment + operation)
 end
 
+function objective_min_cost_storage(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractPowerModel)
+    t_investment = sum(
+        calc_convdc_ne_cost(t_pm, n)
+        + calc_ne_branch_cost(t_pm, n)
+        + calc_branchdc_ne_cost(t_pm, n)
+        + calc_ne_storage_cost(t_pm, n)
+        for n in nw_ids(t_pm; hour=1)
+    )
+    t_operation = sum(
+        calc_gen_cost(t_pm, n)
+        for n in nw_ids(t_pm)
+    )
+    d_investment = sum( # Note: distribution networks do not have DC components (modeling decision)
+        calc_ne_branch_cost(d_pm, n)
+        + calc_ne_storage_cost(d_pm, n)
+        for n in nw_ids(d_pm; hour=1)
+    )
+    d_operation = sum(
+        calc_gen_cost(d_pm, n)
+        for n in nw_ids(d_pm)
+    )
+    JuMP.@objective(t_pm.model, Min, t_investment + t_operation + d_investment + d_operation) # Note: t_pm.model == d_pm.model
+end
 
-#################################################################
-##################### Objective with candidate storage and flexible demand
-##################################################################
+
+## Objective with candidate storage and flexible demand
 
 function objective_min_cost_flex(pm::_PM.AbstractPowerModel)
     investment = sum(
@@ -68,9 +88,7 @@ function objective_min_cost_flex(t_pm::_PM.AbstractPowerModel, d_pm::_PM.Abstrac
 end
 
 
-##########################################################################
-##################### Stochastic objective with storage & flex candidates
-##########################################################################
+## Stochastic objective with candidate storage and flexible demand
 
 function objective_stoch_flex(pm::_PM.AbstractPowerModel)
     investment = sum(
@@ -92,10 +110,42 @@ function objective_stoch_flex(pm::_PM.AbstractPowerModel)
     JuMP.@objective(pm.model, Min, investment + operation)
 end
 
+function objective_stoch_flex(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractPowerModel)
+    t_investment = sum(
+        calc_convdc_ne_cost(t_pm, n)
+        + calc_ne_branch_cost(t_pm, n)
+        + calc_branchdc_ne_cost(t_pm, n)
+        + calc_ne_storage_cost(t_pm, n)
+        + calc_load_investment_cost(t_pm, n)
+        for n in nw_ids(t_pm; hour=1, scenario=1)
+    )
+    t_operation = sum(scenario["probability"] *
+        sum(
+            calc_gen_cost(t_pm, n)
+            + calc_load_operational_cost(t_pm, n)
+            for n in nw_ids(t_pm; scenario=s)
+        )
+        for (s, scenario) in dim_prop(t_pm, :scenario)
+    )
+    d_investment = sum( # Note: distribution networks do not have DC components (modeling decision)
+        calc_ne_branch_cost(d_pm, n)
+        + calc_ne_storage_cost(d_pm, n)
+        + calc_load_investment_cost(d_pm, n)
+        for n in nw_ids(d_pm; hour=1, scenario=1)
+    )
+    d_operation = sum(scenario["probability"] *
+        sum(
+            calc_gen_cost(d_pm, n)
+            + calc_load_operational_cost(d_pm, n)
+            for n in nw_ids(d_pm; scenario=s)
+        )
+        for (s, scenario) in dim_prop(d_pm, :scenario)
+    )
+    JuMP.@objective(t_pm.model, Min, t_investment + t_operation + d_investment + d_operation) # Note: t_pm.model == d_pm.model
+end
 
-##########################################################################
-##################### Auxiliary functions
-##########################################################################
+
+## Auxiliary functions
 
 function calc_gen_cost(pm::_PM.AbstractPowerModel, n::Int)
 

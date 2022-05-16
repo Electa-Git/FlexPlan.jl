@@ -53,7 +53,7 @@ time_start = time()
 
 ## Load data
 
-# Transmission network instance
+# Transmission network data
 
 t_data = load_case6(; number_of_hours, number_of_scenarios, number_of_years, share_data=false)
 

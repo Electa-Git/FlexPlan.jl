@@ -5,7 +5,8 @@ function simple_stoch_flex_tnep(data::Dict{String,Any}, model_type::Type, optimi
     require_dim(data, :hour, :scenario, :year)
     return _PM.run_model(
         data, model_type, optimizer, post_simple_stoch_flex_tnep;
-        ref_extensions = [ref_add_gen!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
+        solution_processors = [_PM.sol_data_model!],
         multinetwork = true,
         kwargs...
     )
@@ -16,13 +17,28 @@ function simple_stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.A
     require_dim(data, :hour, :scenario, :year)
     return _PM.run_model(
         data, model_type, optimizer, post_simple_stoch_flex_tnep;
-        ref_extensions = [ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+        ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
         solution_processors = [_PM.sol_data_model!],
         multinetwork = true,
         kwargs...
     )
 end
 
+"Multi-scenario TNEP with flexible loads and storage, combines transmission and distribution networks"
+function simple_stoch_flex_tnep(t_data::Dict{String,Any}, d_data::Vector{Dict{String,Any}}, t_model_type::Type{<:_PM.AbstractPowerModel}, d_model_type::Type{<:_PM.AbstractPowerModel}, optimizer; kwargs...)
+    require_dim(t_data, :hour, :scenario, :year)
+    for data in d_data
+        require_dim(data, :hour, :scenario, :year)
+    end
+    return run_model(
+        t_data, d_data, t_model_type, d_model_type, optimizer, post_simple_stoch_flex_tnep;
+        t_ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
+        d_ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
+        t_solution_processors = [_PM.sol_data_model!],
+        d_solution_processors = [_PM.sol_data_model!, sol_td_coupling!],
+        kwargs...
+    )
+end
 
 # Here the problem is defined, which is then sent to the solver.
 # It is basically a declaration of variables and constraints of the problem
@@ -295,7 +311,7 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=tr
         constraint_ne_model_current(pm; nw = n)
 
         if haskey(dim_prop(pm), :sub_nw)
-            constraint_td_coupling_power_reactive_bounds(pm; nw = n)
+            constraint_td_coupling_power_reactive_bounds(pm, get(pm.setting, "qs_ratio_bound", 0.48); nw = n)
         end
 
         for i in _PM.ids(pm, n, :ref_buses)
@@ -401,4 +417,24 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=tr
             end
         end
     end
+end
+
+"Builds combined transmission and distribution model."
+function post_simple_stoch_flex_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
+
+    # Transmission variables and constraints
+    post_simple_stoch_flex_tnep(t_pm; objective = false)
+
+    # Distribution variables and constraints
+    post_simple_stoch_flex_tnep(d_pm; objective = false)
+
+    # Variables related to the combined model
+    # (No new variables are needed here.)
+
+    # Constraints related to the combined model
+    constraint_td_coupling(t_pm, d_pm)
+
+    # Objective function of the combined model
+    objective_stoch_flex(t_pm, d_pm)
+
 end

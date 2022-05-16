@@ -5,7 +5,8 @@ function strg_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs..
     require_dim(data, :hour, :year)
     return _PM.run_model(
         data, model_type, optimizer, post_strg_tnep;
-        ref_extensions = [ref_add_gen!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, ref_add_storage!, ref_add_ne_storage!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!],
+        solution_processors = [_PM.sol_data_model!],
         multinetwork = true,
         kwargs...
     )
@@ -16,19 +17,34 @@ function strg_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFMode
     require_dim(data, :hour, :year)
     return _PM.run_model(
         data, model_type, optimizer, post_strg_tnep;
-        ref_extensions = [ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+        ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!],
         solution_processors = [_PM.sol_data_model!],
         multinetwork = true,
         kwargs...
     )
 end
 
+"TNEP with storage, combines transmission and distribution networks"
+function strg_tnep(t_data::Dict{String,Any}, d_data::Vector{Dict{String,Any}}, t_model_type::Type{<:_PM.AbstractPowerModel}, d_model_type::Type{<:_PM.AbstractPowerModel}, optimizer; kwargs...)
+    require_dim(t_data, :hour, :year)
+    for data in d_data
+        require_dim(data, :hour, :year)
+    end
+    return run_model(
+        t_data, d_data, t_model_type, d_model_type, optimizer, post_strg_tnep;
+        t_ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!],
+        d_ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!],
+        t_solution_processors = [_PM.sol_data_model!],
+        d_solution_processors = [_PM.sol_data_model!, sol_td_coupling!],
+        kwargs...
+    )
+end
 
 # Here the problem is defined, which is then sent to the solver.
 # It is basically a declaration of variables and constraints of the problem
 
 "Builds transmission model."
-function post_strg_tnep(pm::_PM.AbstractPowerModel)
+function post_strg_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
     # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code
     for n in nw_ids(pm)
 
@@ -81,7 +97,9 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
     end
 
     # OBJECTIVE: see objective.jl
-    objective_min_cost_storage(pm)
+    if objective
+        objective_min_cost_storage(pm)
+    end
 
     # CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code
     for n in nw_ids(pm)
@@ -232,7 +250,7 @@ function post_strg_tnep(pm::_PM.AbstractPowerModel)
 end
 
 "Builds distribution model."
-function post_strg_tnep(pm::_PM.AbstractBFModel)
+function post_strg_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemporal_constraints::Bool=true)
 
     for n in nw_ids(pm)
 
@@ -264,14 +282,16 @@ function post_strg_tnep(pm::_PM.AbstractBFModel)
         variable_absorbed_energy_ne(pm; nw = n)
     end
 
-    objective_min_cost_storage(pm)
+    if objective
+        objective_min_cost_storage(pm)
+    end
 
     for n in nw_ids(pm)
         _PM.constraint_model_current(pm; nw = n)
         constraint_ne_model_current(pm; nw = n)
 
         if haskey(dim_prop(pm), :sub_nw)
-            constraint_td_coupling_power_reactive_bounds(pm; nw = n)
+            constraint_td_coupling_power_reactive_bounds(pm, get(pm.setting, "qs_ratio_bound", 0.48); nw = n)
         end
 
         for i in _PM.ids(pm, n, :ref_buses)
@@ -302,44 +322,46 @@ function post_strg_tnep(pm::_PM.AbstractBFModel)
             constraint_storage_bounds_ne(pm, i, nw = n)
         end
 
-        if is_first_id(pm, n, :hour)
-            for i in _PM.ids(pm, :storage, nw = n)
-                constraint_storage_state(pm, i, nw = n)
-            end
-            for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
-                constraint_maximum_absorption(pm, i, nw = n)
-            end
-
-            for i in _PM.ids(pm, :ne_storage, nw = n)
-                constraint_storage_state_ne(pm, i, nw = n)
-            end
-            for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
-                constraint_maximum_absorption_ne(pm, i, nw = n)
-            end
-        else
-            if is_last_id(pm, n, :hour)
+        if intertemporal_constraints
+            if is_first_id(pm, n, :hour)
                 for i in _PM.ids(pm, :storage, nw = n)
-                    constraint_storage_state_final(pm, i, nw = n)
+                    constraint_storage_state(pm, i, nw = n)
+                end
+                for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
+                    constraint_maximum_absorption(pm, i, nw = n)
                 end
 
                 for i in _PM.ids(pm, :ne_storage, nw = n)
-                    constraint_storage_state_final_ne(pm, i, nw = n)
+                    constraint_storage_state_ne(pm, i, nw = n)
                 end
-            end
+                for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
+                    constraint_maximum_absorption_ne(pm, i, nw = n)
+                end
+            else
+                if is_last_id(pm, n, :hour)
+                    for i in _PM.ids(pm, :storage, nw = n)
+                        constraint_storage_state_final(pm, i, nw = n)
+                    end
 
-            # From second hour to last hour
-            prev_n = prev_id(pm, n, :hour)
-            for i in _PM.ids(pm, :storage, nw = n)
-                constraint_storage_state(pm, i, prev_n, n)
-            end
-            for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
-                constraint_maximum_absorption(pm, i, prev_n, n)
-            end
-            for i in _PM.ids(pm, :ne_storage, nw = n)
-                constraint_storage_state_ne(pm, i, prev_n, n)
-            end
-            for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
-                constraint_maximum_absorption_ne(pm, i, prev_n, n)
+                    for i in _PM.ids(pm, :ne_storage, nw = n)
+                        constraint_storage_state_final_ne(pm, i, nw = n)
+                    end
+                end
+
+                # From second hour to last hour
+                prev_n = prev_id(pm, n, :hour)
+                for i in _PM.ids(pm, :storage, nw = n)
+                    constraint_storage_state(pm, i, prev_n, n)
+                end
+                for i in _PM.ids(pm, :storage_bounded_absorption, nw = n)
+                    constraint_maximum_absorption(pm, i, prev_n, n)
+                end
+                for i in _PM.ids(pm, :ne_storage, nw = n)
+                    constraint_storage_state_ne(pm, i, prev_n, n)
+                end
+                for i in _PM.ids(pm, :ne_storage_bounded_absorption, nw = n)
+                    constraint_maximum_absorption_ne(pm, i, prev_n, n)
+                end
             end
         end
 
@@ -361,4 +383,24 @@ function post_strg_tnep(pm::_PM.AbstractBFModel)
             end
         end
     end
+end
+
+"Builds combined transmission and distribution model."
+function post_strg_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
+
+    # Transmission variables and constraints
+    post_strg_tnep(t_pm; objective = false)
+
+    # Distribution variables and constraints
+    post_strg_tnep(d_pm; objective = false)
+
+    # Variables related to the combined model
+    # (No new variables are needed here.)
+
+    # Constraints related to the combined model
+    constraint_td_coupling(t_pm, d_pm)
+
+    # Objective function of the combined model
+    objective_min_cost_storage(t_pm, d_pm)
+
 end

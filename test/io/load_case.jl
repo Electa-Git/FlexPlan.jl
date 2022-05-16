@@ -165,7 +165,6 @@ function load_cigre_mv_eu(;
     _FP.add_dimension!(sn_data, :hour, number_of_hours)
     _FP.add_dimension!(sn_data, :scenario, Dict(1 => Dict{String,Any}("probability"=>1)))
     _FP.add_dimension!(sn_data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>year_scale_factor))
-    _FP.add_dimension!(sn_data, :sub_nw, 1)
 
     # Set cost of energy exchanged with transmission network
     sn_data["gen"]["1"]["ncost"] = 2
@@ -188,7 +187,6 @@ function load_cigre_mv_eu(;
     end
 
     _FP.scale_data!(sn_data; cost_scale_factor)
-    _FP.add_td_coupling_data!(sn_data; sub_nw = 1)
     d_time_series = create_profile_data_cigre(sn_data, number_of_hours; start_period, scale_load, scale_gen, file_profiles_pu=normpath(@__DIR__,"..","data","cigre_mv_eu","time_series","CIGRE_profiles_per_unit_Italy.csv"))
     d_mn_data = _FP.make_multinetwork(sn_data, d_time_series; share_data)
 
@@ -239,8 +237,6 @@ function load_ieee_33(;
         number_of_scenarios,
         number_of_years,
         cost_scale_factor,
-        init_data_extensions = [data -> _FP.add_dimension!(data, :sub_nw, 1)],
-        sn_data_extensions = [sn_data -> _FP.add_td_coupling_data!(sn_data; sub_nw=1)],
         share_data,
     )
 end

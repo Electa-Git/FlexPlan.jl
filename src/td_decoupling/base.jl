@@ -1,8 +1,8 @@
 function run_td_decoupling!(
         t_data::Dict{String,Any},
         d_data::Vector{Dict{String,Any}},
-        t_model_type::Type,
-        d_model_type::Type{BF},
+        t_model_type::Type{<:_PM.AbstractPowerModel},
+        d_model_type::Type{<:_PM.AbstractPowerModel},
         optimizer::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
         build_method::Function;
         t_ref_extensions::Vector{<:Function} = Function[],
@@ -12,11 +12,11 @@ function run_td_decoupling!(
         t_setting::Dict{String,<:Any} = Dict{String,Any}(),
         d_setting::Dict{String,<:Any} = Dict{String,Any}(),
         direct_model = false,
-    ) where BF <: _PM.AbstractBFModel
+    )
 
     start_time = time()
 
-    # Check that transmission and distribution network ids are different.
+    # Check that transmission and distribution network ids are the same
     nw_id_set = Set(id for (id,nw) in t_data["nw"])
     for data in d_data
         if Set(id for (id,nw) in data["nw"]) ≠ nw_id_set
