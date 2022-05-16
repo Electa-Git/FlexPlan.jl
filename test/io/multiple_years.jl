@@ -55,6 +55,9 @@ function create_multi_year_network_data(
         _FP.add_dimension!(my_data, :hour, number_of_hours)
         data_years = [2017, 2018, 2019]
         start = [1483228800000, 1514764800000, 1546300800000]
+        if number_of_scenarios > 3
+            error("Only 3 scenarios are supported")
+        end
         scenario = Dict(s => Dict{String,Any}(
                 "probability"=>1/number_of_scenarios,
                 "year" => data_years[s],
