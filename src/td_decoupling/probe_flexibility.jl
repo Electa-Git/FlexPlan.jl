@@ -31,39 +31,6 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; model_type, 
     return sol_up, sol_base, sol_down
 end
 
-"Run a model, ensure it is solved to optimality (error otherwise), return solution."
-function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optimizer, build_method::Function, ref_extensions, solution_processors, setting, relax_integrality=false, return_solution::Bool=true, direct_model=false, kwargs...)
-    start_time = time()
-    Memento.debug(_LOGGER, "┌ running $(String(nameof(build_method)))...")
-    if direct_model
-        result = _PM.run_model(
-            data, model_type, nothing, build_method;
-            ref_extensions,
-            solution_processors,
-            multinetwork = true,
-            relax_integrality,
-            setting,
-            jump_model = JuMP.direct_model(optimizer),
-            kwargs...
-        )
-    else
-        result = _PM.run_model(
-            data, model_type, optimizer, build_method;
-            ref_extensions,
-            solution_processors,
-            multinetwork = true,
-            relax_integrality,
-            setting,
-            kwargs...
-        )
-    end
-    Memento.debug(_LOGGER, "└ solved in $(round(time()-start_time;sigdigits=3)) seconds (of which $(round(result["solve_time"];sigdigits=3)) seconds for solver)")
-    if result["termination_status"] ∉ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED)
-        Memento.error(_LOGGER, "Unable to solve $(String(nameof(build_method))) ($(result["optimizer"]) termination status: $(result["termination_status"]))")
-    end
-    return return_solution ? result["solution"] : result
-end
-
 
 
 ## Result - data structure interaction

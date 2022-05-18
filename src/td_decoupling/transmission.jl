@@ -1,11 +1,14 @@
 # Attach the surrogate model components to the transmission network bus to which the distribution network is connected
 function attach_surrogate_distribution!(t_data::Dict{String,Any}, surr_dist::Dict{String,Any})
 
-    if _FP.dim_length(surr_dist) ≠ _FP.dim_length(t_data)
-        Memento.error(_LOGGER, "Surrogate model to attach to bus $t_bus has $(_FP.dim_length(surr_dist)) networks instead of $(_FP.dim_length(t_data))")
+    if !haskey(_FP.dim_prop(surr_dist, :sub_nw, 1), "t_bus")
+        Memento.error(_LOGGER, "Surrogate model of distribution network does not specify the AC bus to attach to.")
     end
-
     t_bus = _FP.dim_prop(surr_dist, :sub_nw, 1, "t_bus")
+
+    if _FP.dim_length(surr_dist) ≠ _FP.dim_length(t_data)
+        Memento.error(_LOGGER, "Surrogate model to attach to bus $t_bus has $(_FP.dim_length(surr_dist)) networks instead of $(_FP.dim_length(t_data)).")
+    end
 
     surrogate_components = Dict{String,Any}()
 

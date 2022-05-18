@@ -32,12 +32,12 @@ function run_td_decoupling!(
     # Compute surrogate models of distribution networks and attach them to transmission network
     start_time_surr = time()
     for s in 1:number_of_dist_networks
-        Memento.debug(_LOGGER, "computing surrogate model $s of $number_of_dist_networks...")
+        Memento.trace(_LOGGER, "computing surrogate model $s of $number_of_dist_networks...")
         sol_up, sol_base, sol_down = probe_distribution_flexibility!(d_data[s]; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
         surrogate_distribution = calc_surrogate_model(d_data[s], sol_up, sol_base, sol_down)
         surrogate_components[s] = attach_surrogate_distribution!(t_data, surrogate_distribution)
     end
-    Memento.debug(_LOGGER, "surrogate models of $number_of_dist_networks distribution networks computed in $(round(Int,time()-start_time_surr)) seconds")
+    Memento.debug(_LOGGER, "surrogate models of $number_of_dist_networks distribution networks computed in $(round(time()-start_time_surr; sigdigits=3)) seconds")
 
     # Compute planning of transmission network
     start_time_t = time()
@@ -48,27 +48,60 @@ function run_td_decoupling!(
         exchanged_power[s] = calc_exchanged_power(surrogate_components[s], t_sol)
         remove_attached_distribution!(t_sol, t_data, surrogate_components[s])
     end
-    Memento.debug(_LOGGER, "planning of transmission network computed in $(round(Int,time()-start_time_t)) seconds")
+    Memento.debug(_LOGGER, "planning of transmission network computed in $(round(time()-start_time_t; sigdigits=3)) seconds")
 
     # Compute planning of distribution networks
     start_time_d = time()
     for s in 1:number_of_dist_networks
-        Memento.debug(_LOGGER, "planning distribution network $s of $number_of_dist_networks...")
+        Memento.trace(_LOGGER, "planning distribution network $s of $number_of_dist_networks...")
         data = deepcopy(d_data[s])
         apply_td_coupling_power_active_with_zero_cost!(data, t_data, exchanged_power[s])
         d_result[s] = run_td_decoupling_model(data; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, return_solution=false, direct_model)
     end
     d_objective = [d_res["objective"] for d_res in d_result]
-    Memento.debug(_LOGGER, "planning of $number_of_dist_networks distribution networks computed in $(round(Int,time()-start_time_d)) seconds")
+    Memento.debug(_LOGGER, "planning of $number_of_dist_networks distribution networks computed in $(round(time()-start_time_d; sigdigits=3)) seconds")
 
     result = Dict{String,Any}(
         "t_solution" => t_sol,
         "d_solution" => [d_res["solution"] for d_res in d_result],
         "t_objective" => t_objective,
         "d_objective" => d_objective,
-        "objective" => t_objective + sum(d_objective),
+        "objective" => t_objective + sum(d_objective; init=0.0),
         "solve_time" => time()-start_time
     )
 
     return result
+end
+
+"Run a model, ensure it is solved to optimality (error otherwise), return solution."
+function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optimizer, build_method::Function, ref_extensions, solution_processors, setting, relax_integrality=false, return_solution::Bool=true, direct_model=false, kwargs...)
+    start_time = time()
+    Memento.trace(_LOGGER, "┌ running $(String(nameof(build_method)))...")
+    if direct_model
+        result = _PM.run_model(
+            data, model_type, nothing, build_method;
+            ref_extensions,
+            solution_processors,
+            multinetwork = true,
+            relax_integrality,
+            setting,
+            jump_model = JuMP.direct_model(optimizer),
+            kwargs...
+        )
+    else
+        result = _PM.run_model(
+            data, model_type, optimizer, build_method;
+            ref_extensions,
+            solution_processors,
+            multinetwork = true,
+            relax_integrality,
+            setting,
+            kwargs...
+        )
+    end
+    Memento.trace(_LOGGER, "└ solved in $(round(time()-start_time;sigdigits=3)) seconds (of which $(round(result["solve_time"];sigdigits=3)) seconds for solver)")
+    if result["termination_status"] ∉ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED)
+        Memento.error(_LOGGER, "Unable to solve $(String(nameof(build_method))) ($(result["optimizer"]) termination status: $(result["termination_status"]))")
+    end
+    return return_solution ? result["solution"] : result
 end

@@ -155,12 +155,13 @@ Return a DataFrame; optionally write a CSV table and a plot.
   optimization problem.
 - `data::Dict{String,Any}`: the multinetwork data Dict used for the same FlexPlan
   optimization problem.
+- `td_coupling::Bool=true`: whether to include cost of energy exchanged with other networks.
 - `out_dir::String=pwd()`: directory for output files.
 - `table::String=""`: if not empty, output a CSV table to `table` file.
 - `plot::String=""`: if not empty, output a plot to `plot` file; file type is based on
   `plot` extension.
 """
-function sol_report_cost_summary(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir::String=pwd(), table::String="", plot::String="")
+function sol_report_cost_summary(sol::Dict{String,Any}, data::Dict{String,Any}; td_coupling::Bool=true, out_dir::String=pwd(), table::String="", plot::String="")
     _FP.require_dim(data, :hour, :scenario, :year)
     dim = data["dim"]
     sol_nw = sol["nw"]
@@ -197,7 +198,7 @@ function sol_report_cost_summary(sol::Dict{String,Any}, data::Dict{String,Any}; 
     curt = sum_operation_cost((d,s,n) -> sum(get(d["gen"][i],"cost_curt",0.0) * gen["pgcurt"] for (i,gen) in s["gen"]; init=0.0))
     push!(df, ("generators", 0.0, op, 0.0, 0.0, curt))
 
-    if _FP.has_dim(data, :sub_nw)
+    if td_coupling && _FP.has_dim(data, :sub_nw)
         op = sum_operation_cost((d,s,n) -> d["gen"][string(_FP.dim_prop(dim,:sub_nw,_FP.coord(dim,parse(Int,n),:sub_nw),"d_gen"))]["cost"][end-1] * s["td_coupling"]["p"])
         push!(df, ("T-D coupling", 0.0, op, 0.0, 0.0, 0.0))
     end
