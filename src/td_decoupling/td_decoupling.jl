@@ -1,6 +1,6 @@
 module TDDecoupling
 
-export run_td_decoupling!
+export run_td_decoupling
 
 using ..FlexPlan
 const _FP = FlexPlan

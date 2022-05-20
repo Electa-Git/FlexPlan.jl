@@ -85,14 +85,14 @@ d_data = Vector{Dict{String,Any}}(undef, number_of_distribution_networks)
 transmission_ac_buses = length(first(values(t_data["nw"]))["bus"])
 for s in 1:number_of_distribution_networks
     d_data[s] = deepcopy(d_data_sub)
-    _FP.dim_prop(d_data[s], :sub_nw, 1)["t_bus"] = mod1(s, transmission_ac_buses) # Attach distribution network to a transmission network bus
+    d_data[s]["t_bus"] = mod1(s, transmission_ac_buses) # Attach distribution network to a transmission network bus
 end
 
 
 ## Compute optimal planning using T&D decoupling procedure
 
 info(_LOGGER, "Solving planning problem using T&D decoupling...")
-result_decoupling = _FP.run_td_decoupling!(
+result_decoupling = _FP.run_td_decoupling(
     t_data, d_data, t_model_type, d_model_type, optimizer, build_method;
     t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting, direct_model
 )

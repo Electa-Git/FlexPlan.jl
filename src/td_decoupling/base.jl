@@ -1,4 +1,4 @@
-function run_td_decoupling!(
+function run_td_decoupling(
         t_data::Dict{String,Any},
         d_data::Vector{Dict{String,Any}},
         t_model_type::Type{<:_PM.AbstractPowerModel},
@@ -24,27 +24,31 @@ function run_td_decoupling!(
         end
     end
 
-    number_of_dist_networks = length(d_data)
-    surrogate_components = Vector{Dict{String,Any}}(undef, number_of_dist_networks)
-    exchanged_power = Vector{Dict{String,Float64}}(undef, number_of_dist_networks)
-    d_result = Vector{Dict{String,Any}}(undef, number_of_dist_networks)
+    d_data = deepcopy(d_data)
+    number_of_distribution_networks = length(d_data)
+    surrogate_components = Vector{Dict{String,Any}}(undef, number_of_distribution_networks)
+    exchanged_power = Vector{Dict{String,Float64}}(undef, number_of_distribution_networks)
+    d_result = Vector{Dict{String,Any}}(undef, number_of_distribution_networks)
 
     # Compute surrogate models of distribution networks and attach them to transmission network
     start_time_surr = time()
-    for s in 1:number_of_dist_networks
-        Memento.trace(_LOGGER, "computing surrogate model $s of $number_of_dist_networks...")
-        sol_up, sol_base, sol_down = probe_distribution_flexibility!(d_data[s]; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
-        surrogate_distribution = calc_surrogate_model(d_data[s], sol_up, sol_base, sol_down)
+    for s in 1:number_of_distribution_networks
+        Memento.trace(_LOGGER, "computing surrogate model $s of $number_of_distribution_networks...")
+        data = d_data[s]
+        _FP.add_dimension!(data, :sub_nw, Dict(1 => Dict{String,Any}("t_bus"=>data["t_bus"], "d_gen"=>_FP.get_reference_gen(data))))
+        delete!(data, "t_bus")
+        sol_up, sol_base, sol_down = probe_distribution_flexibility!(data; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
+        surrogate_distribution = calc_surrogate_model(data, sol_up, sol_base, sol_down)
         surrogate_components[s] = attach_surrogate_distribution!(t_data, surrogate_distribution)
     end
-    Memento.debug(_LOGGER, "surrogate models of $number_of_dist_networks distribution networks computed in $(round(time()-start_time_surr; sigdigits=3)) seconds")
+    Memento.debug(_LOGGER, "surrogate models of $number_of_distribution_networks distribution networks computed in $(round(time()-start_time_surr; sigdigits=3)) seconds")
 
     # Compute planning of transmission network
     start_time_t = time()
     t_result = run_td_decoupling_model(t_data; model_type=t_model_type, optimizer, build_method, ref_extensions=t_ref_extensions, solution_processors=t_solution_processors, setting=t_setting, return_solution=false, direct_model)
     t_sol = t_result["solution"]
     t_objective = calc_t_objective(t_result, t_data, surrogate_components)
-    for s in 1:number_of_dist_networks
+    for s in 1:number_of_distribution_networks
         exchanged_power[s] = calc_exchanged_power(surrogate_components[s], t_sol)
         remove_attached_distribution!(t_sol, t_data, surrogate_components[s])
     end
@@ -52,14 +56,13 @@ function run_td_decoupling!(
 
     # Compute planning of distribution networks
     start_time_d = time()
-    for s in 1:number_of_dist_networks
-        Memento.trace(_LOGGER, "planning distribution network $s of $number_of_dist_networks...")
-        data = deepcopy(d_data[s])
-        apply_td_coupling_power_active_with_zero_cost!(data, t_data, exchanged_power[s])
-        d_result[s] = run_td_decoupling_model(data; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, return_solution=false, direct_model)
+    for s in 1:number_of_distribution_networks
+        Memento.trace(_LOGGER, "planning distribution network $s of $number_of_distribution_networks...")
+        apply_td_coupling_power_active_with_zero_cost!(d_data[s], t_data, exchanged_power[s])
+        d_result[s] = run_td_decoupling_model(d_data[s]; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, return_solution=false, direct_model)
     end
     d_objective = [d_res["objective"] for d_res in d_result]
-    Memento.debug(_LOGGER, "planning of $number_of_dist_networks distribution networks computed in $(round(time()-start_time_d; sigdigits=3)) seconds")
+    Memento.debug(_LOGGER, "planning of $number_of_distribution_networks distribution networks computed in $(round(time()-start_time_d; sigdigits=3)) seconds")
 
     result = Dict{String,Any}(
         "t_solution" => t_sol,

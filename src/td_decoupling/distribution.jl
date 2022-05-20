@@ -12,6 +12,8 @@ function apply_td_coupling_power_active_with_zero_cost!(d_data::Dict{String,Any}
         d_gen["pmin"] = p
 
         # Set distribution generator cost to zero
-        d_gen["cost"] = [0.0, 0.0]
+        d_gen["model"] = 2 # Cost model (2 => polynomial cost)
+        d_gen["ncost"] = 0 # Number of cost coefficients
+        d_gen["cost"]  = Any[]
     end
 end
