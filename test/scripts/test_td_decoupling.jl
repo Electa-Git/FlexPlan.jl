@@ -20,21 +20,12 @@ include("../io/sol.jl")
 include("../io/td_decoupling.jl")
 
 
-## Set up solver
-
-import Cbc
-optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0, "threads"=>Threads.nthreads())
-#import CPLEX
-#optimizer = _FP.optimizer_with_attributes(CPLEX.Optimizer, "CPXPARAM_ScreenOutput"=>0)
-direct_model = false # Whether to construct JuMP models using JuMP.direct_model() instead of JuMP.Model(). direct_model is only supported by some solvers.
-
-
 ## Set script parameters
 
 number_of_hours = 24
 number_of_scenarios = 1
 number_of_years = 1
-number_of_distribution_networks = 2
+number_of_distribution_networks = 4
 t_model_type = _PM.DCPPowerModel
 d_model_type = _FP.BFARadPowerModel
 build_method = _FP.post_simple_stoch_flex_tnep
@@ -45,11 +36,39 @@ d_solution_processors = [_PM.sol_data_model!, _FP.sol_td_coupling!]
 t_setting = Dict("output" => Dict("branch_flows"=>true), "conv_losses_mp" => false)
 d_setting = Dict{String,Any}()
 cost_scale_factor = 1e-6
-out_dir = mkpath("./test/data/output_files/td_decoupling/") # Directory of output files
 
+solver = "cplex"
 report_intermediate_results = false
 report_result = false
 compare_with_combined_td_model = true
+out_dir = mkpath("./test/data/output_files/td_decoupling/")
+
+
+## Set up optimizers
+
+# For each solver, 2 optimizers must be defined: one multi-threaded and one single-threaded.
+# `direct_mode` parameter can be used to construct JuMP models using `JuMP.direct_model()`
+# instead of `JuMP.Model()`. Note that `JuMP.direct_model` is only supported by some
+# solvers.
+if solver == "cplex"
+    import CPLEX
+    direct_model = true
+    optimizer_mt = _FP.optimizer_with_attributes(CPLEX.Optimizer,
+                                                            # range     default  link
+        "CPXPARAM_LPMethod" => 0,                           # { 0,..., 6}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-algorithm-continuous-linear-problems>
+        "CPXPARAM_ScreenOutput" => 0,                       # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
+        "CPXPARAM_Threads" => 0,                            # { 0,1,... }     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-global-thread-count>
+    )
+    optimizer_st = _FP.optimizer_with_attributes(CPLEX.Optimizer,
+                                                            # range     default  link
+        "CPXPARAM_LPMethod" => 1,                           # { 0,..., 6}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-algorithm-continuous-linear-problems>
+        "CPXPARAM_ScreenOutput" => 0,                       # { 0,     1}     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-messages-screen-switch>
+        "CPXPARAM_Threads" => 1,                            # { 0,1,... }     0  <https://www.ibm.com/docs/en/icos/latest?topic=parameters-global-thread-count>
+    )
+else
+    error(_LOGGER, "No optimizers defined for solver \"$solver\" (but you can define them yourself!).")
+end
+
 
 ## Set up logging
 
@@ -93,7 +112,7 @@ end
 
 info(_LOGGER, "Solving planning problem using T&D decoupling...")
 result_decoupling = _FP.run_td_decoupling(
-    t_data, d_data, t_model_type, d_model_type, optimizer, build_method;
+    t_data, d_data, t_model_type, d_model_type, optimizer_mt, optimizer_st, build_method;
     t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting, direct_model
 )
 info(_LOGGER, "T&D decoupling procedure took $(round(result_decoupling["solve_time"]; sigdigits=3)) seconds")
@@ -105,7 +124,7 @@ if report_intermediate_results
     info(_LOGGER, "Reporting intermediate results of T&D decoupling procedure...")
 
     # Intermediate solutions used for building the surrogate model
-    sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_sub; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
+    sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_sub; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
     intermediate_results_dir = joinpath(out_dir, "intermediate_results")
     for (sol,name) in [(sol_up,"up"), (sol_base,"base"), (sol_down,"down")]
         subdir = mkpath(joinpath(intermediate_results_dir, name))
@@ -127,10 +146,10 @@ if report_intermediate_results
     # Surrogate model
     surrogate_dist = _FP.TDDecoupling.calc_surrogate_model(d_data_sub, sol_up, sol_base, sol_down; standalone=true)
     surrogate_subdir = mkpath(joinpath(intermediate_results_dir, "surrogate"))
-    sol_report_decoupling_pcc_power(sol_up, sol_base, sol_down, d_data_sub, surrogate_dist; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, out_dir=intermediate_results_dir, table="t_pcc_power.csv", plot="pcc_power.pdf")
+    sol_report_decoupling_pcc_power(sol_up, sol_base, sol_down, d_data_sub, surrogate_dist; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, out_dir=intermediate_results_dir, table="t_pcc_power.csv", plot="pcc_power.pdf")
 
     # Planning obtained by using the surrogate model as it were an ordinary distribution network
-    sol_surr = _FP.TDDecoupling.run_td_decoupling_model(surrogate_dist; model_type=d_model_type, optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting)
+    sol_surr = _FP.TDDecoupling.run_td_decoupling_model(surrogate_dist; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting)
     sol_report_cost_summary(sol_surr, surrogate_dist; out_dir=surrogate_subdir, table="t_cost.csv", plot="cost.pdf")
     sol_report_power_summary(sol_surr, surrogate_dist; out_dir=surrogate_subdir, table="t_power.csv", plot="power.pdf")
     sol_report_gen(sol_surr, surrogate_dist; out_dir=surrogate_subdir, table="t_gen.csv", plot="gen.pdf")
@@ -180,7 +199,7 @@ end
 if compare_with_combined_td_model
     info(_LOGGER, "Solving planning problem using combined T&D model...")
     result_combined = _FP.run_model(
-        t_data, d_data, t_model_type, d_model_type, optimizer, build_method;
+        t_data, d_data, t_model_type, d_model_type, optimizer_mt, build_method;
         t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting, direct_model
     )
     info(_LOGGER, "Solution of combined T&D model took $(round(result_combined["solve_time"]; sigdigits=3)) seconds")
