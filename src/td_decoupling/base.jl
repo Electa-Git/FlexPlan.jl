@@ -1,3 +1,44 @@
+"""
+    run_td_decoupling(t_data, d_data, t_model_type, d_model_type, t_optimizer, d_optimizer, build_method; <keyword_arguments>)
+
+Solve the planning of a transmission and distribution (T&D) system by decoupling the grid levels.
+
+The T&D decoupling procedure is aimed at reducing computation time with respect to the
+combined T&D model by solving the transmission and distribution parts of the network
+separately.
+It consists of the following steps:
+1. compute a surrogate model of distributon networks;
+2. optimize planning of transmission network using surrogate distribution networks;
+3. fix power exchanges between T&D and optimize planning of distribution networks.
+The procedure introduces approximations, therefore the solution cost is higher than that of
+the combined T&D model.
+
+# Arguments
+
+- `t_data::Dict{String,Any}`: data dictionary for transmission network.
+- `d_data::Vector{Dict{String,Any}}`: vector of data dictionaries, one for each distribution
+  network. Each data dictionary must have a `t_bus` key indicating the transmission network
+  bus id to which the distribution network is to be connected.
+- `t_model_type::Type{<:PowerModels.AbstractPowerModel}`.
+- `d_model_type::Type{<:PowerModels.AbstractPowerModel}`.
+- `t_optimizer::Union{MathOptInterface.AbstractOptimizer,MathOptInterface.OptimizerWithAttributes}`:
+  optimizer for transmission network. It has to solve a MILP problem and can exploit
+  multi-threading.
+- `d_optimizer::Union{MathOptInterface.AbstractOptimizer,MathOptInterface.OptimizerWithAttributes}`:
+  optimizer for distribution networks. It has to solve 2 MILP and 4 LP problems per
+  distribution network; since multi-threading is used to run optimizations of different
+  distribution networks in parallel, it is better for this optimizer to be single-threaded.
+- `build_method::Function`.
+- `t_ref_extensions::Vector{<:Function} = Function[]`.
+- `d_ref_extensions::Vector{<:Function} = Function[]`.
+- `t_solution_processors::Vector{<:Function} = Function[]`.
+- `d_solution_processors::Vector{<:Function} = Function[]`.
+- `t_setting::Dict{String,<:Any} = Dict{String,Any}()`.
+- `d_setting::Dict{String,<:Any} = Dict{String,Any}()`.
+- `direct_model = false`: whether to construct JuMP models using `JuMP.direct_model()`
+  instead of `JuMP.Model()`. Note that `JuMP.direct_model` is only supported by some
+  solvers.
+"""
 function run_td_decoupling(
         t_data::Dict{String,Any},
         d_data::Vector{Dict{String,Any}},
