@@ -46,8 +46,11 @@ out_dir = mkpath("./test/data/output_files/td_decoupling/")
 
 ## Set up optimizers
 
-# For each solver, 2 optimizers must be defined: one multi-threaded and one single-threaded.
-# `direct_mode` parameter can be used to construct JuMP models using `JuMP.direct_model()`
+# For each solver, 2 optimizers should be defined:
+# - one multi-threaded optimizer, used for transmission network planning (MILP problem);
+# - one single-threaded optimizer, used for planning of distribution networks (one MILP and
+#   several LP problems) in a multi-threaded loop (one thread per distribution network).
+# `direct_model` parameter can be used to construct JuMP models using `JuMP.direct_model()`
 # instead of `JuMP.Model()`. Note that `JuMP.direct_model` is only supported by some
 # solvers.
 if solver == "cplex"
@@ -86,9 +89,9 @@ t_data = load_case6(; number_of_hours, number_of_scenarios, number_of_years, cos
 
 # Distribution network data
 
-d_data_sub = load_ieee_33(; number_of_hours, number_of_scenarios, cost_scale_factor, number_of_years)
+d_data_sub = load_ieee_33(; number_of_hours, number_of_scenarios, number_of_years, cost_scale_factor)
 # Alternative distribution network. It has only 1 scenario and 1 year.
-#d_data_sub = load_cigre_mv_eu(flex_load=false, ne_storage=true, scale_gen=1.0, scale_wind=6.0, scale_load=1.0, energy_cost=50.0, year_scale_factor=10, number_of_hours, start_period=1)
+#d_data_sub = load_cigre_mv_eu(; flex_load=false, ne_storage=true, scale_gen=1.0, scale_wind=6.0, scale_load=1.0, year_scale_factor=10, number_of_hours, start_period=1, cost_scale_factor)
 
 # For each storage element, temporarily set the external process power to zero (required by the decoupling procedure at the moment)
 for nw in values(d_data_sub["nw"])
@@ -124,29 +127,31 @@ if report_intermediate_results
     info(_LOGGER, "Reporting intermediate results of T&D decoupling procedure...")
 
     # Intermediate solutions used for building the surrogate model
-    sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_sub; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
+    d_data_intermediate = deepcopy(d_data_sub)
+    _FP.add_dimension!(d_data_intermediate, :sub_nw, Dict(1 => Dict{String,Any}("d_gen"=>_FP.get_reference_gen(d_data_intermediate))))
+    sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_intermediate; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
     intermediate_results_dir = joinpath(out_dir, "intermediate_results")
     for (sol,name) in [(sol_up,"up"), (sol_base,"base"), (sol_down,"down")]
         subdir = mkpath(joinpath(intermediate_results_dir, name))
-        sol_report_cost_summary(sol, d_data_sub; out_dir=subdir, table="t_cost.csv", plot="cost.pdf")
-        sol_report_power_summary(sol, d_data_sub; out_dir=subdir, table="t_power.csv", plot="power.pdf")
-        sol_report_branch(sol, d_data_sub; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFARadPowerModel`
-        sol_report_bus_voltage_magnitude(sol, d_data_sub; out_dir=subdir, table="t_bus.csv", plot="bus.pdf")
-        sol_report_gen(sol, d_data_sub; out_dir=subdir, table="t_gen.csv", plot="gen.pdf")
-        sol_report_load(sol, d_data_sub; out_dir=subdir, table="t_load.csv", plot="load.pdf")
-        sol_report_load_summary(sol, d_data_sub; out_dir=subdir, table="t_load_summary.csv", plot="load_summary.pdf")
+        sol_report_cost_summary(sol, d_data_intermediate; out_dir=subdir, table="t_cost.csv", plot="cost.pdf")
+        sol_report_power_summary(sol, d_data_intermediate; out_dir=subdir, table="t_power.csv", plot="power.pdf")
+        sol_report_branch(sol, d_data_intermediate; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFARadPowerModel`
+        sol_report_bus_voltage_magnitude(sol, d_data_intermediate; out_dir=subdir, table="t_bus.csv", plot="bus.pdf")
+        sol_report_gen(sol, d_data_intermediate; out_dir=subdir, table="t_gen.csv", plot="gen.pdf")
+        sol_report_load(sol, d_data_intermediate; out_dir=subdir, table="t_load.csv", plot="load.pdf")
+        sol_report_load_summary(sol, d_data_intermediate; out_dir=subdir, table="t_load_summary.csv", plot="load_summary.pdf")
         if name == "base"
-            sol_report_investment_summary(sol, d_data_sub; out_dir=subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
-            sol_report_storage(sol, d_data_sub; out_dir=subdir, table="t_storage.csv", plot="storage.pdf")
-            sol_report_storage_summary(sol, d_data_sub; out_dir=subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
+            sol_report_investment_summary(sol, d_data_intermediate; out_dir=subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
+            sol_report_storage(sol, d_data_intermediate; out_dir=subdir, table="t_storage.csv", plot="storage.pdf")
+            sol_report_storage_summary(sol, d_data_intermediate; out_dir=subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
         end
-        sol_graph(sol, d_data_sub; plot="map.pdf", out_dir=subdir, hour=1) # Just as an example; dimension coordinates can also be vectors, or be omitted, in which case one plot for each coordinate will be generated.
+        sol_graph(sol, d_data_intermediate; plot="map.pdf", out_dir=subdir, hour=1) # Just as an example; dimension coordinates can also be vectors, or be omitted, in which case one plot for each coordinate will be generated.
     end
 
     # Surrogate model
-    surrogate_dist = _FP.TDDecoupling.calc_surrogate_model(d_data_sub, sol_up, sol_base, sol_down; standalone=true)
+    surrogate_dist = _FP.TDDecoupling.calc_surrogate_model(d_data_intermediate, sol_up, sol_base, sol_down; standalone=true)
     surrogate_subdir = mkpath(joinpath(intermediate_results_dir, "surrogate"))
-    sol_report_decoupling_pcc_power(sol_up, sol_base, sol_down, d_data_sub, surrogate_dist; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, out_dir=intermediate_results_dir, table="t_pcc_power.csv", plot="pcc_power.pdf")
+    sol_report_decoupling_pcc_power(sol_up, sol_base, sol_down, d_data_intermediate, surrogate_dist; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, out_dir=intermediate_results_dir, table="t_pcc_power.csv", plot="pcc_power.pdf")
 
     # Planning obtained by using the surrogate model as it were an ordinary distribution network
     sol_surr = _FP.TDDecoupling.run_td_decoupling_model(surrogate_dist; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting)
@@ -209,10 +214,10 @@ if compare_with_combined_td_model
     ratio = obj_decoupling / obj_combined
     digits = max(1, ceil(Int,-log10(abs(diff)))+1)
     info(_LOGGER, "Combined T&D model objective: $(round(obj_combined; digits))")
-    info(_LOGGER, "    T&D decoupling objective: $(round(obj_decoupling; digits)) ($(round((ratio-1)*100; sigdigits=3))% higher)")
+    info(_LOGGER, "    T&D decoupling objective: $(round(obj_decoupling; digits)) (signed relative error: $(round((ratio-1); sigdigits=2)))")
     if diff < 0
         warn(_LOGGER, "T&D decoupling objective is less than that of combined T&D model. This should not happen!")
     end
 end
 
-notice(_LOGGER, "Test completed in $(round(time()-time_start;sigdigits=3)) seconds. Results saved in $out_dir")
+notice(_LOGGER, "Test completed in $(round(time()-time_start;sigdigits=3)) seconds." * ((report_result || report_intermediate_results) ? " Results saved in $out_dir" : ""))

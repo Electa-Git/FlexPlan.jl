@@ -194,12 +194,18 @@ function sol_report_cost_summary(sol::Dict{String,Any}, data::Dict{String,Any}; 
     inv = sum_investment_cost((d,s) -> sum(d["ne_storage"][i]["eq_cost"]+d["ne_storage"][i]["inst_cost"] for (i,storage) in get(s,"ne_storage",Dict()) if storage["investment"]>0.5; init=0.0))
     push!(df, ("storage", inv, 0.0, 0.0, 0.0, 0.0))
 
-    op = sum_operation_cost((d,s,n) -> sum(d["gen"][i]["cost"][end-1] * gen["pg"] for (i,gen) in s["gen"]; init=0.0))
+    op = sum_operation_cost((d,s,n) -> sum((length(d["gen"][i]["cost"])≥2 ? d["gen"][i]["cost"][end-1] : 0.0) * gen["pg"] for (i,gen) in s["gen"]; init=0.0))
     curt = sum_operation_cost((d,s,n) -> sum(get(d["gen"][i],"cost_curt",0.0) * gen["pgcurt"] for (i,gen) in s["gen"]; init=0.0))
     push!(df, ("generators", 0.0, op, 0.0, 0.0, curt))
 
     if td_coupling && _FP.has_dim(data, :sub_nw)
-        op = sum_operation_cost((d,s,n) -> d["gen"][string(_FP.dim_prop(dim,:sub_nw,_FP.coord(dim,parse(Int,n),:sub_nw),"d_gen"))]["cost"][end-1] * s["td_coupling"]["p"])
+        op = sum_operation_cost((d,s,n) ->
+            begin
+                d_gen = string(_FP.dim_prop(dim,:sub_nw,_FP.coord(dim,parse(Int,n),:sub_nw),"d_gen"))
+                cost_vector = d["gen"][d_gen]["cost"]
+                (length(cost_vector)≥2 ? cost_vector[end-1] : 0.0) * s["td_coupling"]["p"]
+            end
+        )
         push!(df, ("T-D coupling", 0.0, op, 0.0, 0.0, 0.0))
     end
 
@@ -1056,8 +1062,8 @@ function sol_report_storage_summary(sol::Dict{String,Any}, data::Dict{String,Any
         energy = sum(st["se"] for (s,st) in get(sol_nw,"storage",Dict()) if data_nw["storage"][s]["status"]>0; init=0.0) + sum(st["se_ne"] for st in values(get(sol_nw,"ne_storage",Dict())) if st["isbuilt"]>0.5; init=0.0)
         energy_rating = sum(st["energy_rating"] for st in values(get(data_nw,"storage",Dict())) if st["status"]>0; init=0.0) + sum(data_nw["ne_storage"][s]["energy_rating"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
         power = sum(st["ps"] for (s,st) in get(sol_nw,"storage",Dict()) if data_nw["storage"][s]["status"]>0; init=0.0) + sum(st["ps_ne"] for st in values(get(sol_nw,"ne_storage",Dict())) if st["isbuilt"]>0.5; init=0.0)
-        power_min = -sum(st["discharge_rating"] for (s,st) in get(data_nw,"storage",Dict()) if st["status"]>0; init=0.0) - sum(data_nw["ne_storage"][s]["discharge_rating"] for st in values(get(sol_nw,"ne_storage",Dict())) if st["isbuilt"]>0.5; init=0.0)
-        power_max = sum(st["charge_rating"] for (s,st) in get(data_nw,"storage",Dict()) if st["status"]>0; init=0.0) + sum(data_nw["ne_storage"][s]["charge_rating"] for st in values(get(sol_nw,"ne_storage",Dict())) if st["isbuilt"]>0.5; init=0.0)
+        power_min = -sum(st["discharge_rating"] for (s,st) in get(data_nw,"storage",Dict()) if st["status"]>0; init=0.0) - sum(data_nw["ne_storage"][s]["discharge_rating"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
+        power_max = sum(st["charge_rating"] for (s,st) in get(data_nw,"storage",Dict()) if st["status"]>0; init=0.0) + sum(data_nw["ne_storage"][s]["charge_rating"] for (s,st) in get(sol_nw,"ne_storage",Dict()) if st["isbuilt"]>0.5; init=0.0)
         push!(df, (h, s, y, energy, energy_rating, power, power_min, power_max))
     end
     sort!(df, [:year, :scenario, :hour])
