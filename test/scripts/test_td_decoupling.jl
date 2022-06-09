@@ -93,16 +93,6 @@ d_data_sub = load_ieee_33(; number_of_hours, number_of_scenarios, number_of_year
 # Alternative distribution network. It has only 1 scenario and 1 year.
 #d_data_sub = load_cigre_mv_eu(; flex_load=false, ne_storage=true, scale_gen=1.0, scale_wind=6.0, scale_load=1.0, year_scale_factor=10, number_of_hours, start_period=1, cost_scale_factor)
 
-# For each storage element, temporarily set the external process power to zero (required by the decoupling procedure at the moment)
-for nw in values(d_data_sub["nw"])
-    for comp in ["storage", "ne_storage"]
-        for st in values(nw[comp])
-            st["stationary_energy_inflow"] = 0.0
-            st["stationary_energy_outflow"] = 0.0
-        end
-    end
-end
-
 d_data = Vector{Dict{String,Any}}(undef, number_of_distribution_networks)
 transmission_ac_buses = length(first(values(t_data["nw"]))["bus"])
 for s in 1:number_of_distribution_networks

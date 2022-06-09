@@ -65,15 +65,15 @@ function calc_surrogate_model(orig_data::Dict{String,Any}, sol_up::Dict{String,A
         template_nw["switch"] = Dict{String,Any}()
     end
 
-    template_gen     = surrogate_gen_const(orig_data["nw"][first_nw]; standalone)
+    template_gen     = surrogate_gen_const(; standalone)
     template_storage = surrogate_storage_const(orig_data["nw"][first_nw], sol_base[first_nw]; standalone)
-    template_load    = surrogate_load_const(orig_data["nw"][first_nw], sol_base[first_nw])
+    template_load    = surrogate_load_const(sol_base[first_nw])
 
     for n in nws
         nw = data["nw"][n] = deepcopy(template_nw)
         nw["storage"]["1"] = surrogate_storage_ts(template_storage, orig_data["nw"][n], sol_up[n], sol_base[n], sol_down[n]; standalone)
-        nw["load"]["1"]    = surrogate_load_ts(template_load, nw["storage"]["1"], sol_up[n], sol_base[n], sol_down[n])
-        nw["gen"]["1"]     = surrogate_gen_ts(template_gen, nw["load"]["1"], sol_base[n])
+        nw["load"]["1"]    = surrogate_load_ts(template_load, orig_data["nw"][n], nw["storage"]["1"], sol_up[n], sol_base[n], sol_down[n])
+        nw["gen"]["1"]     = surrogate_gen_ts(template_gen, orig_data["nw"][n], nw["load"]["1"], sol_base[n])
         if standalone
             orig_d_gen = _FP.dim_prop(orig_data, :sub_nw, 1, "d_gen")
             nw["gen"]["2"] = deepcopy(orig_data["nw"][n]["gen"]["$orig_d_gen"])
@@ -87,26 +87,22 @@ function calc_surrogate_model(orig_data::Dict{String,Any}, sol_up::Dict{String,A
     return data
 end
 
-function surrogate_load_const(od, bs)
+function surrogate_load_const(bs)
     load = Dict{String,Any}(
         "load_bus" => 1,
         "status"   => 1,
     )
-    load["cost_curt"] = od["load"]["1"]["cost_curt"] # Assumption: all loads have the same curtailment cost.
-    a_flex_load_id = findfirst(l -> l["flex"]>0.5, bs["load"])
-    if isnothing(a_flex_load_id)
-        load["flex"]       = false
+    if any(ld -> ld.second["flex"]>0.5, bs["load"])
+        load["flex"]     = true
+        load["lifetime"] = 1
+        load["cost_inv"] = 0.0
     else
-        load["flex"]       = true
-        load["cost_red"]   = od["load"][a_flex_load_id]["cost_red"] # Assumption: all flexible loads have the same cost for voluntary reduction.
-        load["cost_shift"] = od["load"][a_flex_load_id]["cost_shift"] # Assumption: all flexible loads have the same cost for time shifting.
-        load["lifetime"]   = 1
-        load["cost_inv"]   = 0.0
+        load["flex"] = false
     end
     return load
 end
 
-function surrogate_gen_const(od; standalone)
+function surrogate_gen_const(; standalone)
     gen = Dict{String,Any}(
         "cost"         => [0.0, 0.0],
         "dispatchable" => false,
@@ -116,7 +112,6 @@ function surrogate_gen_const(od; standalone)
         "ncost"        => 2,
         "pmin"         => 0.0,
     )
-    gen["cost_curt"] = od["gen"]["1"]["dispatchable"] ? od["gen"]["2"]["cost_curt"] : od["gen"]["1"]["cost_curt"] # Assumptions: 1. all generators are non-dispatchable (except the generator which simulates the transmission network); 2. all non-dispatchable generators have the same curtailment cost.
     if standalone
         gen["qmax"] = 0.0
         gen["qmin"] = 0.0
@@ -130,16 +125,8 @@ function surrogate_storage_const(od, bs; standalone)
         "status"              => 1,
         "storage_bus"         => 1,
     )
-    charge_efficiency = (
-        (sum(s["charge_efficiency"]*s["charge_rating"] for s in values(od["storage"]); init=0.0) + sum(s["charge_efficiency"]*s["charge_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
-        / (sum(s["charge_rating"] for s in values(od["storage"]); init=0.0) + sum(s["charge_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
-    )
-    storage["charge_efficiency"] = isnan(charge_efficiency) ? 0.0 : charge_efficiency
-    discharge_efficiency = (
-        (sum(s["discharge_efficiency"]*s["discharge_rating"] for s in values(od["storage"]); init=0.0) + sum(s["discharge_efficiency"]*s["discharge_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
-        / (sum(s["discharge_rating"] for s in values(od["storage"]); init=0.0) + sum(s["discharge_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
-    )
-    storage["discharge_efficiency"] = isnan(discharge_efficiency) ? 0.0 : discharge_efficiency
+    storage["charge_efficiency"] = max(maximum(s["charge_efficiency"] for s in values(od["storage"]); init=0.0), maximum(s["charge_efficiency"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
+    storage["discharge_efficiency"] = max(maximum(s["discharge_efficiency"] for s in values(od["storage"]); init=0.0), maximum(s["discharge_efficiency"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
     storage["energy_rating"] = sum(s["energy_rating"] for s in values(od["storage"]); init=0.0) + sum(s["energy_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0)
     if standalone
         storage["p_loss"] = 0.0
@@ -152,7 +139,7 @@ function surrogate_storage_const(od, bs; standalone)
     return storage
 end
 
-function surrogate_load_ts(load, storage, up, bs, dn)
+function surrogate_load_ts(load, od, storage, up, bs, dn)
     pshift_up_max = min(sum(l["pshift_up"] for l in values(up["load"]); init=0.0)-sum(l["pshift_up"] for l in values(bs["load"]); init=0.0), up["td_coupling"]["p"]-storage["charge_rating"])
     pshift_down_max = sum(l["pshift_down"] for l in values(dn["load"]); init=0.0)-sum(l["pshift_down"] for l in values(bs["load"]); init=0.0)
     pred_max = sum(l["pred"] for l in values(dn["load"]); init=0.0)-sum(l["pred"] for l in values(bs["load"]); init=0.0)
@@ -163,13 +150,19 @@ function surrogate_load_ts(load, storage, up, bs, dn)
     load["pshift_up_rel_max"]   = pshift_up_max / pd
     load["pshift_down_rel_max"] = pshift_down_max / pd
     load["pred_rel_max"]        = pred_max / pd
+    load["cost_curt"]           = minimum(ld["cost_curt"] for ld in values(od["load"]))
+    if load["flex"]
+        load["cost_red"]        = minimum(od["load"][l]["cost_red"] for (l,ld) in bs["load"] if ld["flex"]>0.5)
+        load["cost_shift"]      = minimum(od["load"][l]["cost_shift"] for (l,ld) in bs["load"] if ld["flex"]>0.5)
+    end
 
     return load
 end
 
-function surrogate_gen_ts(gen, load, bs)
+function surrogate_gen_ts(gen, od, load, bs)
     gen = copy(gen)
     gen["pmax"] = load["pd"] - bs["td_coupling"]["p"]
+    gen["cost_curt"] = minimum(od["gen"][g]["cost_curt"] for (g,gen) in bs["gen"]) # Assumption: all generators are non-dispatchable (except the generator that simulates the transmission network, which has already been removed from the solution dict).
 
     return gen
 end
@@ -179,8 +172,22 @@ function surrogate_storage_ts(storage, od, up, bs, dn; standalone)
     ps_bs = sum(s["ps"] for s in values(get(bs,"storage",Dict())); init=0.0) + sum(s["ps_ne"] for s in values(get(bs,"ne_storage",Dict())) if s["isbuilt"] > 0.5; init=0.0)
     ps_dn = sum(s["ps"] for s in values(get(dn,"storage",Dict())); init=0.0) + sum(s["ps_ne"] for s in values(get(dn,"ne_storage",Dict())) if s["isbuilt"] > 0.5; init=0.0)
     ext_flow = (
-        sum(od["storage"][i]["charge_efficiency"]*s["sc"] - s["sd"]/od["storage"][i]["discharge_efficiency"] for (i,s) in get(bs,"storage",Dict()); init=0.0)
-        + sum(od["ne_storage"][i]["charge_efficiency"]*s["sc_ne"] - s["sd_ne"]/od["ne_storage"][i]["discharge_efficiency"] for (i,s) in get(bs,"ne_storage",Dict()) if s["isbuilt"] > 0.5; init=0.0)
+        sum(
+                od["storage"][i]["charge_efficiency"]*s["sc"]
+                - s["sd"]/od["storage"][i]["discharge_efficiency"]
+                + od["storage"][i]["stationary_energy_inflow"]
+                - od["storage"][i]["stationary_energy_outflow"]
+            for (i,s) in get(bs,"storage",Dict());
+            init=0.0
+        )
+        + sum(
+                od["ne_storage"][i]["charge_efficiency"]*s["sc_ne"]
+                - s["sd_ne"]/od["ne_storage"][i]["discharge_efficiency"]
+                + od["storage"][i]["stationary_energy_inflow"]
+                - od["storage"][i]["stationary_energy_outflow"]
+            for (i,s) in get(bs,"ne_storage",Dict()) if s["isbuilt"] > 0.5;
+            init=0.0
+        )
     )
 
     storage = copy(storage)
