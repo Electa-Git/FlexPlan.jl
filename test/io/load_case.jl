@@ -211,6 +211,7 @@ Extensions:
 - `number_of_scenarios::Int = 4`: number of scenarios (different time series for loads and
   RES generators).
 - `number_of_years::Int = 3`: number of years (different investment sets).
+- `energy_cost::Real = 50.0`: cost of energy exchanged with transmission network [€/MWh].
 - `cost_scale_factor::Real = 1.0`: scale factor for all costs.
 - `share_data::Bool=true`: whether constant data is shared across networks (faster) or
   duplicated (uses more memory, but ensures networks are independent; useful if further
@@ -223,10 +224,15 @@ function load_ieee_33(;
         number_of_hours::Int = 672,
         number_of_scenarios::Int = 4,
         number_of_years::Int = 3,
+        energy_cost::Real = 50.0, # €/MWh
         cost_scale_factor::Real = 1.0,
         share_data::Bool = true,
     )
     file = normpath(@__DIR__,"..","data","ieee_33","ieee_33_672h_4s_3y.json")
+
+    function set_energy_cost!(data)
+        data["gen"]["1"]["cost"][end-1] = energy_cost # Coupling generator id is 1 because its String id in the JSON file happens to be the first in alphabetical order.
+    end
 
     return _FP.convert_JSON(
         file;
@@ -237,6 +243,7 @@ function load_ieee_33(;
         number_of_scenarios,
         number_of_years,
         cost_scale_factor,
+        sn_data_extensions = [set_energy_cost!],
         share_data,
     )
 end
