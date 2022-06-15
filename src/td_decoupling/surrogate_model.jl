@@ -121,13 +121,13 @@ end
 
 function surrogate_storage_const(od, bs; standalone)
     storage = Dict{String,Any}(
-        "self_discharge_rate" => 0.0,
-        "status"              => 1,
-        "storage_bus"         => 1,
+        "status"               => 1,
+        "storage_bus"          => 1,
+        "energy_rating"        => sum(s["energy_rating"] for s in values(od["storage"]); init=0.0) + sum(s["energy_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0),
+        "self_discharge_rate"  => min(minimum(s["self_discharge_rate"] for s in values(od["storage"]); init=1.0), minimum(s["self_discharge_rate"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=1.0)),
+        "charge_efficiency"    => max(maximum(s["charge_efficiency"] for s in values(od["storage"]); init=0.0), maximum(s["charge_efficiency"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0)),
+        "discharge_efficiency" => max(maximum(s["discharge_efficiency"] for s in values(od["storage"]); init=0.0), maximum(s["discharge_efficiency"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0)),
     )
-    storage["charge_efficiency"] = max(maximum(s["charge_efficiency"] for s in values(od["storage"]); init=0.0), maximum(s["charge_efficiency"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
-    storage["discharge_efficiency"] = max(maximum(s["discharge_efficiency"] for s in values(od["storage"]); init=0.0), maximum(s["discharge_efficiency"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0))
-    storage["energy_rating"] = sum(s["energy_rating"] for s in values(od["storage"]); init=0.0) + sum(s["energy_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0)
     if standalone
         storage["p_loss"] = 0.0
         storage["q_loss"] = 0.0
