@@ -57,17 +57,53 @@ function run_td_decoupling(
     )
 
     start_time = time()
-
-    # Check that transmission and distribution network ids are the same
     nw_id_set = Set(id for (id,nw) in t_data["nw"])
-    for data in d_data
+    d_data = deepcopy(d_data)
+    number_of_distribution_networks = length(d_data)
+
+    # Data preparation and checks
+    for s in 1:number_of_distribution_networks
+        data = d_data[s]
+        d_gen_id = _FP.get_reference_gen(data)
+        _FP.add_dimension!(data, :sub_nw, Dict(1 => Dict{String,Any}("t_bus"=>data["t_bus"], "d_gen"=>d_gen_id)))
+        delete!(data, "t_bus")
+
+        # Check that transmission and distribution network ids are the same
         if Set(id for (id,nw) in data["nw"]) ≠ nw_id_set
             Memento.error(_LOGGER, "Networks in transmission and distribution data dictionaries must have the same IDs.")
         end
+
+        # Warn if cost for energy exchanged between transmission and distribution network is zero.
+        for (n,nw) in data["nw"]
+            d_gen = nw["gen"]["$d_gen_id"]
+            if d_gen["ncost"] < 2 || d_gen["cost"][end-1] ≤ 0.0
+                Memento.warn(_LOGGER, "Nonpositive cost detected for energy exchanged between transmission and distribution network $s. This may result in excessive usage of storage devices.")
+                break
+            end
+        end
+
+        # Notify if any storage devices have zero self-discharge rate.
+        raise_warning = false
+        for n in _FP.nw_ids(data; hour=1, scenario=1)
+            for (st,storage) in get(data["nw"]["$n"], "storage", Dict())
+                if storage["self_discharge_rate"] == 0.0
+                    raise_warning = true
+                    break
+                end
+            end
+            for (st,storage) in get(data["nw"]["$n"], "ne_storage", Dict())
+                if storage["self_discharge_rate"] == 0.0
+                    raise_warning = true
+                    break
+                end
+            end
+            if raise_warning
+                Memento.notice(_LOGGER, "Zero self-discharge rate detected for a storage device in distribution network $s. The model may have multiple optimal solutions.")
+                break
+            end
+        end
     end
 
-    d_data = deepcopy(d_data)
-    number_of_distribution_networks = length(d_data)
     surrogate_distribution = Vector{Dict{String,Any}}(undef, number_of_distribution_networks)
     surrogate_components = Vector{Dict{String,Any}}(undef, number_of_distribution_networks)
     exchanged_power = Vector{Dict{String,Float64}}(undef, number_of_distribution_networks)
@@ -77,11 +113,8 @@ function run_td_decoupling(
     start_time_surr = time()
     Threads.@threads for s in 1:number_of_distribution_networks
         Memento.trace(_LOGGER, "computing surrogate model $s of $number_of_distribution_networks...")
-        data = d_data[s]
-        _FP.add_dimension!(data, :sub_nw, Dict(1 => Dict{String,Any}("t_bus"=>data["t_bus"], "d_gen"=>_FP.get_reference_gen(data))))
-        delete!(data, "t_bus")
-        sol_up, sol_base, sol_down = probe_distribution_flexibility!(data; model_type=d_model_type, optimizer=d_optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
-        surrogate_distribution[s] = calc_surrogate_model(data, sol_up, sol_base, sol_down)
+        sol_up, sol_base, sol_down = probe_distribution_flexibility!(d_data[s]; model_type=d_model_type, optimizer=d_optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
+        surrogate_distribution[s] = calc_surrogate_model(d_data[s], sol_up, sol_base, sol_down)
     end
     for s in 1:number_of_distribution_networks
         surrogate_components[s] = attach_surrogate_distribution!(t_data, surrogate_distribution[s])
