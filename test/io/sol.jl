@@ -424,22 +424,23 @@ Return a DataFrame; optionally write a CSV table and a plot.
 function sol_report_branch(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir::String=pwd(), table::String="", plot::String="", rated_power_scale_factor::Float64=1.0)
     _FP.require_dim(data, :hour, :scenario, :year)
     dim = data["dim"]
-    sol_nw = sol["nw"]
-    data_nw = data["nw"]
 
-    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], component=String[], id=Int[], p=Float64[], q=Float64[], p_rel=Float64[])
+    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], component=String[], id=Int[], source_id=String[], p=Float64[], q=Float64[], p_rel=Float64[])
     for n in _FP.nw_ids(dim)
-        nw = sol_nw["$n"]
+        sol_nw = sol["nw"]["$n"]
+        data_nw = data["nw"]["$n"]
         h = _FP.coord(dim, n, :hour)
         s = _FP.coord(dim, n, :scenario)
         y = _FP.coord(dim, n, :year)
         for comp in ("branch", "ne_branch")
-            for (b, br) in get(nw, comp, Dict{String,Any}())
-                rate = data_nw["$n"][comp][b]["rate_a"]
+            for (b, br) in get(sol_nw, comp, Dict{String,Any}())
+                data_br = data_nw[comp][b]
+                source_id = string(data_br["source_id"][end])
+                rate = data_br["rate_a"]
                 p = br["pf"]
                 q = br["qf"]
                 p_rel = abs(p) / (rated_power_scale_factor * rate)
-                push!(df, (h, s, y, comp, parse(Int,b), p, q, p_rel))
+                push!(df, (h, s, y, comp, parse(Int,b), source_id, p, q, p_rel))
             end
         end
     end
@@ -501,7 +502,7 @@ function sol_report_bus_voltage_angle(sol::Dict{String,Any}, data::Dict{String,A
     _FP.require_dim(data, :hour, :scenario, :year)
     dim = data["dim"]
 
-    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], id=Int[], va=Float64[])
+    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], id=Int[], source_id=String[], va=Float64[])
     for n in _FP.nw_ids(dim)
         sol_nw = sol["nw"]["$n"]
         data_nw = data["nw"]["$n"]
@@ -509,7 +510,8 @@ function sol_report_bus_voltage_angle(sol::Dict{String,Any}, data::Dict{String,A
         s = _FP.coord(dim, n, :scenario)
         y = _FP.coord(dim, n, :year)
         for (i,bus) in sol_nw["bus"]
-            push!(df, (h, s, y, parse(Int,i), bus["va"]))
+            source_id = string(data_nw["bus"][i]["source_id"][end])
+            push!(df, (h, s, y, parse(Int,i), source_id, bus["va"]))
         end
     end
     sort!(df, [:year, :scenario, :id, :hour])
@@ -578,7 +580,7 @@ function sol_report_bus_voltage_magnitude(sol::Dict{String,Any}, data::Dict{Stri
     _FP.require_dim(data, :hour, :scenario, :year)
     dim = data["dim"]
 
-    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], id=Int[], vm=Float64[], vmin=Float64[], vmax=Float64[])
+    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], id=Int[], source_id=String[], vm=Float64[], vmin=Float64[], vmax=Float64[])
     for n in _FP.nw_ids(dim)
         sol_nw = sol["nw"]["$n"]
         data_nw = data["nw"]["$n"]
@@ -586,9 +588,10 @@ function sol_report_bus_voltage_magnitude(sol::Dict{String,Any}, data::Dict{Stri
         s = _FP.coord(dim, n, :scenario)
         y = _FP.coord(dim, n, :year)
         for (i,bus) in sol_nw["bus"]
+            source_id = string(data_nw["bus"][i]["source_id"][end])
             vmin = data_nw["bus"][i]["vmin"]
             vmax = data_nw["bus"][i]["vmax"]
-            push!(df, (h, s, y, parse(Int,i), bus["vm"], vmin, vmax))
+            push!(df, (h, s, y, parse(Int,i), source_id, bus["vm"], vmin, vmax))
         end
     end
     sort!(df, [:year, :scenario, :id, :hour])
@@ -664,7 +667,7 @@ function sol_report_gen(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir::
     _FP.require_dim(data, :hour, :scenario, :year)
     dim = data["dim"]
 
-    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], id=Int[], p=Float64[], pmin=Float64[], pmax=Float64[])
+    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], id=Int[], source_id=String[], p=Float64[], pmin=Float64[], pmax=Float64[])
     for n in _FP.nw_ids(dim)
         sol_nw = sol["nw"]["$n"]
         data_nw = data["nw"]["$n"]
@@ -672,10 +675,12 @@ function sol_report_gen(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir::
         s = _FP.coord(dim, n, :scenario)
         y = _FP.coord(dim, n, :year)
         for (g, gen) in sol_nw["gen"]
+            data_gen = data_nw["gen"][g]
+            source_id = string(data_gen["source_id"][end])
             p = gen["pg"]
-            pmin = data_nw["gen"][g]["pmin"]
-            pmax = data_nw["gen"][g]["pmax"]
-            push!(df, (h, s, y, parse(Int,g), p, pmin, pmax))
+            pmin = data_gen["pmin"]
+            pmax = data_gen["pmax"]
+            push!(df, (h, s, y, parse(Int,g), source_id, p, pmin, pmax))
         end
     end
     sort!(df, [:year, :scenario, :id, :hour])
@@ -744,7 +749,7 @@ function sol_report_load(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir:
     _FP.require_dim(data, :hour, :scenario, :year)
     dim = data["dim"]
 
-    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], id=Int[], flex=Bool[], pd=Float64[], pflex=Float64[], pshift_up=Float64[], pshift_down=Float64[], pred=Float64[], pcurt=Float64[])
+    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], id=Int[], source_id=String[], flex=Bool[], pd=Float64[], pflex=Float64[], pshift_up=Float64[], pshift_down=Float64[], pred=Float64[], pcurt=Float64[])
     for n in _FP.nw_ids(dim)
         sol_nw = sol["nw"]["$n"]
         data_nw = data["nw"]["$n"]
@@ -752,9 +757,11 @@ function sol_report_load(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir:
         s = _FP.coord(dim, n, :scenario)
         y = _FP.coord(dim, n, :year)
         for (i,load) in sol_nw["load"]
-            flex = Bool(round(Int,get(load,"flex",data_nw["load"][i]["flex"])))
+            data_load = data_nw["load"][i]
+            source_id = string(data_load["source_id"][end])
+            flex = Bool(round(Int,get(load,"flex",data_load["flex"])))
             pd = data_nw["load"][i]["pd"]
-            push!(df, (h, s, y, parse(Int,i), flex, pd, load["pflex"], load["pshift_up"], load["pshift_down"], load["pred"], load["pcurt"]))
+            push!(df, (h, s, y, parse(Int,i), source_id, flex, pd, load["pflex"], load["pshift_up"], load["pshift_down"], load["pred"], load["pcurt"]))
         end
     end
     sort!(df, [:year, :scenario, :id, :hour])
@@ -907,7 +914,7 @@ function sol_report_storage(sol::Dict{String,Any}, data::Dict{String,Any}; out_d
     _FP.require_dim(data, :hour, :scenario, :year)
     dim = data["dim"]
 
-    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], component=String[], id=Int[], energy=Float64[], energy_rating=Float64[], power=Float64[], power_min=Float64[], power_max=Float64[])
+    df = DataFrame(hour=Int[], scenario=Int[], year=Int[], component=String[], id=Int[], source_id=String[], energy=Float64[], energy_rating=Float64[], power=Float64[], power_min=Float64[], power_max=Float64[])
 
     # Read from `data` the initial energy of the first period, indexing it as hour 0.
     for n in _FP.nw_ids(dim; hour=1)
@@ -917,12 +924,14 @@ function sol_report_storage(sol::Dict{String,Any}, data::Dict{String,Any}; out_d
         y = _FP.coord(dim, n, :year)
         for (i, st) in get(sol_nw, "storage", Dict{String,Any}())
             data_st = data_nw["storage"][i]
-            push!(df, (0, s, y, "storage", parse(Int,i), data_st["energy"], data_st["energy_rating"], NaN, NaN, NaN))
+            source_id = string(data_st["source_id"][end])
+            push!(df, (0, s, y, "storage", parse(Int,i), source_id, data_st["energy"], data_st["energy_rating"], NaN, NaN, NaN))
         end
         for (i, st) in get(sol_nw, "ne_storage", Dict{String,Any}())
             built = st["isbuilt"] > 0.5
             data_st = data_nw["ne_storage"][i]
-            push!(df, (0, s, y, "ne_storage", parse(Int,i), data_st["energy"]*built, data_st["energy_rating"]*built, NaN, NaN, NaN))
+            source_id = string(data_st["source_id"][end])
+            push!(df, (0, s, y, "ne_storage", parse(Int,i), source_id, data_st["energy"]*built, data_st["energy_rating"]*built, NaN, NaN, NaN))
         end
     end
     # Read from `sol` power and final energy of each period.
@@ -934,12 +943,14 @@ function sol_report_storage(sol::Dict{String,Any}, data::Dict{String,Any}; out_d
         y = _FP.coord(dim, n, :year)
         for (i, st) in get(sol_nw, "storage", Dict{String,Any}())
             data_st = data_nw["storage"][i]
-            push!(df, (h, s, y, "storage", parse(Int,i), st["se"], data_st["energy_rating"], st["ps"], -data_st["discharge_rating"], data_st["charge_rating"]))
+            source_id = string(data_st["source_id"][end])
+            push!(df, (h, s, y, "storage", parse(Int,i), source_id, st["se"], data_st["energy_rating"], st["ps"], -data_st["discharge_rating"], data_st["charge_rating"]))
         end
         for (i, st) in get(sol_nw, "ne_storage", Dict{String,Any}())
             built = st["isbuilt"] > 0.5
             data_st = data_nw["ne_storage"][i]
-            push!(df, (h, s, y, "ne_storage", parse(Int,i), st["se_ne"]*built, data_st["energy_rating"]*built, st["ps_ne"], -data_st["discharge_rating"], data_st["charge_rating"]))
+            source_id = string(data_st["source_id"][end])
+            push!(df, (h, s, y, "ne_storage", parse(Int,i), source_id, st["se_ne"]*built, data_st["energy_rating"]*built, st["ps_ne"], -data_st["discharge_rating"], data_st["charge_rating"]))
         end
     end
     sort!(df, [:year, :scenario, order(:component, rev=true), :id, :hour])
