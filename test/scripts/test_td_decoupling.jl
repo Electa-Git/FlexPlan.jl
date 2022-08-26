@@ -37,7 +37,7 @@ t_setting = Dict("output" => Dict("branch_flows"=>true), "conv_losses_mp" => fal
 d_setting = Dict{String,Any}()
 cost_scale_factor = 1e-6
 
-solver = "cplex"
+solver = "highs"
 report_intermediate_results = false
 report_result = false
 compare_with_combined_td_model = true
@@ -53,7 +53,18 @@ out_dir = mkpath("./test/data/output_files/td_decoupling/")
 # `direct_model` parameter can be used to construct JuMP models using `JuMP.direct_model()`
 # instead of `JuMP.Model()`. Note that `JuMP.direct_model` is only supported by some
 # solvers.
-if solver == "cplex"
+if solver == "highs"
+    import HiGHS
+    direct_model = false
+    optimizer_mt = _FP.optimizer_with_attributes(HiGHS.Optimizer, # Parameters: <https://github.com/jump-dev/HiGHS.jl>
+        "threads" => 0,
+        "output_flag" => false,
+    )
+    optimizer_st = _FP.optimizer_with_attributes(HiGHS.Optimizer, # Parameters: <https://github.com/jump-dev/HiGHS.jl>
+        "threads" => 1,
+        "output_flag" => false,
+    )
+elseif solver == "cplex"
     import CPLEX
     direct_model = true
     optimizer_mt = _FP.optimizer_with_attributes(CPLEX.Optimizer,
