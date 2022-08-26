@@ -14,6 +14,7 @@ const _MOI = MathOptInterface
 
 import JuMP
 import Memento
+using Printf
 
 include("base.jl")
 include("probe_flexibility.jl")
