@@ -161,7 +161,7 @@ if report_result
     t_subdir = mkpath(joinpath(result_dir, "transmission"))
     sol_report_cost_summary(t_sol, t_data; out_dir=t_subdir, table="t_cost.csv", plot="cost.pdf")
     sol_report_power_summary(t_sol, t_data; out_dir=t_subdir, table="t_power.csv", plot="power.pdf")
-    #sol_report_branch(t_sol, t_mn_data, out_dir=t_subdir, table="t_branch.csv", plot="branch.pdf") # Waiting for https://github.com/lanl-ansi/PowerModels.jl/issues/820 to be fixed (will require PowerModels 0.19.6)
+    sol_report_branch(t_sol, t_data, out_dir=t_subdir, table="t_branch.csv", plot="branch.pdf")
     sol_report_bus_voltage_angle(t_sol, t_data; out_dir=t_subdir, table="t_bus.csv", plot="bus.pdf")
     sol_report_gen(t_sol, t_data; out_dir=t_subdir, table="t_gen.csv", plot="gen.pdf")
     sol_report_load(t_sol, t_data; out_dir=t_subdir, table="t_load.csv", plot="load.pdf")
@@ -169,8 +169,7 @@ if report_result
     sol_report_investment_summary(t_sol, t_data; out_dir=t_subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
     sol_report_storage(t_sol, t_data; out_dir=t_subdir, table="t_storage.csv", plot="storage.pdf")
     sol_report_storage_summary(t_sol, t_data; out_dir=t_subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
-    # Waiting for https://github.com/lanl-ansi/PowerModels.jl/issues/820 to be fixed (will require PowerModels 0.19.6)
-    #sol_graph(t_sol, t_mn_data; plot="map.pdf", out_dir=t_subdir, hour=1) # Just as an example; dimension coordinates can also be vectors, or be omitted, in which case one plot for each coordinate will be generated.
+    sol_graph(t_sol, t_data; plot="map.pdf", out_dir=t_subdir, hour=1) # Just as an example; dimension coordinates can also be vectors, or be omitted, in which case one plot for each coordinate will be generated.
 
     for (s,sol) in enumerate(result_decoupling["d_solution"])
         subdir = mkpath(joinpath(result_dir, "distribution_$s"))

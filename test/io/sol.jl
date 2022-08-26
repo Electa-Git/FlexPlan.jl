@@ -57,7 +57,7 @@ function _sol_graph(sol::Dict{String,Any}, data::Dict{String,Any})
             edge_power[(f_bus,t_bus)] = prev_p + curr_p # Sum power in case a candidate branch is added in parallel to an existing one.
         end
     end
-    n_bus = length(sol["bus"])
+    n_bus = length(data["bus"])
     node_names = string.(1:n_bus)
 
     if haskey(sol,"convdc") || haskey(sol,"convdc_ne") || haskey(sol,"branchdc")
@@ -676,7 +676,7 @@ function sol_report_gen(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir::
         y = _FP.coord(dim, n, :year)
         for (g, gen) in sol_nw["gen"]
             data_gen = data_nw["gen"][g]
-            source_id = string(data_gen["source_id"][end])
+            source_id = haskey(data_gen,"source_id") ? string(data_gen["source_id"][end]) : ""
             p = gen["pg"]
             pmin = data_gen["pmin"]
             pmax = data_gen["pmax"]
