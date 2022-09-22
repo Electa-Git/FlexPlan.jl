@@ -274,7 +274,7 @@ function constraint_load_power_active_ub(pm::_PM.AbstractPowerModel, n::Int)
         ub = _PM.ref(pm, n, :load, i, "pflex_ub")
         lb = JuMP.lower_bound(pflex)
         if ub < lb
-            Memento.debug(_LOGGER, "Increasing by $(lb-ub) the upper bound on absorbed power of load $i in nw $n to make it equal to existing lower bound ($lb).")
+            Memento.debug(_LOGGER, @sprintf("Increasing by %.1e the upper bound on absorbed power of load %i in nw %i to make it equal to existing lower bound (%f).", lb-ub, i, n, lb))
             ub = lb
         end
         JuMP.set_upper_bound(pflex, ub)
@@ -302,7 +302,7 @@ function constraint_storage_power_active_ub(pm::_PM.AbstractPowerModel, n::Int)
         ub = _PM.ref(pm, n, :storage, i, "ps_ub")
         lb = JuMP.lower_bound(ps)
         if ub < lb
-            Memento.debug(_LOGGER, "Increasing by $(lb-ub) the upper bound on power of storage $i in nw $n to make it equal to existing lower bound ($lb).")
+            Memento.debug(_LOGGER, @sprintf("Increasing by %.1e the upper bound on power of storage %i in nw %i to make it equal to existing lower bound (%f).", lb-ub, i, n, lb))
             ub = lb
         end
         JuMP.set_upper_bound(ps, ub)
@@ -316,7 +316,7 @@ function constraint_storage_power_active_lb(pm::_PM.AbstractPowerModel, n::Int)
         lb = _PM.ref(pm, n, :storage, i, "ps_lb")
         ub = JuMP.upper_bound(ps)
         if lb > ub
-            Memento.debug(_LOGGER, "Decreasing by $(lb-ub) the lower bound on power of storage $i in nw $n to make it equal to existing upper bound ($ub).")
+            Memento.debug(_LOGGER, @sprintf("Decreasing by %.1e the lower bound on power of storage %i in nw %i to make it equal to existing upper bound (%f).", lb-ub, i, n, ub))
             lb = ub
         end
         JuMP.set_lower_bound(ps, lb)
@@ -330,7 +330,7 @@ function constraint_ne_storage_power_active_ub(pm::_PM.AbstractPowerModel, n::In
         ub = _PM.ref(pm, n, :ne_storage, i, "ps_ne_ub")
         lb = JuMP.lower_bound(ps)
         if ub < lb
-            Memento.debug(_LOGGER, "Increasing by $(lb-ub) the upper bound on power of storage $i in nw $n to make it equal to existing lower bound ($lb).")
+            Memento.debug(_LOGGER, @sprintf("Increasing by %.1e the upper bound on power of candidate storage %i in nw %i to make it equal to existing lower bound (%f).", lb-ub, i, n, lb))
             ub = lb
         end
         JuMP.set_upper_bound(ps, ub)
@@ -344,7 +344,7 @@ function constraint_ne_storage_power_active_lb(pm::_PM.AbstractPowerModel, n::In
         lb = _PM.ref(pm, n, :ne_storage, i, "ps_ne_lb")
         ub = JuMP.upper_bound(ps)
         if lb > ub
-            Memento.debug(_LOGGER, "Decreasing by $(lb-ub) the lower bound on power of candidate storage $i in nw $n to make it equal to existing upper bound ($ub).")
+            Memento.debug(_LOGGER, @sprintf("Decreasing by %.1e the lower bound on power of candidate storage %i in nw %i to make it equal to existing upper bound (%f).", lb-ub, i, n, ub))
             lb = ub
         end
         JuMP.set_lower_bound(ps, lb)
