@@ -4,8 +4,6 @@
 
 Convert a JSON `file` or a `dict` conforming to the FlexPlan WP3 API into a FlexPlan.jl dict.
 
-Costs are scaled with the assumption that every representative year represents 10 years.
-
 # Arguments
 - `oltc::Bool=true`: in distribution networks, whether to add OLTCs with ±10% voltage
   regulation to existing and candidate transformers.
@@ -18,6 +16,8 @@ Costs are scaled with the assumption that every representative year represents 1
 - `number_of_years::Union{Int,Nothing}=nothing`: parse only the first years of the
   file/dict.
 - `cost_scale_factor::Real=1.0`: scale factor for all costs.
+- `year_scale_factor::Union{Real,Nothing}=nothing`: how many years a representative year
+  should represent (default: read from JSON).
 - `init_data_extensions::Vector{<:Function}=Function[]`: functions to be applied to the
   target dict after its initialization. They must have exactly one argument (the target
   dict) and can modify it; the return value is unused.
@@ -57,6 +57,7 @@ function convert_JSON(source::AbstractDict;
         number_of_scenarios::Union{Int,Nothing} = nothing,
         number_of_years::Union{Int,Nothing} = nothing,
         cost_scale_factor::Real = 1.0,
+        year_scale_factor::Union{Real,Nothing} = nothing,
         init_data_extensions::Vector{<:Function} = Function[],
         sn_data_extensions::Vector{<:Function} = Function[],
         share_data::Bool = true,
@@ -103,7 +104,13 @@ function convert_JSON(source::AbstractDict;
     elseif number_of_years > length(source["genericParameters"]["years"])
         Memento.error(_LOGGER, "$number_of_years years requested, but only " * string(length(source["genericParameters"]["years"])) * " found in input dict.")
     end
-    year_scale_factor = 10 # Assumption: every representative year represents 10 years
+    if isnothing(year_scale_factor)
+        if haskey(source["genericParameters"], "nbRepresentedYears")
+            year_scale_factor = source["genericParameters"]["nbRepresentedYears"]
+        else
+            Memento.error(_LOGGER, "At least one of JSON attribute `genericParameters.nbRepresentedYears` and function keyword argument `year_scale_factor` must be specified.")
+        end
+    end
     _FP.add_dimension!(target, :year, number_of_years; metadata = Dict{String,Any}("scale_factor"=>year_scale_factor))
 
     # Generate ID lookup dict
