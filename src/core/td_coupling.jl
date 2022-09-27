@@ -72,9 +72,11 @@ function run_model(
     # this behavior can be fixed by writing a custom optimize_model!() that takes 2 models.
 
     # Remove coupling generators from transmission solution.
-    for nw in values(t_result["solution"]["nw"])
-        for t_gen in t_gens
-            delete!(nw["gen"], string(t_gen))
+    if haskey(t_result["solution"], "nw") # It only happens if the problem is solved to optimality.
+        for nw in values(t_result["solution"]["nw"])
+            for t_gen in t_gens
+                delete!(nw["gen"], string(t_gen))
+            end
         end
     end
 
