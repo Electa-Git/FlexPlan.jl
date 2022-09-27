@@ -126,7 +126,14 @@ function surrogate_storage_const(od, bs; standalone)
         "energy_rating"        => sum(s["energy_rating"] for s in values(od["storage"]); init=0.0) + sum(s["energy_rating"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0),
         "self_discharge_rate"  => min(minimum(s["self_discharge_rate"] for s in values(od["storage"]); init=1.0), minimum(s["self_discharge_rate"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=1.0)),
         "charge_efficiency"    => max(maximum(s["charge_efficiency"] for s in values(od["storage"]); init=0.0), maximum(s["charge_efficiency"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0)),
-        "discharge_efficiency" => max(maximum(s["discharge_efficiency"] for s in values(od["storage"]); init=0.0), maximum(s["discharge_efficiency"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.0)),
+        # When the distribution network does not have storage devices, surrogate model's
+        # storage energy rating is 0, so it can not be used in practice and the other
+        # parameters should not be relevant.
+        # However, a 0.0 discharge efficiency would cause Inf coefficients in energy
+        # constraints, which in turn would cause errors when instantiating the model.
+        # Therefore, it is better to initialize the discharge efficiency using a small
+        # positive value, such as 0.001.
+        "discharge_efficiency" => max(maximum(s["discharge_efficiency"] for s in values(od["storage"]); init=0.0), maximum(s["discharge_efficiency"] for (i,s) in od["ne_storage"] if bs["ne_storage"][i]["isbuilt"] > 0.5; init=0.001)),
     )
     if standalone
         storage["p_loss"] = 0.0
@@ -162,8 +169,8 @@ end
 function surrogate_gen_ts(gen, od, load, bs)
     gen = copy(gen)
     gen["pmax"] = load["pd"] - bs["td_coupling"]["p"]
-    gen["cost_curt"] = minimum(od["gen"][g]["cost_curt"] for (g,gen) in bs["gen"]) # Assumption: all generators are non-dispatchable (except the generator that simulates the transmission network, which has already been removed from the solution dict).
-
+    # Assumption: all generators are non-dispatchable (except the generator that simulates the transmission network, which has already been removed from the solution dict).
+    gen["cost_curt"] = isempty(bs["gen"]) ? 0.0 : minimum(od["gen"][g]["cost_curt"] for (g,gen) in bs["gen"])
     return gen
 end
 
