@@ -94,6 +94,10 @@ time_start = time()
 
 ## Load data
 
+# JSON files containing either transmission or distribution networks can be loaded with
+# `data = _FP.convert_JSON(file_path)`; those containing both transmission and distribution
+# networks can be loaded with `t_data, d_data = _FP.convert_JSON_td(file_path)`.
+
 # Transmission network data
 
 t_data = load_case6(; number_of_hours, number_of_scenarios, number_of_years, cost_scale_factor, share_data=false)

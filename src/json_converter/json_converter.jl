@@ -1,6 +1,6 @@
 module JSONConverter
 
-export convert_JSON
+export convert_JSON, convert_JSON_td
 
 using ..FlexPlan
 const _FP = FlexPlan
