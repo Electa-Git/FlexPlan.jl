@@ -13,5 +13,6 @@ include("base.jl")
 include("nw.jl")
 include("time_series.jl")
 include("singular_data.jl")
+include("td.jl")
 
 end
