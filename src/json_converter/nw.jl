@@ -123,7 +123,7 @@ function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::Abstr
             t = make_branch(comp, index, source_id, f_bus, t_bus, y; transformer=false)
             t["construction_cost"] = cand["invCost"][y]
             t["lifetime"]          = cand["lifetime"]
-            t["replace"]           = replace(cand, comp["id"], lookup["acBranches"]) # Assumption: specified id is that of the branch that connects the same buses.
+            t["replace"]           = !comp["isTransmission"] # Transmission AC branches are added in parallel to existing branches, if any; distribution AC branches replace existing ones.
             target["ne_branch"]["$index"] = t
         end
     end
@@ -138,7 +138,7 @@ function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::Abstr
             t = make_branch(comp, index, source_id, f_bus, t_bus, y; transformer=true, oltc)
             t["construction_cost"] = cand["invCost"][y]
             t["lifetime"]          = cand["lifetime"]
-            t["replace"]           = replace(cand, comp["id"], lookup["transformers"]) # Assumption: specified id is that of the branch that connects the same buses.
+            t["replace"]           = !comp["isTransmission"] # Transmission transformers are added in parallel to existing transfomers, if any; distribution transformers replace existing ones.
             target["ne_branch"]["$index"] = t
         end
     end
@@ -222,21 +222,6 @@ end
 function optional_value(target::AbstractDict, target_key::String, source::AbstractDict, source_key::String, y::Int)
     if haskey(source, source_key) && !isempty(source[source_key])
         target[target_key] = source[source_key][y]
-    end
-end
-
-function replace(cand::AbstractDict, id::String, comp_lookup::AbstractDict)
-    if haskey(cand, "replace")
-        if haskey(comp_lookup, cand["replace"])
-            # FlexPlan.jl only supports replacement of the only branch that connects the same buses as the candidate.
-            # That branch will be replaced, regardless of which branch is specified by `cand["replace"]`.
-            return true
-        else
-            Memento.warn(_LOGGER, "Cannot set \"$id\" to replace \"" * cand["replace"] * "\" because \"" * cand["replace"] * "\" does not exist.")
-            return false
-        end
-    else
-        return false
     end
 end
 
