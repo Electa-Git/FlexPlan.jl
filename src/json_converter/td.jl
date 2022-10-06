@@ -60,15 +60,17 @@ function extract_transmission(source::AbstractDict)
     transmission = Dict{String,Any}()
     transmission["genericParameters"] = source["genericParameters"]
     transmission["gridModelInputFile"] = Dict{String,Any}()
-    transmission["candidatesInputFile"] = Dict{String,Any}()
     transmission["scenarioDataInputFile"] = Dict{String,Any}()
+    if haskey(source, "candidatesInputFile")
+        transmission["candidatesInputFile"] = Dict{String,Any}()
+    end
 
     # Transmission components
     for comp in ["dcBuses", "dcBranches", "converters", "psts"]
         if haskey(source["gridModelInputFile"], comp)
             transmission["gridModelInputFile"][comp] = source["gridModelInputFile"][comp]
         end
-        if haskey(source["candidatesInputFile"], comp)
+        if haskey(source, "candidatesInputFile") && haskey(source["candidatesInputFile"], comp)
             transmission["candidatesInputFile"][comp] = source["candidatesInputFile"][comp]
         end
     end
@@ -78,7 +80,7 @@ function extract_transmission(source::AbstractDict)
         if haskey(source["gridModelInputFile"], comp)
             transmission["gridModelInputFile"][comp] = filter(device -> device["isTransmission"], source["gridModelInputFile"][comp])
         end
-        if haskey(source["candidatesInputFile"], comp)
+        if haskey(source, "candidatesInputFile") && haskey(source["candidatesInputFile"], comp)
             transmission["candidatesInputFile"][comp] = filter(cand -> cand[cand_name_from_dict(comp)]["isTransmission"], source["candidatesInputFile"][comp])
         end
     end
@@ -89,7 +91,7 @@ function extract_transmission(source::AbstractDict)
         if haskey(source["gridModelInputFile"], comp)
             transmission["gridModelInputFile"][comp] = filter(device -> device["acBusConnected"]∈transmission_acBuses, source["gridModelInputFile"][comp])
         end
-        if haskey(source["candidatesInputFile"], comp)
+        if haskey(source, "candidatesInputFile") && haskey(source["candidatesInputFile"], comp)
             transmission["candidatesInputFile"][comp] = filter(cand -> cand[cand_name_from_dict(comp)]["acBusConnected"]∈transmission_acBuses, source["candidatesInputFile"][comp])
         end
         if haskey(source["scenarioDataInputFile"], comp)
@@ -107,13 +109,17 @@ function extract_distribution(source::AbstractDict, dist_id, pcc_bus_id)
     dist["genericParameters"] = copy(source["genericParameters"])
     dist["genericParameters"]["thisDistributionNetwork"] = dist_id # Not in API, but useful.
     dist["gridModelInputFile"] = Dict{String,Any}()
-    dist["candidatesInputFile"] = Dict{String,Any}()
     dist["scenarioDataInputFile"] = Dict{String,Any}()
+    if haskey(source, "candidatesInputFile")
+        dist["candidatesInputFile"] = Dict{String,Any}()
+    end
 
     # Transmission components
     for comp in ["dcBuses", "dcBranches", "converters", "psts"]
         dist["gridModelInputFile"][comp] = Vector{Dict{String,Any}}()
-        dist["candidatesInputFile"][comp] = Vector{Dict{String,Any}}()
+        if haskey(source, "candidatesInputFile")
+            dist["candidatesInputFile"][comp] = Vector{Dict{String,Any}}()
+        end
     end
 
     # T&D components having `isTransmission` key
@@ -121,7 +127,7 @@ function extract_distribution(source::AbstractDict, dist_id, pcc_bus_id)
         if haskey(source["gridModelInputFile"], comp)
             dist["gridModelInputFile"][comp] = filter(device -> !device["isTransmission"]&&device["distributionNetworkId"]==dist_id, source["gridModelInputFile"][comp])
         end
-        if haskey(source["candidatesInputFile"], comp)
+        if haskey(source, "candidatesInputFile") && haskey(source["candidatesInputFile"], comp)
             dist["candidatesInputFile"][comp] = filter(source["candidatesInputFile"][comp]) do cand
                 device = cand[cand_name_from_dict(comp)]
                 !device["isTransmission"] && device["distributionNetworkId"]==dist_id
@@ -135,7 +141,7 @@ function extract_distribution(source::AbstractDict, dist_id, pcc_bus_id)
         if haskey(source["gridModelInputFile"], comp)
             dist["gridModelInputFile"][comp] = filter(device -> device["acBusConnected"]∈dist_acBuses, source["gridModelInputFile"][comp])
         end
-        if haskey(source["candidatesInputFile"], comp)
+        if haskey(source, "candidatesInputFile") && haskey(source["candidatesInputFile"], comp)
             dist["candidatesInputFile"][comp] = filter(cand -> cand[cand_name_from_dict(comp)]["acBusConnected"]∈dist_acBuses, source["candidatesInputFile"][comp])
         end
         if haskey(source["scenarioDataInputFile"], comp)
