@@ -95,7 +95,13 @@ function apply_gen_power_active_ub!(mn_data::Dict{String,Any}, solution::Dict{St
         sol_nw = solution["nw"][n]
         for (g, data_gen) in data_nw["gen"]
             if g ≠ d_gen_id
-                data_gen["pmax"] = sol_nw["gen"][g]["pg"]
+                ub = sol_nw["gen"][g]["pg"]
+                lb = data_gen["pmin"]
+                if ub < lb
+                    Memento.debug(_LOGGER, @sprintf("Increasing by %.1e the upper bound on power of generator %s in nw %s to make it equal to existing lower bound (%f).", lb-ub, g, n, lb))
+                    ub = lb
+                end
+                data_gen["pmax"] = ub
             end
         end
     end
@@ -108,7 +114,13 @@ function apply_gen_power_active_lb!(mn_data::Dict{String,Any}, solution::Dict{St
         sol_nw = solution["nw"][n]
         for (g, data_gen) in data_nw["gen"]
             if g ≠ d_gen_id
-                data_gen["pmin"] = sol_nw["gen"][g]["pg"]
+                lb = sol_nw["gen"][g]["pg"]
+                ub = data_gen["pmax"]
+                if lb > ub
+                    Memento.debug(_LOGGER, @sprintf("Decreasing by %.1e the lower bound on power of generator %s in nw %s to make it equal to existing upper bound (%f).", lb-ub, g, n, ub))
+                    lb = ub
+                end
+                data_gen["pmin"] = lb
             end
         end
     end
