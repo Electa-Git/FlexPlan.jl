@@ -18,6 +18,7 @@ using Ipopt
 using SCS
 using Cbc
 using Juniper
+import HiGHS
 
 using Test
 
@@ -37,6 +38,8 @@ end
 
 juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver" => ipopt_solver, "mip_solver" => cbc, "time_limit" => 7200)
 
+highs = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag" => false)
+
 @testset "FlexPlan" begin
 
     # FlexPlan components
@@ -53,5 +56,8 @@ juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver" => ipopt
 
     # Problems
     include("prob.jl")
+
+    # Decompositions
+    include("td_decoupling.jl")
 
 end;
