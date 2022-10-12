@@ -7,7 +7,7 @@ The T&D decoupling procedure is aimed at reducing computation time with respect 
 combined T&D model by solving the transmission and distribution parts of the network
 separately.
 It consists of the following steps:
-1. compute a surrogate model of distributon networks;
+1. compute a surrogate model of distribution networks;
 2. optimize planning of transmission network using surrogate distribution networks;
 3. fix power exchanges between T&D and optimize planning of distribution networks.
 The procedure introduces approximations, therefore the solution cost is higher than that of

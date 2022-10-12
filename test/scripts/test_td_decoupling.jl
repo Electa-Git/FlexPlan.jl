@@ -1,7 +1,7 @@
 # Test of transmission and distribution decoupling
 
 # T&D decoupling procedure
-# 1. Compute a surrogate model of distributon networks
+# 1. Compute a surrogate model of distribution networks
 # 2. Optimize planning of transmission network using surrogate distribution networks
 # 3. Fix power exchanges between T&D and optimize planning of distribution networks
 
