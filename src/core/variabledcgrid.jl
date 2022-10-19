@@ -1,5 +1,5 @@
 # To be used instead of _PMACDC.variable_branch_ne() - supports deduplication of variables
-function variable_ne_branchdc_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
+function variable_ne_branchdc_indicator(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, relax::Bool=false, report::Bool=true)
     first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
@@ -19,10 +19,10 @@ function variable_ne_branchdc_indicator(pm::_PM.AbstractPowerModel; nw::Int=pm.c
     else
         Z_dc_branch_ne = _PM.var(pm, nw)[:branchdc_ne] = _PM.var(pm, first_n)[:branchdc_ne]
     end
-    report && _IM.sol_component_value(pm, nw, :branchdc_ne, :isbuilt, _PM.ids(pm, nw, :branchdc_ne), Z_dc_branch_ne)
+    report && _PM.sol_component_value(pm, nw, :branchdc_ne, :isbuilt, _PM.ids(pm, nw, :branchdc_ne), Z_dc_branch_ne)
 end
 
-function variable_ne_branchdc_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw, relax::Bool=false, report::Bool=true)
+function variable_ne_branchdc_investment(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, relax::Bool=false, report::Bool=true)
     first_n = first_id(pm, nw, :hour, :scenario)
     if nw == first_n
         if !relax
@@ -42,5 +42,5 @@ function variable_ne_branchdc_investment(pm::_PM.AbstractPowerModel; nw::Int=pm.
     else
         investment = _PM.var(pm, nw)[:branchdc_ne_investment] = _PM.var(pm, first_n)[:branchdc_ne_investment]
     end
-    report && _IM.sol_component_value(pm, nw, :branchdc_ne, :investment, _PM.ids(pm, nw, :branchdc_ne), investment)
+    report && _PM.sol_component_value(pm, nw, :branchdc_ne, :investment, _PM.ids(pm, nw, :branchdc_ne), investment)
 end

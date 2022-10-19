@@ -32,9 +32,8 @@ result_file = "test/data/output_files/test_dist_nw_model_result.txt"
 
 ## Load and preprocess data
 
-data_file = "test/data/CIGRE_MV_benchmark_network_tnep.m"
-data = _PM.parse_file(data_file)
-data["ne_storage"] = Dict{String,Any}() # ne_storage is not added automatically by parse_file, but is required by strg_tnep()
+data_file = "test/data/cigre_mv_eu/cigre_mv_eu_unit_test.m"
+data = _FP.parse_file(data_file)
 _FP.add_dimension!(data, :hour, 1)
 _FP.add_dimension!(data, :year, 1)
 data = _FP.make_multinetwork(data)
@@ -86,7 +85,7 @@ end
 
 result = _FP.strg_tnep(data, _FP.BFARadPowerModel, optimizer)
 # Two-step alternative
-#pm = _PM.instantiate_model(data, _FP.BFARadPowerModel, _FP.post_strg_tnep; ref_extensions=[_FP.add_candidate_storage!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!])
+#pm = _PM.instantiate_model(data, _FP.BFARadPowerModel, _FP.post_strg_tnep; ref_extensions=[_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!])
 #result = _PM.optimize_model!(pm; optimizer, solution_processors=[_PM.sol_data_model!])
 @assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
 

@@ -46,9 +46,9 @@
     _FP.add_dimension!(sn_data, :hour, 4)
     _FP.add_dimension!(sn_data, :scenario, Dict(s => Dict{String,Any}("probability"=>s/6) for s in 1:3))
     _FP.add_dimension!(sn_data, :sub_nw, 2; metadata = Dict{String,Any}("description"=>"sub_nws model different physical networks"))
-    dt = Dict{String,Any}("dim"=>sn_data["dim"], "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data)) # Fake a multinetwork data structure
+    dt = Dict{String,Any}("dim"=>_FP.dim(sn_data), "multinetwork"=>true, "nw"=>Dict{String,Any}("1"=>sn_data)) # Fake a multinetwork data structure
     pm = _PM.instantiate_model(dt, _PM.ACPPowerModel, pm->nothing)
-    dim = pm.ref[:dim]
+    dim = _FP.dim(pm)
 
     dim_shift = deepcopy(dim)
     _FP.shift_ids!(dim_shift, 24)
@@ -117,11 +117,6 @@
         @test _FP.dim_meta(slice, :hour, "orig_id") == 2
         @test _FP.dim_meta(slice, :scenario, "orig_id") == 3
         @test ids == [10,22]
-    end
-
-    @testset "require_dim" begin
-        @test_throws ErrorException _FP.require_dim(Dict{String,Any}()) # Missing `dim` dict
-        @test_throws ErrorException _FP.require_dim(dt, :newdim) # Missing `newdim` dimension
     end
 
     @testset "nw_ids" begin
@@ -277,6 +272,24 @@
         @test _FP.is_last_id(dim_shift, 44, :scenario) == false
         @test _FP.is_last_id(dt, 20, :hour) == _FP.is_last_id(dim, 20, :hour)
         @test _FP.is_last_id(pm, 20, :hour) == _FP.is_last_id(dim, 20, :hour)
+    end
+
+    @testset "has_dim" begin
+        @test _FP.has_dim(dim, :hour) == true
+        @test _FP.has_dim(dim, :newdim) == false
+        @test _FP.has_dim(dt, :hour) == _FP.has_dim(dim, :hour)
+        @test _FP.has_dim(pm, :hour) == _FP.has_dim(dim, :hour)
+    end
+
+    @testset "require_dim" begin
+        @test_throws ErrorException _FP.require_dim(Dict{String,Any}()) # Missing `dim` dict
+        @test_throws ErrorException _FP.require_dim(dt, :newdim) # Missing `newdim` dimension
+    end
+
+    @testset "dim_names" begin
+        @test _FP.dim_names(dim) == (:hour, :scenario, :sub_nw)
+        @test _FP.dim_names(dt) == _FP.dim_names(dim)
+        @test _FP.dim_names(pm) == _FP.dim_names(dim)
     end
 
     @testset "dim_prop" begin

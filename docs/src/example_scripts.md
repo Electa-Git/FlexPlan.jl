@@ -1,10 +1,10 @@
 ## How to run scripts
 
-A number of example scripts have been provided within ```FlexPlan.jl``` under ```"FlexPlan/examples"```. The general structure of the example scripts is as follows.
+A number of example scripts have been provided within `FlexPlan.jl` under `"FlexPlan/examples"`. The general structure of the example scripts is as follows.
 
 ## Step 1: Declaration of the required packages and solvers
 
-The required packages for FlexPlan.jl are ```PowerModels.jl``` and ```PowerModelsACDC.jl```. You can declare the packages as follows, and use short names to access specific functions without having to type the full package name every time.
+The required packages for FlexPlan.jl are `PowerModels.jl` and `PowerModelsACDC.jl`. You can declare the packages as follows, and use short names to access specific functions without having to type the full package name every time.
 
 ``` julia
 import PowerModels; const _PM = PowerModels
@@ -21,71 +21,101 @@ optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 ```
 
 ## Step 2: Input data
-The data model is very similar to the ```PowerModels.jl```/```PowerModelsACDC.jl``` data models. As such, a data dictionary containing all information is passed to the optimisation problem. The standard network elements such as generators, buses, branches, etc. are extended with the existing and candidate storage and demand flexibility elements. The multi-network modelling functionality of the PowerModels.jl package is used to represent the different number of scenarios, planning years and planning hours within the year. The procedure is further explained under section [Model dimensions](@ref). The package contains some sample time-series as well as grid data, which is located under `FlexPlan/test/data`. This data has been used in for the validation of the model in the FlexPlan deliverable 1.2 ["Probabilistic optimization of T&D systems planning with high grid flexibility and its scalability"](https://flexplan-project.eu/wp-content/uploads/2021/03/D1.2_20210325_V1.0.pdf)
 
-The data dictionary can be created by the user directly (see section [Data model](@ref) for complete description) but also provided as a MatPower file, as within PowerModels.jl. Using the MatPower file, only the grid data dictionary will be created. In order to add time-series and scenario information to the data dictionary, a number of additional functions are required. An example of the process is illustrated below for the combined T&D planning model:
+The data model is very similar to the `PowerModels.jl`/`PowerModelsACDC.jl` data models. As such, a data dictionary containing all information is passed to the optimisation problem. The standard network elements such as generators, buses, branches, etc. are extended with the existing and candidate storage and demand flexibility elements (see section [Data model](@ref) for complete description). The multi-network modelling functionality of the PowerModels.jl package is used to represent the different number of scenarios, planning years and planning hours within the year. The procedure is further explained under section [Model dimensions](@ref).
 
+### FlexPlan.jl sample data
+
+The package contains some sample test cases comprising both grid data and time series, located under `FlexPlan/test/data` and named as its subdirectories.
+These test cases have been used in for the validation of the model in the FlexPlan deliverable 1.2 ["Probabilistic optimization of T&D systems planning with high grid flexibility and its scalability"](https://flexplan-project.eu/wp-content/uploads/2021/03/D1.2_20210325_V1.0.pdf).
+
+`FlexPlan/test/io/load_case.jl` provides functions to load such test cases.
+The functions are named `load_*` where `*` is the name of a test case.
+For example, `case6` can be loaded using:
 ```julia
-# Define number of hours
-number_of_hours = 24
-# Transmission network instance (all data preparation except for make_multinetwork() call)
-t_file = "./test/data/combined_td_model/t_case6.m" # Input case for transmission network
+include("test/io/load_case.jl")
+data = load_case6(; number_of_hours=24, number_of_scenarios=1, number_of_years=1)
+```
+Supported parameters are explained in `load_*` function documentation.
 
-t_data = _FP.parse_file(t_file) # Parse input file to obtain data dictionary
-_FP.add_dimension!(t_data, :hour, number_of_hours) # Add dimension, e.g. hours
-_FP.add_dimension!(t_data, :scenario, Dict(1 => Dict{String,Any}("probability"=>1)), metadata = Dict{String,Any}("mc"=>true)) # Add dimension, e.g. scenarios
-_FP.add_dimension!(t_data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>1)) # Add_dimension, e.g. years
-_FP.add_dimension!(t_data, :sub_nw, 1) # Add dimension, e.g. underlying networks
-_FP.scale_data!(t_data) # Scale investment & operational cost data based on planning years & hours
-t_data, t_loadprofile, t_genprofile = create_profile_data_italy!(t_data) # Load time series data based demand and RES profiles of the six market zones in Italy from the data folder
-t_time_series = _FP.create_profile_data(number_of_hours, t_data, t_loadprofile, t_genprofile) # Create time series data to be passed to the data dictionay
+### Using your own data
+
+FlexPlan.jl provides functions that facilitate the construction of a multinetwork data dictionary using:
+- network data from MatPower-like `.m` files;
+- time series data from dictionaries of vectors, each vector being a time series.
+
+The procedure is as follows.
+1.  Create a single-network data dictionary.
+    1.  Load network data from MatPower-like `.m` files (see e.g. `FlexPlan/test/data/case6/case6_2030.m`) using `parse_file`.
+    2.  Specify the dimensions of the data using `add_dimension!`.
+    3.  Scale costs and lifetime of grid expansion elements using `scale_data!`.
+2.  Create a dictionary of vectors that contains time series.
+3.  Create a multinetwork data dictionary by combining the single-network data dictionary and the time series:
+
+Here is some sample code to get started:
+```julia
+sn_data = _FP.parse_file("./test/data/case6/case6_2030.m")
+_FP.add_dimension!(sn_data, :hour, 24)
+_FP.add_dimension!(sn_data, :scenario, Dict(1 => Dict{String,Any}("probability"=>1)))
+_FP.add_dimension!(sn_data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>1))
+_FP.scale_data!(sn_data)
+
+include("./test/io/create_profile.jl") # Functions to load sample time series. Use your own instead.
+sn_data, loadprofile, genprofile = create_profile_data_italy!(sn_data)
+time_series = create_profile_data(24, sn_data, loadprofile, genprofile) # Your time series should have the same format as this `time_series` dict
+
+mn_data = _FP.make_multinetwork(sn_data, time_series)
 ```
 
 ### Coupling of transmission and distribution networks
 
-FlexPlan.jl provides the possiblity to couple multiple radial distribution networks to the transmission system, for solving the combined T&D grid expansion problem. For the meshed transmission system the linearized 'DC' power flow formulation is used, whereas radial networks are modelled using the linearised DistFlow model (more information can be found under section [Network formulations](@ref)).
+FlexPlan.jl provides the possiblity to couple multiple radial distribution networks to the transmission system, for solving the combined T&D grid expansion problem.
+For the meshed transmission system the linearized 'DC' power flow formulation is used, whereas radial networks are modelled using the linearised DistFlow model (more information can be found under section [Network formulations](@ref)).
 
-To create the data for radial networks you can use following approach:
+Input data consist of:
+- one dictionary for the trasmission network;
+- a vector of dictionaries, each item representing one distribution network.
 
+The only difference with respect to the case of a single network is that for each distribution network it is necessary to specify which bus of the transmission network it is to be attached to.
+This is done by adding a `t_bus` key in the distribution network dictionary.
+
+Here is an example (using FlexPlan.jl sample data):
 ```julia
-## Distribution network instance 1 (all data preparation except for make_multinetwork() call)
+number_of_hours = 4
+number_of_scenarios = 2
+number_of_years = 1
+include("./test/io/load_case.jl")
 
-d_file     = "test/data/combined_td_model/d_cigre.m" # Input case for distribution networks
-scale_load = 1.0 # Scaling factor of loads
-scale_gen  = 1.0 # Scaling factor of generators
+# Transmission network data
+t_data = load_case6(; number_of_hours, number_of_scenarios, number_of_years)
 
-d_data_1 = _FP.parse_file(d_file) # Parse input file to obtain data dictionary
-_FP.add_dimension!(d_data_1, :hour, number_of_hours) # Add dimension, e.g. hours
-_FP.add_dimension!(d_data_1, :scenario, Dict(1 => Dict{String,Any}("probability"=>1))) # Add dimension, e.g. scenarios
-_FP.add_dimension!(d_data_1, :year, 1; metadata = Dict{String,Any}("scale_factor"=>1)) # Add dimension, e.g. years
-_FP.add_dimension!(d_data_1, :sub_nw, 1) # Add dimension, e.g. underlying networks
-_FP.shift_ids!(d_data_1, _FP.dim_length(t_data)) # Shift network IDs to avoid overwriting those of transmission network
-_FP.scale_data!(d_data_1) # Scale investment & operational cost data based on planning years & hours
-d_time_series = create_profile_data_cigre(d_data_1, number_of_hours; scale_load, scale_gen) # Load time series data based demand and RES profiles of the six market zones in Italy from the data folder
-_FP.add_td_coupling_data!(t_data, d_data_1; t_bus = 1, sub_nw = 1) # Connect the first distribution network to bus 1 of transmission network.
-```
-Note that a number of different distribution networks can be created in the same way. Eventually, all networks are coupled (for an example with one transmission and two distribution networks) using:
+# Distribution network 1 data
+d_data_sub_1 = load_ieee_33(; number_of_hours, number_of_scenarios, number_of_years)
+d_data_sub_1["t_bus"] = 3 # States that this distribution network is attached to bus 3 of transmission network
 
-```julia
-## Multinetwork data preparation
+# Distribution network 2 data
+d_data_sub_2 = deepcopy(d_data_sub_1)
+d_data_sub_2["t_bus"] = 6
 
-t_mn_data = _FP.make_multinetwork(t_data, t_time_series) # Merge transmission data & time series data
-d_data_1 = _FP.make_multinetwork(d_data_1, d_time_series) # Merge data & time series data for distribution network 1
-d_data_2 = _FP.make_multinetwork(d_data_2, d_time_series) # Merge data & time series data for distribution network 2
-d_mn_data = _FP.merge_multinetworks!(d_data_1, d_data_2, :sub_nw) # Merge the two distribution networks in a single data dictionary
+d_data = [d_data_sub_1, d_data_sub_2]
 ```
 
 ## Solving the problem
 
-Finally, the problem can be solved using (example of planning problem with storage & demand flexiblity candidates):
+Finally, the problem can be solved using (example of stochastic planning problem with storage & demand flexiblity candidates):
 
 ```julia
-result = _FP.flex_tnep(t_mn_data, d_mn_data, _PM.DCPPowerModel, _FP.BFARadPowerModel, optimizer; setting=s)
+result = _FP.simple_stoch_flex_tnep(data, _PM.DCPPowerModel, optimizer; setting=Dict("conv_losses_mp"=>false))
+```
+of, for the combined T&D model:
+```julia
+result = _FP.simple_stoch_flex_tnep(t_data, d_data, _PM.DCPPowerModel, _FP.BFARadPowerModel, optimizer; t_setting=Dict("conv_losses_mp"=>false))
 ```
 
 For other possible problem types and decomposed models, please check the section [Problem types](@ref).
 
 ## Inspecting your results
 
-To obtain power flow results, you can use the standard `print_summary` function of ```PowerModels.jl```.
-Further, there are number of possibilities to plot your time series results and also a ```.kml``` export, if you provide the latitude and longitude of the buses as an additional entry in your ```data["bus"]``` dictionary. Please consult ```FlexPlan/examples``` for different plotting possibilities.
+To obtain power flow results, you can use the standard `print_summary` function of `PowerModels.jl`.
+Further, there are number of possibilities to plot your time series results and also a `.kml` export, if you provide the latitude and longitude of the buses as an additional entry in your `data["bus"]` dictionary.
+Please consult `FlexPlan/examples` for different plotting possibilities.

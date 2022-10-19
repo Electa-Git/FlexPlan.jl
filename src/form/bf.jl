@@ -10,7 +10,7 @@ function variable_ne_branch_current(pm::_PM.AbstractBFModel; kwargs...)
 end
 
 ""
-function variable_ne_buspair_current_magnitude_sqr(pm::_PM.AbstractBFAModel; nw::Int=pm.cnw, bounded::Bool=true, report::Bool=true)
+function variable_ne_buspair_current_magnitude_sqr(pm::_PM.AbstractBFAModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
 end
 
 
@@ -23,12 +23,12 @@ the model's current variables together, in addition to the standard problem
 formulation constraints.  The network expansion name (ne) indicates that the
 currents in this constraint can be set to zero via an indicator variable.
 """
-function constraint_ne_model_current(pm::_PM.AbstractPowerModel; nw::Int=pm.cnw)
+function constraint_ne_model_current(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default)
     constraint_ne_model_current(pm, nw)
 end
 
 ""
-function constraint_ne_power_losses(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_ne_power_losses(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :ne_branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]
@@ -52,7 +52,7 @@ end
 """
 Defines voltage drop over a branch, linking from and to side voltage magnitude
 """
-function constraint_ne_voltage_magnitude_difference(pm::_PM.AbstractPowerModel, i::Int; nw::Int=pm.cnw)
+function constraint_ne_voltage_magnitude_difference(pm::_PM.AbstractPowerModel, i::Int; nw::Int=_PM.nw_id_default)
     branch = _PM.ref(pm, nw, :ne_branch, i)
     f_bus = branch["f_bus"]
     t_bus = branch["t_bus"]

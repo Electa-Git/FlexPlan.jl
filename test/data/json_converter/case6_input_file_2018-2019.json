@@ -1,0 +1,2437 @@
+{
+  "genericParameters": {
+    "basePower": 1.0,
+    "nbScenarios": 2,
+    "years": [
+      2030,
+      2040,
+      2050
+    ],
+    "nbHours": [
+      [
+        4,
+        4,
+        4
+      ],
+      [
+        4,
+        4,
+        4
+      ]
+    ],
+    "maxNumberOfCandidates": [
+      10,
+      10,
+      10
+    ]
+  },
+  "gridModelInputFile": {
+    "acBuses": [
+      {
+        "id": "4",
+        "location": [
+          40.5228,
+          16.2155
+        ],
+        "nominalVoltageMagnitude": 240.0,
+        "slackStatus": true,
+        "maxVoltageMagnitude": 252.0,
+        "minVoltageMagnitude": 228.0,
+        "isTransmission": true,
+        "busType": 1,
+        "characteristics": {}
+      },
+      {
+        "id": "1",
+        "location": [
+          43.4894,
+          11.7946
+        ],
+        "nominalVoltageMagnitude": 240.0,
+        "slackStatus": true,
+        "maxVoltageMagnitude": 252.0,
+        "minVoltageMagnitude": 228.0,
+        "isTransmission": true,
+        "busType": 3,
+        "characteristics": {}
+      },
+      {
+        "id": "5",
+        "location": [
+          40.1717,
+          9.0738
+        ],
+        "nominalVoltageMagnitude": 240.0,
+        "slackStatus": true,
+        "maxVoltageMagnitude": 252.0,
+        "minVoltageMagnitude": 228.0,
+        "isTransmission": true,
+        "busType": 1,
+        "characteristics": {}
+      },
+      {
+        "id": "2",
+        "location": [
+          45.3411,
+          9.9489
+        ],
+        "nominalVoltageMagnitude": 240.0,
+        "slackStatus": true,
+        "maxVoltageMagnitude": 252.0,
+        "minVoltageMagnitude": 228.0,
+        "isTransmission": true,
+        "busType": 1,
+        "characteristics": {}
+      },
+      {
+        "id": "6",
+        "location": [
+          37.4844,
+          14.1568
+        ],
+        "nominalVoltageMagnitude": 240.0,
+        "slackStatus": true,
+        "maxVoltageMagnitude": 252.0,
+        "minVoltageMagnitude": 228.0,
+        "isTransmission": true,
+        "busType": 2,
+        "characteristics": {}
+      },
+      {
+        "id": "3",
+        "location": [
+          41.8218,
+          13.8302
+        ],
+        "nominalVoltageMagnitude": 240.0,
+        "slackStatus": true,
+        "maxVoltageMagnitude": 252.0,
+        "minVoltageMagnitude": 228.0,
+        "isTransmission": true,
+        "busType": 2,
+        "characteristics": {}
+      }
+    ],
+    "dcBuses": [
+      {
+        "id": "4",
+        "location": [
+          0,
+          0
+        ],
+        "nominalVoltageMagnitude": 320,
+        "slackStatus": true
+      },
+      {
+        "id": "1",
+        "location": [
+          0,
+          0
+        ],
+        "nominalVoltageMagnitude": 320,
+        "slackStatus": true
+      },
+      {
+        "id": "2",
+        "location": [
+          0,
+          0
+        ],
+        "nominalVoltageMagnitude": 320,
+        "slackStatus": true
+      },
+      {
+        "id": "3",
+        "location": [
+          0,
+          0
+        ],
+        "nominalVoltageMagnitude": 320,
+        "slackStatus": true
+      },
+      {
+        "id": "5",
+        "location": [
+          0,
+          0
+        ],
+        "nominalVoltageMagnitude": 320,
+        "slackStatus": false
+      },
+      {
+        "id": "6",
+        "location": [
+          0,
+          0
+        ],
+        "nominalVoltageMagnitude": 320,
+        "slackStatus": false
+      },
+      {
+        "id": "7",
+        "location": [
+          0,
+          0
+        ],
+        "nominalVoltageMagnitude": 320,
+        "slackStatus": false
+      },
+      {
+        "id": "8",
+        "location": [
+          0,
+          0
+        ],
+        "nominalVoltageMagnitude": 320,
+        "slackStatus": false
+      }
+    ],
+    "acBranches": [
+      {
+        "id": "4",
+        "acBusOrigin": "2",
+        "acBusExtremity": "4",
+        "isTransmission": true,
+        "susceptance": 0.004340277777777778,
+        "voltageTapRatio": 1.0,
+        "ratedApparentPower": [
+          100.0,
+          100.0,
+          100.0
+        ],
+        "maxAngleDifference": 1.0471975511965976,
+        "minAngleDifference": -1.0471975511965976,
+        "resistance": 23.04,
+        "reactance": 230.4,
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "emergencyRating": 100.0,
+        "isInterconnection": false
+      },
+      {
+        "id": "1",
+        "acBusOrigin": "1",
+        "acBusExtremity": "2",
+        "isTransmission": true,
+        "susceptance": 0.004340277777777778,
+        "voltageTapRatio": 1.0,
+        "ratedApparentPower": [
+          100.0,
+          100.0,
+          100.0
+        ],
+        "maxAngleDifference": 1.0471975511965976,
+        "minAngleDifference": -1.0471975511965976,
+        "resistance": 23.04,
+        "reactance": 230.4,
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "emergencyRating": 100.0,
+        "isInterconnection": false
+      },
+      {
+        "id": "2",
+        "acBusOrigin": "1",
+        "acBusExtremity": "4",
+        "isTransmission": true,
+        "susceptance": 0.002893518518518519,
+        "voltageTapRatio": 1.0,
+        "ratedApparentPower": [
+          80.0,
+          80.0,
+          80.0
+        ],
+        "maxAngleDifference": 1.0471975511965976,
+        "minAngleDifference": -1.0471975511965976,
+        "resistance": 34.56,
+        "reactance": 345.59999999999997,
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "emergencyRating": 80.0,
+        "isInterconnection": false
+      },
+      {
+        "id": "3",
+        "acBusOrigin": "2",
+        "acBusExtremity": "3",
+        "isTransmission": true,
+        "susceptance": 0.008680555555555556,
+        "voltageTapRatio": 1.0,
+        "ratedApparentPower": [
+          50.0,
+          50.0,
+          50.0
+        ],
+        "maxAngleDifference": 1.0471975511965976,
+        "minAngleDifference": -1.0471975511965976,
+        "resistance": 11.52,
+        "reactance": 115.2,
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "emergencyRating": 50.0,
+        "isInterconnection": false
+      }
+    ],
+    "transformers": [],
+    "dcBranches": [
+      {
+        "id": "1",
+        "dcBusOrigin": "1",
+        "dcBusExtremity": "3",
+        "ratedActivePower": [
+          100.0,
+          100.0,
+          100.0
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "emergencyRating": 0.0,
+        "isInterconnection": false
+      },
+      {
+        "id": "2",
+        "dcBusOrigin": "2",
+        "dcBusExtremity": "4",
+        "ratedActivePower": [
+          100.0,
+          100.0,
+          100.0
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "emergencyRating": 0.0,
+        "isInterconnection": false
+      }
+    ],
+    "converters": [
+      {
+        "id": "4",
+        "acBusConnected": "3",
+        "dcBusConnected": "4",
+        "auxiliaryLosses": [
+          1.1033,
+          1.1033,
+          1.1033
+        ],
+        "linearLosses": [
+          0.001600342777409994,
+          0.001600342777409994,
+          0.001600342777409994
+        ],
+        "ratedActivePowerAC": [
+          110.00000000000001,
+          110.00000000000001,
+          110.00000000000001
+        ],
+        "ratedActivePowerDC": [
+          110.00000000000001,
+          110.00000000000001,
+          110.00000000000001
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "emergencyRating": 0
+      },
+      {
+        "id": "1",
+        "acBusConnected": "5",
+        "dcBusConnected": "1",
+        "auxiliaryLosses": [
+          1.1033,
+          1.1033,
+          1.1033
+        ],
+        "linearLosses": [
+          0.001600342777409994,
+          0.001600342777409994,
+          0.001600342777409994
+        ],
+        "ratedActivePowerAC": [
+          110.00000000000001,
+          110.00000000000001,
+          110.00000000000001
+        ],
+        "ratedActivePowerDC": [
+          110.00000000000001,
+          110.00000000000001,
+          110.00000000000001
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "emergencyRating": 0
+      },
+      {
+        "id": "2",
+        "acBusConnected": "5",
+        "dcBusConnected": "2",
+        "auxiliaryLosses": [
+          1.1033,
+          1.1033,
+          1.1033
+        ],
+        "linearLosses": [
+          0.001600342777409994,
+          0.001600342777409994,
+          0.001600342777409994
+        ],
+        "ratedActivePowerAC": [
+          110.00000000000001,
+          110.00000000000001,
+          110.00000000000001
+        ],
+        "ratedActivePowerDC": [
+          110.00000000000001,
+          110.00000000000001,
+          110.00000000000001
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "emergencyRating": 0
+      },
+      {
+        "id": "3",
+        "acBusConnected": "1",
+        "dcBusConnected": "3",
+        "auxiliaryLosses": [
+          1.1033,
+          1.1033,
+          1.1033
+        ],
+        "linearLosses": [
+          0.001600342777409994,
+          0.001600342777409994,
+          0.001600342777409994
+        ],
+        "ratedActivePowerAC": [
+          110.00000000000001,
+          110.00000000000001,
+          110.00000000000001
+        ],
+        "ratedActivePowerDC": [
+          110.00000000000001,
+          110.00000000000001,
+          110.00000000000001
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "emergencyRating": 0
+      }
+    ],
+    "storage": [
+      {
+        "id": "1",
+        "acBusConnected": "5",
+        "maxEnergy": [
+          1000.0,
+          1000.0,
+          1000.0
+        ],
+        "selfDischargeRate": [
+          0.0001,
+          0.0001,
+          0.0001
+        ],
+        "minEnergy": [
+          0,
+          0,
+          0
+        ],
+        "maxEnergyYear": [
+          2400.0,
+          2400.0,
+          2400.0
+        ],
+        "absEfficiency": [
+          0.9,
+          0.9,
+          0.9
+        ],
+        "injEfficiency": [
+          0.9,
+          0.9,
+          0.9
+        ],
+        "maxReactivePowerExchange": [
+          70.0,
+          70.0,
+          70.0
+        ],
+        "minReactivePowerExchange": [
+          -50.0,
+          -50.0,
+          -50.0
+        ],
+        "maxAbsRamp": [
+          200.0,
+          200.0,
+          200.0
+        ],
+        "maxInjRamp": [
+          250.0,
+          250.0,
+          250.0
+        ],
+        "maxAbsActivePower": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "maxInjActivePower": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    ],
+    "generators": [
+      {
+        "id": "4",
+        "acBusConnected": "6",
+        "maxActivePower": [
+          120.0,
+          120.0,
+          120.0
+        ],
+        "minActivePower": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "maxReactivePower": [
+          183.0,
+          183.0,
+          183.0
+        ],
+        "minReactivePower": [
+          -10.0,
+          -10.0,
+          -10.0
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "generationCosts": [
+          108624.0,
+          108624.0,
+          108624.0
+        ],
+        "curtailmentCosts": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "1",
+        "acBusConnected": "1",
+        "maxActivePower": [
+          150.0,
+          150.0,
+          150.0
+        ],
+        "minActivePower": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "maxReactivePower": [
+          48.0,
+          48.0,
+          48.0
+        ],
+        "minReactivePower": [
+          -10.0,
+          -10.0,
+          -10.0
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "generationCosts": [
+          108624.0,
+          108624.0,
+          108624.0
+        ],
+        "curtailmentCosts": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "5",
+        "acBusConnected": "6",
+        "maxActivePower": [
+          240.0,
+          240.0,
+          240.0
+        ],
+        "minActivePower": [
+          240.0,
+          240.0,
+          240.0
+        ],
+        "maxReactivePower": [
+          183.0,
+          183.0,
+          183.0
+        ],
+        "minReactivePower": [
+          -10.0,
+          -10.0,
+          -10.0
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "generationCosts": [
+          84534.0,
+          84534.0,
+          84534.0
+        ],
+        "curtailmentCosts": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "2",
+        "acBusConnected": "3",
+        "maxActivePower": [
+          180.0,
+          180.0,
+          180.0
+        ],
+        "minActivePower": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "maxReactivePower": [
+          101.0,
+          101.0,
+          101.0
+        ],
+        "minReactivePower": [
+          -10.0,
+          -10.0,
+          -10.0
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "generationCosts": [
+          206079.0,
+          206079.0,
+          206079.0
+        ],
+        "curtailmentCosts": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "6",
+        "acBusConnected": "6",
+        "maxActivePower": [
+          240.0,
+          240.0,
+          240.0
+        ],
+        "minActivePower": [
+          240.0,
+          240.0,
+          240.0
+        ],
+        "maxReactivePower": [
+          183.0,
+          183.0,
+          183.0
+        ],
+        "minReactivePower": [
+          -10.0,
+          -10.0,
+          -10.0
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "generationCosts": [
+          93732.0,
+          93732.0,
+          93732.0
+        ],
+        "curtailmentCosts": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "3",
+        "acBusConnected": "3",
+        "maxActivePower": [
+          180.0,
+          180.0,
+          180.0
+        ],
+        "minActivePower": [
+          180.0,
+          180.0,
+          180.0
+        ],
+        "maxReactivePower": [
+          101.0,
+          101.0,
+          101.0
+        ],
+        "minReactivePower": [
+          -10.0,
+          -10.0,
+          -10.0
+        ],
+        "meanTimeToRepair": 1,
+        "failureRate": 1,
+        "generationCosts": [
+          84534.0,
+          84534.0,
+          84534.0
+        ],
+        "curtailmentCosts": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "loads": [
+      {
+        "id": "4",
+        "acBusConnected": "4",
+        "powerFactor": 1,
+        "gracePeriodUDS": [
+          10,
+          10,
+          10
+        ],
+        "gracePeriodDDS": [
+          10,
+          10,
+          10
+        ],
+        "maxEnergyNotConsumed": [
+          0.33455960759223713,
+          0.33455960759223713,
+          0.33455960759223713
+        ],
+        "valueOfLossLoad": [
+          21900000.0,
+          21900000.0,
+          21900000.0
+        ],
+        "compensationDemandShift": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "compensationConsumeLess": [
+          219.0,
+          219.0,
+          219.0
+        ],
+        "superiorBoundNCP": [
+          0.3,
+          0.3,
+          0.3
+        ],
+        "superiorBoundUDS": [
+          0.3,
+          0.3,
+          0.3
+        ],
+        "superiorBoundDDS": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "maxEnergyShifted": [
+          1,
+          1,
+          1
+        ],
+        "isFlexible": true
+      },
+      {
+        "id": "1",
+        "acBusConnected": "1",
+        "powerFactor": 1,
+        "gracePeriodUDS": [
+          10,
+          10,
+          10
+        ],
+        "gracePeriodDDS": [
+          10,
+          10,
+          10
+        ],
+        "maxEnergyNotConsumed": [
+          0.9177207579838399,
+          0.9177207579838399,
+          0.9177207579838399
+        ],
+        "valueOfLossLoad": [
+          21900000.0,
+          21900000.0,
+          21900000.0
+        ],
+        "compensationDemandShift": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "compensationConsumeLess": [
+          219.0,
+          219.0,
+          219.0
+        ],
+        "superiorBoundNCP": [
+          0.3,
+          0.3,
+          0.3
+        ],
+        "superiorBoundUDS": [
+          0.3,
+          0.3,
+          0.3
+        ],
+        "superiorBoundDDS": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "maxEnergyShifted": [
+          1,
+          1,
+          1
+        ],
+        "isFlexible": true
+      },
+      {
+        "id": "5",
+        "acBusConnected": "5",
+        "powerFactor": 1,
+        "gracePeriodUDS": [
+          10,
+          10,
+          10
+        ],
+        "gracePeriodDDS": [
+          10,
+          10,
+          10
+        ],
+        "maxEnergyNotConsumed": [
+          0.22857624831309045,
+          0.22857624831309045,
+          0.22857624831309045
+        ],
+        "valueOfLossLoad": [
+          21900000.0,
+          21900000.0,
+          21900000.0
+        ],
+        "compensationDemandShift": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "compensationConsumeLess": [
+          219.0,
+          219.0,
+          219.0
+        ],
+        "superiorBoundNCP": [
+          0.3,
+          0.3,
+          0.3
+        ],
+        "superiorBoundUDS": [
+          0.3,
+          0.3,
+          0.3
+        ],
+        "superiorBoundDDS": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "maxEnergyShifted": [
+          1,
+          1,
+          1
+        ],
+        "isFlexible": true
+      },
+      {
+        "id": "2",
+        "acBusConnected": "2",
+        "powerFactor": 1,
+        "gracePeriodUDS": [
+          10,
+          10,
+          10
+        ],
+        "gracePeriodDDS": [
+          10,
+          10,
+          10
+        ],
+        "maxEnergyNotConsumed": [
+          0.28991308325709064,
+          0.28991308325709064,
+          0.28991308325709064
+        ],
+        "valueOfLossLoad": [
+          21900000.0,
+          21900000.0,
+          21900000.0
+        ],
+        "compensationDemandShift": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "compensationConsumeLess": [
+          219.0,
+          219.0,
+          219.0
+        ],
+        "superiorBoundNCP": [
+          0.3,
+          0.3,
+          0.3
+        ],
+        "superiorBoundUDS": [
+          0.3,
+          0.3,
+          0.3
+        ],
+        "superiorBoundDDS": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "maxEnergyShifted": [
+          1,
+          1,
+          1
+        ],
+        "isFlexible": true
+      },
+      {
+        "id": "3",
+        "acBusConnected": "3",
+        "powerFactor": 1,
+        "gracePeriodUDS": [
+          10,
+          10,
+          10
+        ],
+        "gracePeriodDDS": [
+          10,
+          10,
+          10
+        ],
+        "maxEnergyNotConsumed": [
+          1,
+          1,
+          1
+        ],
+        "valueOfLossLoad": [
+          21900000.0,
+          21900000.0,
+          21900000.0
+        ],
+        "compensationDemandShift": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "compensationConsumeLess": [
+          219.0,
+          219.0,
+          219.0
+        ],
+        "superiorBoundNCP": [
+          0.3,
+          0.3,
+          0.3
+        ],
+        "superiorBoundUDS": [
+          0.3,
+          0.3,
+          0.3
+        ],
+        "superiorBoundDDS": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "maxEnergyShifted": [
+          1,
+          1,
+          1
+        ],
+        "isFlexible": true
+      }
+    ],
+    "psts": []
+  },
+  "scenarioDataInputFile": {
+    "storage": [
+      {
+        "id": "1",
+        "initEnergy": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "finalEnergy": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ]
+      }
+    ],
+    "loads": [
+      {
+        "id": "4",
+        "demandReference": [
+          [
+            [
+              77.54581673306772,
+              77.38645418326693,
+              72.79681274900399,
+              71.17131474103586
+            ],
+            [
+              77.54581673306772,
+              77.38645418326693,
+              72.79681274900399,
+              71.17131474103586
+            ],
+            [
+              77.54581673306772,
+              77.38645418326693,
+              72.79681274900399,
+              71.17131474103586
+            ]
+          ],
+          [
+            [
+              84.41333882256073,
+              83.06298888431454,
+              77.99094277480445,
+              71.99670646356525
+            ],
+            [
+              84.41333882256073,
+              83.06298888431454,
+              77.99094277480445,
+              71.99670646356525
+            ],
+            [
+              84.41333882256073,
+              83.06298888431454,
+              77.99094277480445,
+              71.99670646356525
+            ]
+          ]
+        ]
+      },
+      {
+        "id": "1",
+        "demandReference": [
+          [
+            [
+              29.033737307566327,
+              28.197838191942353,
+              26.53914182771045,
+              25.19489027186374
+            ],
+            [
+              29.033737307566327,
+              28.197838191942353,
+              26.53914182771045,
+              25.19489027186374
+            ],
+            [
+              29.033737307566327,
+              28.197838191942353,
+              26.53914182771045,
+              25.19489027186374
+            ]
+          ],
+          [
+            [
+              29.413568417018016,
+              28.207486904305608,
+              26.651335122013542,
+              25.069630765299607
+            ],
+            [
+              29.413568417018016,
+              28.207486904305608,
+              26.651335122013542,
+              25.069630765299607
+            ],
+            [
+              29.413568417018016,
+              28.207486904305608,
+              26.651335122013542,
+              25.069630765299607
+            ]
+          ]
+        ]
+      },
+      {
+        "id": "5",
+        "demandReference": [
+          [
+            [
+              116.16236162361623,
+              111.88191881918819,
+              107.74907749077491,
+              101.69741697416974
+            ],
+            [
+              116.16236162361623,
+              111.88191881918819,
+              107.74907749077491,
+              101.69741697416974
+            ],
+            [
+              116.16236162361623,
+              111.88191881918819,
+              107.74907749077491,
+              101.69741697416974
+            ]
+          ],
+          [
+            [
+              139.54198473282443,
+              139.54198473282443,
+              135.1145038167939,
+              129.9236641221374
+            ],
+            [
+              139.54198473282443,
+              139.54198473282443,
+              135.1145038167939,
+              129.9236641221374
+            ],
+            [
+              139.54198473282443,
+              139.54198473282443,
+              135.1145038167939,
+              129.9236641221374
+            ]
+          ]
+        ]
+      },
+      {
+        "id": "2",
+        "demandReference": [
+          [
+            [
+              93.76725838264299,
+              89.1913214990138,
+              83.66863905325444,
+              78.30374753451676
+            ],
+            [
+              93.76725838264299,
+              89.1913214990138,
+              83.66863905325444,
+              78.30374753451676
+            ],
+            [
+              93.76725838264299,
+              89.1913214990138,
+              83.66863905325444,
+              78.30374753451676
+            ]
+          ],
+          [
+            [
+              101.19178768152229,
+              97.2258387581372,
+              94.78217325988982,
+              90.37556334501751
+            ],
+            [
+              101.19178768152229,
+              97.2258387581372,
+              94.78217325988982,
+              90.37556334501751
+            ],
+            [
+              101.19178768152229,
+              97.2258387581372,
+              94.78217325988982,
+              90.37556334501751
+            ]
+          ]
+        ]
+      },
+      {
+        "id": "3",
+        "demandReference": [
+          [
+            [
+              22.331008243500317,
+              21.666455294863667,
+              20.2714013950539,
+              18.932149651236525
+            ],
+            [
+              22.331008243500317,
+              21.666455294863667,
+              20.2714013950539,
+              18.932149651236525
+            ],
+            [
+              22.331008243500317,
+              21.666455294863667,
+              20.2714013950539,
+              18.932149651236525
+            ]
+          ],
+          [
+            [
+              20.054315739756763,
+              19.364742000236156,
+              18.07061046168379,
+              16.69146298264258
+            ],
+            [
+              20.054315739756763,
+              19.364742000236156,
+              18.07061046168379,
+              16.69146298264258
+            ],
+            [
+              20.054315739756763,
+              19.364742000236156,
+              18.07061046168379,
+              16.69146298264258
+            ]
+          ]
+        ]
+      }
+    ],
+    "generators": [
+      {
+        "id": "4"
+      },
+      {
+        "id": "1"
+      },
+      {
+        "id": "5",
+        "capacityFactor": [
+          [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        ]
+      },
+      {
+        "id": "2"
+      },
+      {
+        "id": "6",
+        "capacityFactor": [
+          [
+            [
+              0.021,
+              0.022,
+              0.026,
+              0.034
+            ],
+            [
+              0.021,
+              0.022,
+              0.026,
+              0.034
+            ],
+            [
+              0.021,
+              0.022,
+              0.026,
+              0.034
+            ]
+          ],
+          [
+            [
+              0.543,
+              0.516,
+              0.52,
+              0.49300000000000005
+            ],
+            [
+              0.543,
+              0.516,
+              0.52,
+              0.49300000000000005
+            ],
+            [
+              0.543,
+              0.516,
+              0.52,
+              0.49300000000000005
+            ]
+          ]
+        ]
+      },
+      {
+        "id": "3",
+        "capacityFactor": [
+          [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        ]
+      }
+    ]
+  },
+  "candidatesInputFile": {
+    "acBranches": [
+      {
+        "acBranch": {
+          "id": "C4",
+          "acBusOrigin": "2",
+          "acBusExtremity": "3",
+          "isTransmission": true,
+          "susceptance": 0.004340277777777778,
+          "voltageTapRatio": 1.0,
+          "ratedApparentPower": [
+            100.0,
+            100.0,
+            100.0
+          ],
+          "maxAngleDifference": 1.0471975511965976,
+          "minAngleDifference": -1.0471975511965976,
+          "resistance": 23.04,
+          "reactance": 230.4,
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 100.0,
+          "isInterconnection": false
+        },
+        "invCost": [
+          127000000.0,
+          85796649.44087642,
+          57961142.1675641
+        ],
+        "lifetime": 30,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "acBranch": {
+          "id": "C1",
+          "acBusOrigin": "1",
+          "acBusExtremity": "3",
+          "isTransmission": true,
+          "susceptance": 0.008680555555555556,
+          "voltageTapRatio": 1.0,
+          "ratedApparentPower": [
+            100.0,
+            100.0,
+            100.0
+          ],
+          "maxAngleDifference": 1.0471975511965976,
+          "minAngleDifference": -1.0471975511965976,
+          "resistance": 11.52,
+          "reactance": 115.2,
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 100.0,
+          "isInterconnection": false
+        },
+        "invCost": [
+          62500000.0,
+          42222760.551612414,
+          28524184.13758076
+        ],
+        "lifetime": 30,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "acBranch": {
+          "id": "C2",
+          "acBusOrigin": "3",
+          "acBusExtremity": "4",
+          "isTransmission": true,
+          "susceptance": 0.008680555555555556,
+          "voltageTapRatio": 1.0,
+          "ratedApparentPower": [
+            100.0,
+            100.0,
+            100.0
+          ],
+          "maxAngleDifference": 1.0471975511965976,
+          "minAngleDifference": -1.0471975511965976,
+          "resistance": 11.52,
+          "reactance": 115.2,
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 100.0,
+          "isInterconnection": false
+        },
+        "invCost": [
+          61750000.0,
+          41716087.42499307,
+          28181893.927929793
+        ],
+        "lifetime": 30,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "acBranch": {
+          "id": "C3",
+          "acBusOrigin": "4",
+          "acBusExtremity": "6",
+          "isTransmission": true,
+          "susceptance": 0.008680555555555556,
+          "voltageTapRatio": 1.0,
+          "ratedApparentPower": [
+            100.0,
+            100.0,
+            100.0
+          ],
+          "maxAngleDifference": 1.0471975511965976,
+          "minAngleDifference": -1.0471975511965976,
+          "resistance": 11.52,
+          "reactance": 115.2,
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 100.0,
+          "isInterconnection": false
+        },
+        "invCost": [
+          147000000.0,
+          99307932.8173924,
+          67088881.09158995
+        ],
+        "lifetime": 30,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      }
+    ],
+    "transformers": [],
+    "dcBranches": [
+      {
+        "dcBranch": {
+          "id": "C1",
+          "dcBusOrigin": "5",
+          "dcBusExtremity": "6",
+          "ratedActivePower": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 0.0,
+          "isInterconnection": false
+        },
+        "invCost": [
+          222750000.125,
+          150481918.69039217,
+          101660192.32338619
+        ],
+        "lifetime": 20,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "dcBranch": {
+          "id": "C2",
+          "dcBusOrigin": "5",
+          "dcBusExtremity": "7",
+          "ratedActivePower": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 0.0,
+          "isInterconnection": false
+        },
+        "invCost": [
+          177550000.125,
+          119946418.25946607,
+          81031502.35508779
+        ],
+        "lifetime": 20,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "dcBranch": {
+          "id": "C3",
+          "dcBusOrigin": "5",
+          "dcBusExtremity": "8",
+          "ratedActivePower": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 0.0,
+          "isInterconnection": false
+        },
+        "invCost": [
+          244350000.125,
+          165074104.7370294,
+          111518150.36133412
+        ],
+        "lifetime": 20,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      }
+    ],
+    "converters": [
+      {
+        "converter": {
+          "id": "C4",
+          "acBusConnected": "3",
+          "dcBusConnected": "6",
+          "auxiliaryLosses": [
+            1.1033,
+            1.1033,
+            1.1033
+          ],
+          "linearLosses": [
+            0.0017070322959039934,
+            0.0017070322959039934,
+            0.0017070322959039934
+          ],
+          "ratedActivePowerAC": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "ratedActivePowerDC": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 0
+        },
+        "invCost": [
+          10000000.125,
+          6755641.772703507,
+          4563869.51906129
+        ],
+        "lifetime": 40,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "converter": {
+          "id": "C1",
+          "acBusConnected": "6",
+          "dcBusConnected": "5",
+          "auxiliaryLosses": [
+            1.1033,
+            1.1033,
+            1.1033
+          ],
+          "linearLosses": [
+            0.001600342777409994,
+            0.001600342777409994,
+            0.001600342777409994
+          ],
+          "ratedActivePowerAC": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "ratedActivePowerDC": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 0
+        },
+        "invCost": [
+          10000000.125,
+          6755641.772703507,
+          4563869.51906129
+        ],
+        "lifetime": 40,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "converter": {
+          "id": "C5",
+          "acBusConnected": "4",
+          "dcBusConnected": "7",
+          "auxiliaryLosses": [
+            1.1033,
+            1.1033,
+            1.1033
+          ],
+          "linearLosses": [
+            0.001600342777409994,
+            0.001600342777409994,
+            0.001600342777409994
+          ],
+          "ratedActivePowerAC": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "ratedActivePowerDC": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 0
+        },
+        "invCost": [
+          10000000.125,
+          6755641.772703507,
+          4563869.51906129
+        ],
+        "lifetime": 40,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "converter": {
+          "id": "C2",
+          "acBusConnected": "6",
+          "dcBusConnected": "5",
+          "auxiliaryLosses": [
+            1.1033,
+            1.1033,
+            1.1033
+          ],
+          "linearLosses": [
+            0.001600342777409994,
+            0.001600342777409994,
+            0.001600342777409994
+          ],
+          "ratedActivePowerAC": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "ratedActivePowerDC": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 0
+        },
+        "invCost": [
+          10000000.125,
+          6755641.772703507,
+          4563869.51906129
+        ],
+        "lifetime": 40,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "converter": {
+          "id": "C6",
+          "acBusConnected": "5",
+          "dcBusConnected": "8",
+          "auxiliaryLosses": [
+            1.1033,
+            1.1033,
+            1.1033
+          ],
+          "linearLosses": [
+            0.001600342777409994,
+            0.001600342777409994,
+            0.001600342777409994
+          ],
+          "ratedActivePowerAC": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "ratedActivePowerDC": [
+            330.0,
+            330.0,
+            330.0
+          ],
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 0
+        },
+        "invCost": [
+          10000000.125,
+          6755641.772703507,
+          4563869.51906129
+        ],
+        "lifetime": 40,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "converter": {
+          "id": "C3",
+          "acBusConnected": "6",
+          "dcBusConnected": "5",
+          "auxiliaryLosses": [
+            1.1033,
+            1.1033,
+            1.1033
+          ],
+          "linearLosses": [
+            0.001600342777409994,
+            0.001600342777409994,
+            0.001600342777409994
+          ],
+          "ratedActivePowerAC": [
+            660.0,
+            660.0,
+            660.0
+          ],
+          "ratedActivePowerDC": [
+            660.0,
+            660.0,
+            660.0
+          ],
+          "meanTimeToRepair": 1,
+          "failureRate": 1,
+          "emergencyRating": 0
+        },
+        "invCost": [
+          20000000.125,
+          13511283.460961493,
+          9127738.981074212
+        ],
+        "lifetime": 40,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      }
+    ],
+    "storage": [
+      {
+        "storage": {
+          "id": "C1",
+          "acBusConnected": "2",
+          "maxEnergy": [
+            1000.0,
+            1000.0,
+            1000.0
+          ],
+          "selfDischargeRate": [
+            0.001,
+            0.001,
+            0.001
+          ],
+          "minEnergy": [
+            0,
+            0,
+            0
+          ],
+          "maxEnergyYear": [
+            2400.0,
+            2400.0,
+            2400.0
+          ],
+          "absEfficiency": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "injEfficiency": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "maxReactivePowerExchange": [
+            70.0,
+            70.0,
+            70.0
+          ],
+          "minReactivePowerExchange": [
+            -50.0,
+            -50.0,
+            -50.0
+          ],
+          "maxAbsRamp": [
+            200.0,
+            200.0,
+            200.0
+          ],
+          "maxInjRamp": [
+            250.0,
+            250.0,
+            250.0
+          ],
+          "maxAbsActivePower": [
+            200.0,
+            200.0,
+            200.0
+          ],
+          "maxInjActivePower": [
+            250.0,
+            250.0,
+            250.0
+          ]
+        },
+        "invCost": [
+          75000000.25,
+          50667312.83082594,
+          34229021.07919365
+        ],
+        "storageData": {
+          "id": "C1",
+          "initEnergy": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "finalEnergy": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ]
+        },
+        "lifetime": 10,
+        "isUnique": false,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "storage": {
+          "id": "C2",
+          "acBusConnected": "5",
+          "maxEnergy": [
+            1000.0,
+            1000.0,
+            1000.0
+          ],
+          "selfDischargeRate": [
+            0.001,
+            0.001,
+            0.001
+          ],
+          "minEnergy": [
+            0,
+            0,
+            0
+          ],
+          "maxEnergyYear": [
+            2400.0,
+            2400.0,
+            2400.0
+          ],
+          "absEfficiency": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "injEfficiency": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "maxReactivePowerExchange": [
+            70.0,
+            70.0,
+            70.0
+          ],
+          "minReactivePowerExchange": [
+            -50.0,
+            -50.0,
+            -50.0
+          ],
+          "maxAbsRamp": [
+            200.0,
+            200.0,
+            200.0
+          ],
+          "maxInjRamp": [
+            250.0,
+            250.0,
+            250.0
+          ],
+          "maxAbsActivePower": [
+            200.0,
+            200.0,
+            200.0
+          ],
+          "maxInjActivePower": [
+            250.0,
+            250.0,
+            250.0
+          ]
+        },
+        "invCost": [
+          75000000.25,
+          50667312.83082594,
+          34229021.07919365
+        ],
+        "storageData": {
+          "id": "C2",
+          "initEnergy": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "finalEnergy": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ]
+        },
+        "lifetime": 10,
+        "isUnique": false,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      }
+    ],
+    "flexibleLoads": [
+      {
+        "load": {
+          "id": "4",
+          "acBusConnected": "4",
+          "powerFactor": 1,
+          "gracePeriodUDS": [
+            10,
+            10,
+            10
+          ],
+          "gracePeriodDDS": [
+            10,
+            10,
+            10
+          ],
+          "maxEnergyNotConsumed": [
+            0.33455960759223713,
+            0.33455960759223713,
+            0.33455960759223713
+          ],
+          "valueOfLossLoad": [
+            21900000.0,
+            21900000.0,
+            21900000.0
+          ],
+          "compensationDemandShift": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "compensationConsumeLess": [
+            219.0,
+            219.0,
+            219.0
+          ],
+          "superiorBoundNCP": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "superiorBoundUDS": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "superiorBoundDDS": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxEnergyShifted": [
+            1,
+            1,
+            1
+          ]
+        },
+        "invCost": [
+          40000.125,
+          27022.65119855305,
+          18255.534896419962
+        ],
+        "lifetime": 40,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "load": {
+          "id": "1",
+          "acBusConnected": "1",
+          "powerFactor": 1,
+          "gracePeriodUDS": [
+            10,
+            10,
+            10
+          ],
+          "gracePeriodDDS": [
+            10,
+            10,
+            10
+          ],
+          "maxEnergyNotConsumed": [
+            0.9177207579838399,
+            0.9177207579838399,
+            0.9177207579838399
+          ],
+          "valueOfLossLoad": [
+            21900000.0,
+            21900000.0,
+            21900000.0
+          ],
+          "compensationDemandShift": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "compensationConsumeLess": [
+            219.0,
+            219.0,
+            219.0
+          ],
+          "superiorBoundNCP": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "superiorBoundUDS": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "superiorBoundDDS": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxEnergyShifted": [
+            1,
+            1,
+            1
+          ]
+        },
+        "invCost": [
+          20000.125,
+          13511.367822037075,
+          9127.795972394119
+        ],
+        "lifetime": 40,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "load": {
+          "id": "5",
+          "acBusConnected": "5",
+          "powerFactor": 1,
+          "gracePeriodUDS": [
+            10,
+            10,
+            10
+          ],
+          "gracePeriodDDS": [
+            10,
+            10,
+            10
+          ],
+          "maxEnergyNotConsumed": [
+            0.22857624831309045,
+            0.22857624831309045,
+            0.22857624831309045
+          ],
+          "valueOfLossLoad": [
+            21900000.0,
+            21900000.0,
+            21900000.0
+          ],
+          "compensationDemandShift": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "compensationConsumeLess": [
+            219.0,
+            219.0,
+            219.0
+          ],
+          "superiorBoundNCP": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "superiorBoundUDS": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "superiorBoundDDS": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxEnergyShifted": [
+            1,
+            1,
+            1
+          ]
+        },
+        "invCost": [
+          60000.125,
+          40533.93457506902,
+          27383.273820445804
+        ],
+        "lifetime": 40,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "load": {
+          "id": "2",
+          "acBusConnected": "2",
+          "powerFactor": 1,
+          "gracePeriodUDS": [
+            10,
+            10,
+            10
+          ],
+          "gracePeriodDDS": [
+            10,
+            10,
+            10
+          ],
+          "maxEnergyNotConsumed": [
+            0.28991308325709064,
+            0.28991308325709064,
+            0.28991308325709064
+          ],
+          "valueOfLossLoad": [
+            21900000.0,
+            21900000.0,
+            21900000.0
+          ],
+          "compensationDemandShift": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "compensationConsumeLess": [
+            219.0,
+            219.0,
+            219.0
+          ],
+          "superiorBoundNCP": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "superiorBoundUDS": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "superiorBoundDDS": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxEnergyShifted": [
+            1,
+            1,
+            1
+          ]
+        },
+        "invCost": [
+          60000.125,
+          40533.93457506902,
+          27383.273820445804
+        ],
+        "lifetime": 40,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      },
+      {
+        "load": {
+          "id": "3",
+          "acBusConnected": "3",
+          "powerFactor": 1,
+          "gracePeriodUDS": [
+            10,
+            10,
+            10
+          ],
+          "gracePeriodDDS": [
+            10,
+            10,
+            10
+          ],
+          "maxEnergyNotConsumed": [
+            1,
+            1,
+            1
+          ],
+          "valueOfLossLoad": [
+            21900000.0,
+            21900000.0,
+            21900000.0
+          ],
+          "compensationDemandShift": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "compensationConsumeLess": [
+            219.0,
+            219.0,
+            219.0
+          ],
+          "superiorBoundNCP": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "superiorBoundUDS": [
+            0.3,
+            0.3,
+            0.3
+          ],
+          "superiorBoundDDS": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxEnergyShifted": [
+            1,
+            1,
+            1
+          ]
+        },
+        "invCost": [
+          10000.125,
+          6755.72613377909,
+          4563.926510381197
+        ],
+        "lifetime": 40,
+        "isUnique": true,
+        "horizons": [
+          2030,
+          2040,
+          2050
+        ]
+      }
+    ],
+    "psts": []
+  }
+}
