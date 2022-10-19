@@ -111,7 +111,7 @@ function make_benders_plots(data::Dict{String,Any}, result::Dict{String,Any}, ou
         xguide           = "Total time: $(round(Int,result["time"]["total"])) s   —   Threads: $(Threads.nthreads())",
         xguidefontsize   = 9,
     )
-    plt = plot(plt1, plt2; layout = grid(2,1; heights=[0.92, 0.08]))
+    plt = plot(plt1, plt2; layout = StatsPlots.grid(2,1; heights=[0.92, 0.08]))
     savefig(plt, joinpath(out_dir,"time.svg"))
     display_plots && display(plt)
 

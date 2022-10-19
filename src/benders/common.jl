@@ -111,8 +111,8 @@ end
 
 
 function add_benders_mp_sp_nw_lookup!(one_pm_sec, pm_main)
-    mp_sp_nw_lookup = one_pm_sec.ref[:slice]["benders_mp_sp_nw_lookup"] = Dict{Int,Int}()
-    slice_orig_nw_lookup = one_pm_sec.ref[:slice]["slice_orig_nw_lookup"]
+    mp_sp_nw_lookup = one_pm_sec.ref[:it][_PM.pm_it_sym][:slice]["benders_mp_sp_nw_lookup"] = Dict{Int,Int}()
+    slice_orig_nw_lookup = one_pm_sec.ref[:it][_PM.pm_it_sym][:slice]["slice_orig_nw_lookup"]
     for n in _FP.nw_ids(one_pm_sec; hour=1)
         orig_n = slice_orig_nw_lookup[n]
         int_var_n = _FP.first_id(pm_main, orig_n, :scenario)
@@ -164,7 +164,7 @@ function fix_main_var_values!(pm, main_var_values)
 end
 
 function fix_sec_var_values!(pm, main_var_values)
-    for (main_nw_id, sec_nw_id) in pm.ref[:slice]["benders_mp_sp_nw_lookup"]
+    for (main_nw_id, sec_nw_id) in pm.ref[:it][_PM.pm_it_sym][:slice]["benders_mp_sp_nw_lookup"]
         for (key, var) in main_var_values[main_nw_id]
             if haskey(_PM.var(pm, sec_nw_id), key)
                 for (idx, value) in var
@@ -211,7 +211,7 @@ function calc_optimality_cut(pm_main, one_pm_sec, main_var_values)
     scen_id = _FP.dim_meta(one_pm_sec, :scenario, "orig_id")
     year_id = _FP.dim_meta(one_pm_sec, :year, "orig_id")
     optimality_cut_expr = JuMP.AffExpr(JuMP.objective_value(one_pm_sec.model))
-    for (main_nw_id, sec_nw_id) in one_pm_sec.ref[:slice]["benders_mp_sp_nw_lookup"]
+    for (main_nw_id, sec_nw_id) in one_pm_sec.ref[:it][_PM.pm_it_sym][:slice]["benders_mp_sp_nw_lookup"]
         for (key, var) in main_var_values[main_nw_id]
             if haskey(_PM.var(one_pm_sec, sec_nw_id), key)
                 for (idx, value) in var
@@ -233,7 +233,7 @@ function build_solution(pm_main, pm_sec, solution_processors)
     sol = Vector{Dict{String,Any}}(undef, num_sp)
     Threads.@threads for p in 1:num_sp
         sol[p] = _IM.build_solution(pm_sec[p]; post_processors=solution_processors)
-        lookup = pm_sec[p].ref[:slice]["slice_orig_nw_lookup"]
+        lookup = pm_sec[p].ref[:it][_PM.pm_it_sym][:slice]["slice_orig_nw_lookup"]
         nw_orig = Dict{String,Any}("$(lookup[parse(Int,n_slice)])"=>nw for (n_slice,nw) in sol[p]["nw"])
         sol[p]["nw"] = nw_orig
     end
