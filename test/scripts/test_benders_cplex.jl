@@ -87,7 +87,7 @@ push!(solution_processors, _FP.sol_pm!) # To access pm after the optimization ha
 ## Solve problem
 
 info(_LOGGER, "Solving the problem with CPLEX Benders decomposition...")
-result_benders = run_and_time(data, model_type, optimizer_benders, _FP.stoch_flex_tnep; ref_extensions, solution_processors, setting)
+result_benders = run_and_time(data, model_type, optimizer_benders, _FP.simple_stoch_flex_tnep; ref_extensions, solution_processors, setting)
 info(_LOGGER, @sprintf("CPLEX benders time: %.1f s", result_benders["time"]["total"]))
 
 
@@ -105,7 +105,7 @@ info(_LOGGER, "CPLEX Benders decomposition has $num_subproblems subproblems.")
 
 if compare_to_benchmark
     info(_LOGGER, "Solving the problem as MILP...")
-    result_benchmark = run_and_time(data, model_type, optimizer_benchmark, _FP.stoch_flex_tnep; ref_extensions, solution_processors, setting)
+    result_benchmark = run_and_time(data, model_type, optimizer_benchmark, _FP.simple_stoch_flex_tnep; ref_extensions, solution_processors, setting)
     info(_LOGGER, @sprintf("MILP time: %.1f s", result_benchmark["time"]["total"]))
     info(_LOGGER, @sprintf("Benders/MILP solve time ratio: %.3f", result_benders["time"]["total"]/result_benchmark["time"]["total"]))
     check_solution_correctness(result_benders, result_benchmark, obj_rtol, _LOGGER)

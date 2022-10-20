@@ -105,8 +105,8 @@ result_benders = _FP.run_benders_decomposition(
     algo,
     data, model_type,
     optimizer_MILP, optimizer_LP,
-    _FP.post_stoch_flex_tnep_benders_main,
-    _FP.post_stoch_flex_tnep_benders_secondary;
+    _FP.post_simple_stoch_flex_tnep_benders_main,
+    _FP.post_simple_stoch_flex_tnep_benders_secondary;
     ref_extensions, solution_processors, setting
 )
 if result_benders["termination_status"] != _PM.OPTIMAL
@@ -126,7 +126,7 @@ end
 
 if compare_to_benchmark
     info(_LOGGER, "Solving the problem as MILP...")
-    result_benchmark = run_and_time(data, model_type, optimizer_benchmark, _FP.stoch_flex_tnep; ref_extensions, solution_processors, setting)
+    result_benchmark = run_and_time(data, model_type, optimizer_benchmark, _FP.simple_stoch_flex_tnep; ref_extensions, solution_processors, setting)
     info(_LOGGER, @sprintf("MILP time: %.1f s", result_benchmark["time"]["total"]))
     info(_LOGGER, @sprintf("Benders/MILP solve time ratio: %.3f", result_benders["time"]["total"]/result_benchmark["time"]["total"]))
     check_solution_correctness(result_benders, result_benchmark, obj_rtol, _LOGGER)
