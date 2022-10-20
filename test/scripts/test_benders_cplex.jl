@@ -11,7 +11,7 @@ using Memento
 using Printf
 import CPLEX
 _LOGGER = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script, also used by included files.
-include("../benders/test_case.jl")
+include("../io/load_case.jl")
 include("../benders/cplex.jl")
 include("../benders/compare.jl")
 include("../benders/perf.jl")
@@ -20,18 +20,16 @@ include("../benders/perf.jl")
 ## Input parameters
 
 # Test case
-# | Case        |     Type     | Buses | Hours | Scenarios | Years |
-# | ----------- | :----------: | ----: | ----: | --------: | ----: |
-# | `case6`     | transmission |     6 |  8760 |        35 |     3 |
-# | `case67`    | transmission |    67 |  8760 |         3 |     3 |
-# | `cigre`     | distribution |    15 |    24 |         1 |     1 |
-# | `cigre_ext` | distribution |    15 |  8760 |         1 |     1 |
-# | `case2`     | distribution |     2 |     1 |         1 |     1 |
+# | Case          |     Type     | Buses | Hours | Scenarios | Years |
+# | ------------- | :----------: | ----: | ----: | --------: | ----: |
+# | `case6`       | transmission |     6 |  8760 |        35 |     3 |
+# | `case67`      | transmission |    67 |  8760 |         3 |     3 |
+# | `ieee_33`     | distribution |    33 |   672 |         4 |     3 |
 test_case = "case6"
 number_of_hours = 8 # Number of hourly optimization periods
 number_of_scenarios = 4 # Number of scenarios (different generation/load profiles)
 number_of_years = 3 # Number of years (different investments)
-scale_cost = 1e-9 # Cost scale factor (to test the numerical tractability of the problem)
+cost_scale_factor = 1e-6 # Cost scale factor (to test the numerical tractability of the problem)
 
 # Procedure
 obj_rtol = 1e-6 # Relative tolerance for stopping
@@ -43,7 +41,7 @@ compare_to_benchmark = true # Solve the problem as MILP, check whether solutions
 
 ## Process script parameters, set up logging
 
-test_case_string = @sprintf("%s_%04i_%02i_%1i_%.0e", test_case, number_of_hours, number_of_scenarios, number_of_years, scale_cost)
+test_case_string = @sprintf("%s_%04i_%02i_%1i_%.0e", test_case, number_of_hours, number_of_scenarios, number_of_years, cost_scale_factor)
 algorithm_string = @sprintf("cplex")
 out_dir = normpath(out_dir, "benders", test_case_string, algorithm_string)
 mkpath(out_dir)
@@ -82,7 +80,7 @@ optimizer_benchmark = _FP.optimizer_with_attributes(CPLEX_optimizer_with_logger(
 
 ## Load test case
 
-data, model_type, ref_extensions, solution_processors, setting = load_test_case(test_case; number_of_hours, number_of_scenarios, number_of_years, scale_cost)
+data, model_type, ref_extensions, solution_processors, setting = eval(Symbol("load_$(test_case)_defaultparams"))(; number_of_hours, number_of_scenarios, number_of_years, cost_scale_factor)
 push!(solution_processors, _FP.sol_pm!) # To access pm after the optimization has ended.
 
 

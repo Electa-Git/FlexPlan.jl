@@ -22,7 +22,7 @@ function add_tasks!(tasks::DataFrame; kwargs...)
 end
 
 function load_case(case, case_settings)
-    data, model_type, ref_extensions, solution_processors, setting = load_test_case(case[:test_case]; number_of_hours=case[:number_of_hours], number_of_scenarios=case[:number_of_scenarios], number_of_years=case[:number_of_years], case_settings...)
+    data, model_type, ref_extensions, solution_processors, setting = eval(Symbol("load_$(case[:test_case])_defaultparams"))(; number_of_hours=case[:number_of_hours], number_of_scenarios=case[:number_of_scenarios], number_of_years=case[:number_of_years], case_settings...)
     return Dict(:data=>data, :model_type=>model_type, :ref_extensions=>ref_extensions, :solution_processors=>solution_processors, :setting=>setting)
 end
 

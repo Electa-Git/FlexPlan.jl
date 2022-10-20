@@ -6,8 +6,8 @@ import FlexPlan; const _FP = FlexPlan
 using Memento
 using Printf
 _LOGGER = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script, also used by included files.
+include("../io/load_case.jl")
 include("../benders/perf.jl")
-include("../benders/test_case.jl")
 include("../benders/cplex.jl")
 include("../benders/plots.jl")
 
@@ -20,7 +20,7 @@ settings = Dict(
         :repetitions => 3, # How many times to run each optimization
     ),
     :case => Dict{Symbol, Any}(
-        :scale_cost => 1e-9, # Cost scale factor (to test the numerical tractability of the problem)
+        :cost_scale_factor => 1e-6, # Cost scale factor (to test the numerical tractability of the problem)
     ),
     :optimization => Dict{Symbol,Any}(
         :obj_rtol => 1e-4, # Relative tolerance for stopping
