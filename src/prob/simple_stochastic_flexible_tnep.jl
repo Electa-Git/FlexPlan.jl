@@ -4,7 +4,7 @@ export simple_stoch_flex_tnep
 function simple_stoch_flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
     require_dim(data, :hour, :scenario, :year)
     return _PM.run_model(
-        data, model_type, optimizer, post_simple_stoch_flex_tnep;
+        data, model_type, optimizer, build_simple_stoch_flex_tnep;
         ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
         solution_processors = [_PM.sol_data_model!],
         multinetwork = true,
@@ -16,7 +16,7 @@ end
 function simple_stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
     require_dim(data, :hour, :scenario, :year)
     return _PM.run_model(
-        data, model_type, optimizer, post_simple_stoch_flex_tnep;
+        data, model_type, optimizer, build_simple_stoch_flex_tnep;
         ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
         solution_processors = [_PM.sol_data_model!],
         multinetwork = true,
@@ -31,7 +31,7 @@ function simple_stoch_flex_tnep(t_data::Dict{String,Any}, d_data::Vector{Dict{St
         require_dim(data, :hour, :scenario, :year)
     end
     return run_model(
-        t_data, d_data, t_model_type, d_model_type, optimizer, post_simple_stoch_flex_tnep;
+        t_data, d_data, t_model_type, d_model_type, optimizer, build_simple_stoch_flex_tnep;
         t_ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
         d_ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
         t_solution_processors = [_PM.sol_data_model!],
@@ -44,7 +44,7 @@ end
 # It is basically a declaration of variables and constraints of the problem
 
 "Builds transmission model."
-function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true, investment::Bool=true)
+function build_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true, investment::Bool=true)
     # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code
     for n in nw_ids(pm)
 
@@ -267,7 +267,7 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool
 end
 
 "Builds distribution model."
-function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, investment::Bool=true, intertemporal_constraints::Bool=true)
+function build_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, investment::Bool=true, intertemporal_constraints::Bool=true)
 
     for n in nw_ids(pm)
 
@@ -420,13 +420,13 @@ function post_simple_stoch_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=tr
 end
 
 "Builds combined transmission and distribution model."
-function post_simple_stoch_flex_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
+function build_simple_stoch_flex_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBFModel)
 
     # Transmission variables and constraints
-    post_simple_stoch_flex_tnep(t_pm; objective = false)
+    build_simple_stoch_flex_tnep(t_pm; objective = false)
 
     # Distribution variables and constraints
-    post_simple_stoch_flex_tnep(d_pm; objective = false)
+    build_simple_stoch_flex_tnep(d_pm; objective = false)
 
     # Variables related to the combined model
     # (No new variables are needed here.)
@@ -439,7 +439,7 @@ function post_simple_stoch_flex_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.Abs
 end
 
 "Main problem model in Benders decomposition, for transmission networks."
-function post_simple_stoch_flex_tnep_benders_main(pm::_PM.AbstractPowerModel)
+function build_simple_stoch_flex_tnep_benders_main(pm::_PM.AbstractPowerModel)
     for n in nw_ids(pm; hour=1, scenario=1)
         variable_ne_branch_indicator(pm; nw = n, relax=true)
         variable_ne_branch_investment(pm; nw = n)
@@ -476,7 +476,7 @@ function post_simple_stoch_flex_tnep_benders_main(pm::_PM.AbstractPowerModel)
 end
 
 "Main problem model in Benders decomposition, for distribution networks."
-function post_simple_stoch_flex_tnep_benders_main(pm::_PM.AbstractBFModel)
+function build_simple_stoch_flex_tnep_benders_main(pm::_PM.AbstractBFModel)
     for n in nw_ids(pm; hour=1, scenario=1)
         variable_ne_branch_indicator(pm; nw = n, relax=true)
         variable_ne_branch_investment(pm; nw = n)
@@ -509,6 +509,6 @@ function post_simple_stoch_flex_tnep_benders_main(pm::_PM.AbstractBFModel)
 end
 
 "Secondary problem model in Benders decomposition - suitable for both transmission and distribution."
-function post_simple_stoch_flex_tnep_benders_secondary(pm::_PM.AbstractPowerModel)
-    post_simple_stoch_flex_tnep(pm; investment=false)
+function build_simple_stoch_flex_tnep_benders_secondary(pm::_PM.AbstractPowerModel)
+    build_simple_stoch_flex_tnep(pm; investment=false)
 end

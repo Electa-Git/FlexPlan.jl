@@ -75,8 +75,8 @@ function optimize_case(case_data, task, settings)
             algo,
             case_data[:data], case_data[:model_type],
             optimizer_MILP, optimizer_LP,
-            _FP.post_simple_stoch_flex_tnep_benders_main,
-            _FP.post_simple_stoch_flex_tnep_benders_secondary;
+            _FP.build_simple_stoch_flex_tnep_benders_main,
+            _FP.build_simple_stoch_flex_tnep_benders_secondary;
             ref_extensions=case_data[:ref_extensions], solution_processors=case_data[:solution_processors], setting=case_data[:setting]
         )
         make_benders_plots(case_data[:data], result, opt_s[:out_dir]; display_plots=false)

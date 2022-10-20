@@ -105,8 +105,8 @@ result_benders = _FP.run_benders_decomposition(
     algo,
     data, model_type,
     optimizer_MILP, optimizer_LP,
-    _FP.post_simple_stoch_flex_tnep_benders_main,
-    _FP.post_simple_stoch_flex_tnep_benders_secondary;
+    _FP.build_simple_stoch_flex_tnep_benders_main,
+    _FP.build_simple_stoch_flex_tnep_benders_secondary;
     ref_extensions, solution_processors, setting
 )
 if result_benders["termination_status"] != _PM.OPTIMAL

@@ -27,7 +27,7 @@
             sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(data;
                 model_type = _FP.BFARadPowerModel,
                 optimizer = highs,
-                build_method = _FP.post_simple_stoch_flex_tnep,
+                build_method = _FP.build_simple_stoch_flex_tnep,
                 ref_extensions = d_ref_extensions,
                 solution_processors = d_solution_processors
             )
@@ -40,7 +40,7 @@
 
         @testset "run_td_decoupling" begin
             result = _FP.run_td_decoupling(
-                t_data, d_data, _PM.DCPPowerModel, _FP.BFARadPowerModel, highs, highs, _FP.post_simple_stoch_flex_tnep;
+                t_data, d_data, _PM.DCPPowerModel, _FP.BFARadPowerModel, highs, highs, _FP.build_simple_stoch_flex_tnep;
                 t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting
             )
             @test result["objective"] ≈ 2440.8 rtol=1e-3
