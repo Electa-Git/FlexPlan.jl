@@ -4,14 +4,14 @@
 
 ## Variables
 
-function variable_flexible_demand(pm::_PM.AbstractPowerModel; kwargs...)
+function variable_flexible_demand(pm::_PM.AbstractPowerModel; investment::Bool=true, kwargs...)
     variable_total_flex_demand(pm; kwargs...)
     variable_demand_reduction(pm; kwargs...)
     variable_demand_shifting_upwards(pm; kwargs...)
     variable_demand_shifting_downwards(pm; kwargs...)
     variable_demand_curtailment(pm; kwargs...)
     variable_flexible_demand_indicator(pm; kwargs..., relax=true)
-    variable_flexible_demand_investment(pm; kwargs...)
+    investment && variable_flexible_demand_investment(pm; kwargs...)
 end
 
 "Variable: whether flexible demand is enabled at a flex load point"

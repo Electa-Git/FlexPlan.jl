@@ -62,6 +62,17 @@ function load_case6(;
 end
 
 """
+    data, model_type, ref_extensions, solution_processors, setting = load_case6_defaultparams(<keyword arguments>)
+
+Load `case6` in `data` and use default values for the other returned values.
+
+See also: `load_case6`.
+"""
+function load_case6_defaultparams(; kwargs...)
+    load_case6(; kwargs...), load_params_defaults_transmission()...
+end
+
+"""
     load_case67(<keyword arguments>)
 
 Load `case67`, a 67-bus transmission network with data contributed by FlexPlan researchers.
@@ -117,6 +128,17 @@ function load_case67(;
     end
 
     return create_multi_year_network_data("case67", number_of_hours, number_of_scenarios, number_of_years; year_scale_factor, cost_scale_factor, init_data_extensions, sn_data_extensions, share_data)
+end
+
+"""
+    data, model_type, ref_extensions, solution_processors, setting = load_case67_defaultparams(<keyword arguments>)
+
+Load `case67` in `data` and use default values for the other returned values.
+
+See also: `load_case67`.
+"""
+function load_case67_defaultparams(; kwargs...)
+    load_case67(; kwargs...), load_params_defaults_transmission()...
 end
 
 """
@@ -194,6 +216,17 @@ function load_cigre_mv_eu(;
 end
 
 """
+    data, model_type, ref_extensions, solution_processors, setting = load_cigre_mv_eu_defaultparams(<keyword arguments>)
+
+Load `cigre_mv_eu` in `data` and use default values for the other returned values.
+
+See also: `load_cigre_mv_eu`.
+"""
+function load_cigre_mv_eu_defaultparams(; kwargs...)
+    load_cigre_mv_eu(; kwargs...), load_params_defaults_distribution()...
+end
+
+"""
     load_ieee_33(<keyword arguments>)
 
 Load an extended version of IEEE 33-bus network.
@@ -248,8 +281,35 @@ function load_ieee_33(;
     )
 end
 
+"""
+    data, model_type, ref_extensions, solution_processors, setting = load_ieee_33_defaultparams(<keyword arguments>)
+
+Load `ieee_33` in `data` and use default values for the other returned values.
+
+See also: `load_ieee_33`.
+"""
+function load_ieee_33_defaultparams(; kwargs...)
+    load_ieee_33(; kwargs...), load_params_defaults_distribution()...
+end
+
 
 ## Auxiliary functions
+
+function load_params_defaults_transmission()
+    model_type = _PM.DCPPowerModel
+    ref_extensions = Function[_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!]
+    solution_processors = Function[_PM.sol_data_model!]
+    setting = Dict("output" => Dict("branch_flows"=>true), "conv_losses_mp" => false)
+    return model_type, ref_extensions, solution_processors, setting
+end
+
+function load_params_defaults_distribution()
+    model_type = _FP.BFARadPowerModel
+    ref_extensions = Function[_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!]
+    solution_processors = Function[_PM.sol_data_model!]
+    setting = Dict{String,Any}()
+    return model_type, ref_extensions, solution_processors, setting
+end
 
 function data_scale_gen(gen_scale_factor)
     return data -> (

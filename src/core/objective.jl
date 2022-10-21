@@ -45,20 +45,24 @@ end
 
 ## Objective with candidate storage and flexible demand
 
-function objective_min_cost_flex(pm::_PM.AbstractPowerModel)
+function objective_min_cost_flex(pm::_PM.AbstractPowerModel; investment=true, operation=true)
     cost = JuMP.AffExpr(0.0)
     # Investment cost
-    for n in nw_ids(pm; hour=1)
-        JuMP.add_to_expression!(cost, calc_convdc_ne_cost(pm,n))
-        JuMP.add_to_expression!(cost, calc_ne_branch_cost(pm,n))
-        JuMP.add_to_expression!(cost, calc_branchdc_ne_cost(pm,n))
-        JuMP.add_to_expression!(cost, calc_ne_storage_cost(pm,n))
-        JuMP.add_to_expression!(cost, calc_load_investment_cost(pm,n))
+    if investment
+        for n in nw_ids(pm; hour=1)
+            JuMP.add_to_expression!(cost, calc_convdc_ne_cost(pm,n))
+            JuMP.add_to_expression!(cost, calc_ne_branch_cost(pm,n))
+            JuMP.add_to_expression!(cost, calc_branchdc_ne_cost(pm,n))
+            JuMP.add_to_expression!(cost, calc_ne_storage_cost(pm,n))
+            JuMP.add_to_expression!(cost, calc_load_investment_cost(pm,n))
+        end
     end
     # Operation cost
-    for n in nw_ids(pm)
-        JuMP.add_to_expression!(cost, calc_gen_cost(pm,n))
-        JuMP.add_to_expression!(cost, calc_load_operation_cost(pm,n))
+    if operation
+        for n in nw_ids(pm)
+            JuMP.add_to_expression!(cost, calc_gen_cost(pm,n))
+            JuMP.add_to_expression!(cost, calc_load_operation_cost(pm,n))
+        end
     end
     JuMP.@objective(pm.model, Min, cost)
 end
@@ -96,22 +100,26 @@ end
 
 ## Stochastic objective with candidate storage and flexible demand
 
-function objective_stoch_flex(pm::_PM.AbstractPowerModel)
+function objective_stoch_flex(pm::_PM.AbstractPowerModel; investment=true, operation=true)
     cost = JuMP.AffExpr(0.0)
     # Investment cost
-    for n in nw_ids(pm; hour=1, scenario=1)
-        JuMP.add_to_expression!(cost, calc_convdc_ne_cost(pm,n))
-        JuMP.add_to_expression!(cost, calc_ne_branch_cost(pm,n))
-        JuMP.add_to_expression!(cost, calc_branchdc_ne_cost(pm,n))
-        JuMP.add_to_expression!(cost, calc_ne_storage_cost(pm,n))
-        JuMP.add_to_expression!(cost, calc_load_investment_cost(pm,n))
+    if investment
+        for n in nw_ids(pm; hour=1, scenario=1)
+            JuMP.add_to_expression!(cost, calc_convdc_ne_cost(pm,n))
+            JuMP.add_to_expression!(cost, calc_ne_branch_cost(pm,n))
+            JuMP.add_to_expression!(cost, calc_branchdc_ne_cost(pm,n))
+            JuMP.add_to_expression!(cost, calc_ne_storage_cost(pm,n))
+            JuMP.add_to_expression!(cost, calc_load_investment_cost(pm,n))
+        end
     end
     # Operation cost
-    for (s, scenario) in dim_prop(pm, :scenario)
-        scenario_probability = scenario["probability"]
-        for n in nw_ids(pm; scenario=s)
-            JuMP.add_to_expression!(cost, scenario_probability, calc_gen_cost(pm,n))
-            JuMP.add_to_expression!(cost, scenario_probability, calc_load_operation_cost(pm,n))
+    if operation
+        for (s, scenario) in dim_prop(pm, :scenario)
+            scenario_probability = scenario["probability"]
+            for n in nw_ids(pm; scenario=s)
+                JuMP.add_to_expression!(cost, scenario_probability, calc_gen_cost(pm,n))
+                JuMP.add_to_expression!(cost, scenario_probability, calc_load_operation_cost(pm,n))
+            end
         end
     end
     JuMP.@objective(pm.model, Min, cost)

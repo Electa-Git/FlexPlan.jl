@@ -32,7 +32,7 @@ function variable_absorbed_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_
     report && _PM.sol_component_value(pm, nw, :ne_storage, :e_abs_ne, _PM.ids(pm, nw, :ne_storage_bounded_absorption), e_abs)
 end
 
-function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
+function variable_storage_power_ne(pm::_PM.AbstractPowerModel; investment::Bool=true, kwargs...)
     variable_storage_power_real_ne(pm; kwargs...)
     variable_storage_power_imaginary_ne(pm; kwargs...)
     variable_storage_power_control_imaginary_ne(pm; kwargs...)
@@ -41,7 +41,7 @@ function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
     variable_storage_charge_ne(pm; kwargs...)
     variable_storage_discharge_ne(pm; kwargs...)
     variable_storage_indicator(pm; kwargs..., relax=true)
-    variable_storage_investment(pm; kwargs...)
+    investment && variable_storage_investment(pm; kwargs...)
 end
 
 function variable_storage_power_real_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)

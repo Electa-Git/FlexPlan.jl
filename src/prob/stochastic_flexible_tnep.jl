@@ -44,7 +44,7 @@ end
 # It is basically a declaration of variables and constraints of the problem
 
 "Builds transmission model."
-function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
+function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true, investment::Bool=true)
     # VARIABLES: defined within PowerModels(ACDC) can directly be used, other variables need to be defined in the according sections of the code
     for n in nw_ids(pm)
 
@@ -73,7 +73,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         variable_absorbed_energy(pm; nw = n)
 
         # Candidate AC branch
-        variable_ne_branch_investment(pm; nw = n)
+        investment && variable_ne_branch_investment(pm; nw = n)
         variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
         _PM.variable_ne_branch_power(pm; nw = n)
         _PM.variable_ne_branch_voltage(pm; nw = n)
@@ -82,21 +82,21 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         _PMACDC.variable_dcgrid_voltage_magnitude_ne(pm; nw = n)
 
         # Candidate DC branch
-        variable_ne_branchdc_investment(pm; nw = n)
+        investment && variable_ne_branchdc_investment(pm; nw = n)
         variable_ne_branchdc_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PMACDC.variable_branch_ne().
         _PMACDC.variable_active_dcbranch_flow_ne(pm; nw = n)
         _PMACDC.variable_dcbranch_current_ne(pm; nw = n)
 
         # Candidate AC-DC converter
-        variable_dc_converter_ne(pm; nw = n) # FlexPlan version: replaces _PMACDC.variable_dc_converter_ne().
+        variable_dc_converter_ne(pm; nw = n, investment) # FlexPlan version: replaces _PMACDC.variable_dc_converter_ne().
         _PMACDC.variable_voltage_slack(pm; nw = n)
 
         # Candidate storage
-        variable_storage_power_ne(pm; nw = n)
+        variable_storage_power_ne(pm; nw = n, investment)
         variable_absorbed_energy_ne(pm; nw = n)
 
         # Flexible demand
-        variable_flexible_demand(pm; nw = n)
+        variable_flexible_demand(pm; nw = n, investment)
         variable_energy_not_consumed(pm; nw = n)
         variable_total_demand_shifting_upwards(pm; nw = n)
         variable_total_demand_shifting_downwards(pm; nw = n)
@@ -104,7 +104,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
 
     # OBJECTIVE: see objective.jl
     if objective
-        objective_stoch_flex(pm)
+        objective_stoch_flex(pm; investment, operation=true)
     end
 
     # CONSTRAINTS: defined within PowerModels(ACDC) can directly be used, other constraints need to be defined in the according sections of the code
@@ -261,7 +261,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         end
 
         # Constraints on investments
-        if is_first_id(pm, n, :hour, :scenario)
+        if investment && is_first_id(pm, n, :hour, :scenario)
             # Inter-year constraints
             prev_nws = prev_ids(pm, n, :year)
             for i in _PM.ids(pm, :ne_branch; nw = n)
@@ -284,7 +284,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
 end
 
 "Builds distribution model."
-function post_stoch_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemporal_constraints::Bool=true)
+function post_stoch_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, investment::Bool=true, intertemporal_constraints::Bool=true)
 
     for n in nw_ids(pm)
 
@@ -305,25 +305,25 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, int
         variable_absorbed_energy(pm; nw = n)
 
         # Candidate AC branch
-        variable_ne_branch_investment(pm; nw = n)
-        variable_ne_branch_indicator(pm; nw = n, relax=true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
+        investment && variable_ne_branch_investment(pm; nw = n)
+        variable_ne_branch_indicator(pm; nw = n, relax = true) # FlexPlan version: replaces _PM.variable_ne_branch_indicator().
         _PM.variable_ne_branch_power(pm; nw = n, bounded = false) # Bounds computed here would be too limiting in the case of ne_branches added in parallel
         variable_ne_branch_current(pm; nw = n)
         variable_oltc_ne_branch_transform(pm; nw = n)
 
         # Candidate storage
-        variable_storage_power_ne(pm; nw = n)
+        variable_storage_power_ne(pm; nw = n, investment)
         variable_absorbed_energy_ne(pm; nw = n)
 
         # Flexible demand
-        variable_flexible_demand(pm; nw = n)
+        variable_flexible_demand(pm; nw = n, investment)
         variable_energy_not_consumed(pm; nw = n)
         variable_total_demand_shifting_upwards(pm; nw = n)
         variable_total_demand_shifting_downwards(pm; nw = n)
     end
 
     if objective
-        objective_stoch_flex(pm)
+        objective_stoch_flex(pm; investment, operation=true)
     end
 
     for n in nw_ids(pm)
@@ -431,7 +431,7 @@ function post_stoch_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, int
         end
 
         # Constraints on investments
-        if is_first_id(pm, n, :hour, :scenario)
+        if investment && is_first_id(pm, n, :hour, :scenario)
             for i in _PM.ids(pm, n, :branch)
                 if !isempty(ne_branch_ids(pm, i; nw = n))
                     constraint_branch_complementarity(pm, i; nw = n)
@@ -470,5 +470,79 @@ function post_stoch_flex_tnep(t_pm::_PM.AbstractPowerModel, d_pm::_PM.AbstractBF
 
     # Objective function of the combined model
     objective_stoch_flex(t_pm, d_pm)
+end
 
+"Main problem model in Benders decomposition, for transmission networks."
+function post_stoch_flex_tnep_benders_main(pm::_PM.AbstractPowerModel)
+    for n in nw_ids(pm; hour=1, scenario=1)
+        variable_ne_branch_indicator(pm; nw = n, relax=true)
+        variable_ne_branch_investment(pm; nw = n)
+        variable_ne_branchdc_indicator(pm; nw = n, relax=true)
+        variable_ne_branchdc_investment(pm; nw = n)
+        variable_ne_converter_indicator(pm; nw = n, relax=true)
+        variable_ne_converter_investment(pm; nw = n)
+        variable_storage_indicator(pm; nw = n, relax=true)
+        variable_storage_investment(pm; nw = n)
+        variable_flexible_demand_indicator(pm; nw = n, relax=true)
+        variable_flexible_demand_investment(pm; nw = n)
+    end
+
+    objective_stoch_flex(pm; investment=true, operation=false)
+
+    for n in nw_ids(pm; hour=1, scenario=1)
+        prev_nws = prev_ids(pm, n, :year)
+        for i in _PM.ids(pm, :ne_branch; nw = n)
+            constraint_ne_branch_activation(pm, i, prev_nws, n)
+        end
+        for i in _PM.ids(pm, :branchdc_ne; nw = n)
+            constraint_ne_branchdc_activation(pm, i, prev_nws, n)
+        end
+        for i in _PM.ids(pm, :convdc_ne; nw = n)
+            constraint_ne_converter_activation(pm, i, prev_nws, n)
+        end
+        for i in _PM.ids(pm, :ne_storage; nw = n)
+            constraint_ne_storage_activation(pm, i, prev_nws, n)
+        end
+        for i in _PM.ids(pm, :flex_load; nw = n)
+            constraint_flexible_demand_activation(pm, i, prev_nws, n)
+        end
+    end
+end
+
+"Main problem model in Benders decomposition, for distribution networks."
+function post_stoch_flex_tnep_benders_main(pm::_PM.AbstractBFModel)
+    for n in nw_ids(pm; hour=1, scenario=1)
+        variable_ne_branch_indicator(pm; nw = n, relax=true)
+        variable_ne_branch_investment(pm; nw = n)
+        variable_storage_indicator(pm; nw = n, relax=true)
+        variable_storage_investment(pm; nw = n)
+        variable_flexible_demand_indicator(pm; nw = n, relax=true)
+        variable_flexible_demand_investment(pm; nw = n)
+    end
+
+    objective_stoch_flex(pm; investment=true, operation=false)
+
+    for n in nw_ids(pm; hour=1, scenario=1)
+        for i in _PM.ids(pm, n, :branch)
+            if !isempty(ne_branch_ids(pm, i; nw = n))
+                constraint_branch_complementarity(pm, i; nw = n) # Needed to avoid infeasibility in secondary problems
+            end
+        end
+
+        prev_nws = prev_ids(pm, n, :year)
+        for i in _PM.ids(pm, :ne_branch; nw = n)
+            constraint_ne_branch_activation(pm, i, prev_nws, n)
+        end
+        for i in _PM.ids(pm, :ne_storage; nw = n)
+            constraint_ne_storage_activation(pm, i, prev_nws, n)
+        end
+        for i in _PM.ids(pm, :flex_load; nw = n)
+            constraint_flexible_demand_activation(pm, i, prev_nws, n)
+        end
+    end
+end
+
+"Secondary problem model in Benders decomposition - suitable for both transmission and distribution."
+function post_stoch_flex_tnep_benders_secondary(pm::_PM.AbstractPowerModel)
+    post_stoch_flex_tnep(pm; investment=false)
 end
