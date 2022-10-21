@@ -1,237 +1,188 @@
-"Return some planning options for a dist network that also provide flexibility to transmission."
-function solve_td_decoupling_distribution(mn_data::Dict{String,Any}; optimizer, setting=Dict{String,Any}(), number_of_candidates)
-    _FP.require_dim(mn_data, :sub_nw)
-    if _FP.dim_length(mn_data, :sub_nw) > 1
-        Memento.error(_LOGGER, "A single distribution network is required ($(dim_length(mn_data, :sub_nw)) found)")
-    end
-    if number_of_candidates < 1
-        Memento.warn(_LOGGER, "The number of requested distribution network planning candidates must be positive: substituting $number_of_candidates with 1.")
-        number_of_candidates = 1
-    end
+"""
+    run_td_decoupling(t_data, d_data, t_model_type, d_model_type, t_optimizer, d_optimizer, build_method; <keyword_arguments>)
 
-    candidates = Dict{String,Any}()
-    add_dist_candidate!(candidates, min_investments(mn_data, optimizer, setting)...)
-    if number_of_candidates >= 2
-        add_dist_candidate!(candidates, max_power(mn_data, optimizer, setting)...)
-        add_dist_candidates_cost!(candidates, mn_data)
-        if number_of_candidates > 2
-            intermediate_costs = collect(range(candidates["min"]["cost"], candidates["max"]["cost"], length = number_of_candidates)[2:end-1])
-            for i in 1:number_of_candidates-2
-                add_dist_candidate!(candidates, intermediate_investment(mn_data, i, intermediate_costs[i], optimizer, setting)...)
+Solve the planning of a transmission and distribution (T&D) system by decoupling the grid levels.
+
+The T&D decoupling procedure is aimed at reducing computation time with respect to the
+combined T&D model by solving the transmission and distribution parts of the network
+separately.
+It consists of the following steps:
+1. compute a surrogate model of distribution networks;
+2. optimize planning of transmission network using surrogate distribution networks;
+3. fix power exchanges between T&D and optimize planning of distribution networks.
+The procedure introduces approximations, therefore the solution cost is higher than that of
+the combined T&D model.
+
+# Arguments
+
+- `t_data::Dict{String,Any}`: data dictionary for transmission network.
+- `d_data::Vector{Dict{String,Any}}`: vector of data dictionaries, one for each distribution
+  network. Each data dictionary must have a `t_bus` key indicating the transmission network
+  bus id to which the distribution network is to be connected.
+- `t_model_type::Type{<:PowerModels.AbstractPowerModel}`.
+- `d_model_type::Type{<:PowerModels.AbstractPowerModel}`.
+- `t_optimizer::Union{MathOptInterface.AbstractOptimizer,MathOptInterface.OptimizerWithAttributes}`:
+  optimizer for transmission network. It has to solve a MILP problem and can exploit
+  multi-threading.
+- `d_optimizer::Union{MathOptInterface.AbstractOptimizer,MathOptInterface.OptimizerWithAttributes}`:
+  optimizer for distribution networks. It has to solve 2 MILP and 4 LP problems per
+  distribution network; since multi-threading is used to run optimizations of different
+  distribution networks in parallel, it is better for this optimizer to be single-threaded.
+- `build_method::Function`.
+- `t_ref_extensions::Vector{<:Function} = Function[]`.
+- `d_ref_extensions::Vector{<:Function} = Function[]`.
+- `t_solution_processors::Vector{<:Function} = Function[]`.
+- `d_solution_processors::Vector{<:Function} = Function[]`.
+- `t_setting::Dict{String,<:Any} = Dict{String,Any}()`.
+- `d_setting::Dict{String,<:Any} = Dict{String,Any}()`.
+- `direct_model = false`: whether to construct JuMP models using `JuMP.direct_model()`
+  instead of `JuMP.Model()`. Note that `JuMP.direct_model` is only supported by some
+  solvers.
+"""
+function run_td_decoupling(
+        t_data::Dict{String,Any},
+        d_data::Vector{Dict{String,Any}},
+        t_model_type::Type{<:_PM.AbstractPowerModel},
+        d_model_type::Type{<:_PM.AbstractPowerModel},
+        t_optimizer::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
+        d_optimizer::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
+        build_method::Function;
+        t_ref_extensions::Vector{<:Function} = Function[],
+        d_ref_extensions::Vector{<:Function} = Function[],
+        t_solution_processors::Vector{<:Function} = Function[],
+        d_solution_processors::Vector{<:Function} = Function[],
+        t_setting::Dict{String,<:Any} = Dict{String,Any}(),
+        d_setting::Dict{String,<:Any} = Dict{String,Any}(),
+        direct_model = false,
+    )
+
+    start_time = time()
+    nw_id_set = Set(id for (id,nw) in t_data["nw"])
+    d_data = deepcopy(d_data)
+    number_of_distribution_networks = length(d_data)
+
+    # Data preparation and checks
+    for s in 1:number_of_distribution_networks
+        data = d_data[s]
+        d_gen_id = _FP.get_reference_gen(data)
+        _FP.add_dimension!(data, :sub_nw, Dict(1 => Dict{String,Any}("t_bus"=>data["t_bus"], "d_gen"=>d_gen_id)))
+        delete!(data, "t_bus")
+
+        # Check that transmission and distribution network ids are the same
+        if Set(id for (id,nw) in data["nw"]) ≠ nw_id_set
+            Memento.error(_LOGGER, "Networks in transmission and distribution data dictionaries must have the same IDs.")
+        end
+
+        # Warn if cost for energy exchanged between transmission and distribution network is zero.
+        for (n,nw) in data["nw"]
+            d_gen = nw["gen"]["$d_gen_id"]
+            if d_gen["ncost"] < 2 || d_gen["cost"][end-1] ≤ 0.0
+                Memento.warn(_LOGGER, "Nonpositive cost detected for energy exchanged between transmission and distribution network $s. This may result in excessive usage of storage devices.")
+                break
+            end
+        end
+
+        # Notify if any storage devices have zero self-discharge rate.
+        raise_warning = false
+        for n in _FP.nw_ids(data; hour=1, scenario=1)
+            for (st,storage) in get(data["nw"]["$n"], "storage", Dict())
+                if storage["self_discharge_rate"] == 0.0
+                    raise_warning = true
+                    break
+                end
+            end
+            for (st,storage) in get(data["nw"]["$n"], "ne_storage", Dict())
+                if storage["self_discharge_rate"] == 0.0
+                    raise_warning = true
+                    break
+                end
+            end
+            if raise_warning
+                Memento.notice(_LOGGER, "Zero self-discharge rate detected for a storage device in distribution network $s. The model may have multiple optimal solutions.")
+                break
             end
         end
     end
-    add_dist_candidates_cost!(candidates, mn_data)
-    return candidates
-end
 
-"Run a model with usual parameters and model type; error if not solved to optimality."
-function run_td_decoupling_model(data::Dict{String,Any}, build_function::Function, optimizer; kwargs...)
-    Memento.info(_LOGGER, "running $(String(nameof(build_function)))...")
-    result = _PM.run_model(
-        data, _FP.BFARadPowerModel, optimizer, build_function;
-        ref_extensions = [_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!],
-        solution_processors = [_PM.sol_data_model!, _FP.sol_td_coupling!],
-        multinetwork = true,
-        kwargs...
-    )
-    Memento.info(_LOGGER, "solved $(String(nameof(build_function))) in $(round(Int,result["solve_time"])) seconds")
-    if result["termination_status"] ∉ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED)
-        Memento.error(_LOGGER, "Unable to solve $(String(nameof(build_function))) ($(result["optimizer"]) termination status: $(result["termination_status"]))")
+    surrogate_distribution = Vector{Dict{String,Any}}(undef, number_of_distribution_networks)
+    surrogate_components = Vector{Dict{String,Any}}(undef, number_of_distribution_networks)
+    exchanged_power = Vector{Dict{String,Float64}}(undef, number_of_distribution_networks)
+    d_result = Vector{Dict{String,Any}}(undef, number_of_distribution_networks)
+
+    # Compute surrogate models of distribution networks and attach them to transmission network
+    start_time_surr = time()
+    Threads.@threads for s in 1:number_of_distribution_networks
+        Memento.trace(_LOGGER, "computing surrogate model $s of $number_of_distribution_networks...")
+        sol_up, sol_base, sol_down = probe_distribution_flexibility!(d_data[s]; model_type=d_model_type, optimizer=d_optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
+        surrogate_distribution[s] = calc_surrogate_model(d_data[s], sol_up, sol_base, sol_down)
     end
+    for s in 1:number_of_distribution_networks
+        surrogate_components[s] = attach_surrogate_distribution!(t_data, surrogate_distribution[s])
+    end
+    Memento.debug(_LOGGER, "surrogate models of $number_of_distribution_networks distribution networks computed in $(round(time()-start_time_surr; sigdigits=3)) seconds")
+
+    # Compute planning of transmission network
+    start_time_t = time()
+    t_result = run_td_decoupling_model(t_data; model_type=t_model_type, optimizer=t_optimizer, build_method, ref_extensions=t_ref_extensions, solution_processors=t_solution_processors, setting=t_setting, return_solution=false, direct_model)
+    t_sol = t_result["solution"]
+    t_objective = calc_t_objective(t_result, t_data, surrogate_components)
+    for s in 1:number_of_distribution_networks
+        exchanged_power[s] = calc_exchanged_power(surrogate_components[s], t_sol)
+        remove_attached_distribution!(t_sol, t_data, surrogate_components[s])
+    end
+    Memento.debug(_LOGGER, "planning of transmission network computed in $(round(time()-start_time_t; sigdigits=3)) seconds")
+
+    # Compute planning of distribution networks
+    start_time_d = time()
+    Threads.@threads for s in 1:number_of_distribution_networks
+        Memento.trace(_LOGGER, "planning distribution network $s of $number_of_distribution_networks...")
+        apply_td_coupling_power_active_with_zero_cost!(d_data[s], t_data, exchanged_power[s])
+        d_result[s] = run_td_decoupling_model(d_data[s]; model_type=d_model_type, optimizer=d_optimizer, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, return_solution=false, direct_model)
+    end
+    d_objective = [d_res["objective"] for d_res in d_result]
+    Memento.debug(_LOGGER, "planning of $number_of_distribution_networks distribution networks computed in $(round(time()-start_time_d; sigdigits=3)) seconds")
+
+    result = Dict{String,Any}(
+        "t_solution" => t_sol,
+        "d_solution" => [d_res["solution"] for d_res in d_result],
+        "t_objective" => t_objective,
+        "d_objective" => d_objective,
+        "objective" => t_objective + sum(d_objective; init=0.0),
+        "solve_time" => time()-start_time
+    )
+
     return result
 end
 
-
-
-## Distribution candidates
-
-
-function min_investments(mn_data, optimizer, setting)
-    min_base = run_td_decoupling_model(mn_data, _FP.post_flex_tnep, optimizer; setting)
-
-    mn_data_current_investments = deepcopy(mn_data)
-    add_ne_branch_indicator!(mn_data_current_investments, min_base)
-    add_ne_storage_indicator!(mn_data_current_investments, min_base)
-
-    min_import = run_td_decoupling_model(mn_data_current_investments, build_max_import_with_current_investments, optimizer; setting)
-    min_export = run_td_decoupling_model(mn_data_current_investments, build_max_export_with_current_investments, optimizer; setting)
-
-    return ("min", min_import, min_export, min_base)
-end
-
-function max_power(mn_data, optimizer, setting)
-    max_import_1 = run_td_decoupling_model(mn_data, build_max_import, optimizer; setting)
-    mn_data_max_import_2 = deepcopy(mn_data)
-    add_td_coupling_power_active!(mn_data_max_import_2, max_import_1)
-
-    max_export_1 = run_td_decoupling_model(mn_data, build_max_export, optimizer; setting)
-    mn_data_max_export_2 = deepcopy(mn_data)
-    add_td_coupling_power_active!(mn_data_max_export_2, max_export_1)
-    _FP.shift_nws!(mn_data_max_export_2)
-
-    mn_data_max_pair = _FP.merge_multinetworks!(mn_data_max_import_2, mn_data_max_export_2, :sub_nw)
-    max_pair = run_td_decoupling_model(mn_data_max_pair, build_min_cost_with_same_investments_in_all_sub_nws, optimizer; setting)
-    max_import, max_export = split_result(max_pair)
-
-    mn_data_max_base = deepcopy(mn_data)
-    add_ne_branch_indicator!(mn_data_max_base, max_import) # Same investments as max_export
-    add_ne_storage_indicator!(mn_data_max_base, max_import) # Same investments as max_export
-    max_base = run_td_decoupling_model(mn_data_max_base, build_min_cost_with_fixed_investments, optimizer; setting)
-
-    return ("max", max_import, max_export, max_base)
-end
-
-function intermediate_investment(mn_data, i, intermediate_cost, optimizer, setting; kwargs...)
-    mn_data_1 = deepcopy(mn_data)
-    mn_data_2 = deepcopy(mn_data)
-    _FP.shift_nws!(mn_data_2)
-    mn_data_pair = _FP.merge_multinetworks!(mn_data_1, mn_data_2, :sub_nw)
-    add_max_cost!(mn_data_pair, intermediate_cost)
-    pair_1 = run_td_decoupling_model(mn_data_pair, build_max_flex_band_with_bounded_cost, optimizer; setting, kwargs...)
-
-    add_td_coupling_power_active!(mn_data_pair, pair_1)
-    pair_2 = run_td_decoupling_model(mn_data_pair, build_min_cost_with_same_investments_in_all_sub_nws, optimizer; setting, kwargs...)
-    i_import, i_export = split_result(pair_2)
-
-    mn_data_base = deepcopy(mn_data)
-    add_ne_branch_indicator!(mn_data_base, i_import) # Same investments as i_export
-    add_ne_storage_indicator!(mn_data_base, i_import) # Same investments as i_export
-    i_base = run_td_decoupling_model(mn_data_base, build_min_cost_with_fixed_investments, optimizer; setting, kwargs...)
-
-    return ("intermediate_$i", i_import, i_export, i_base)
-end
-
-
-
-## Results
-
-"""
-Generate two results from one result of a run command, by assigning half of nws to each result
-
-Nw ids of the original result are ordered and splitted; the first half is used in both the generated
-results. Other fields are copied.
-"""
-function split_result(res::Dict{String,Any})
-    res_1 = Dict{String,Any}()
-    res_2 = Dict{String,Any}()
-    for (k_res,v_res) in res
-        if k_res == "solution"
-            res_1["solution"] = Dict{String,Any}()
-            res_2["solution"] = Dict{String,Any}()
-            for (k_sol, v_sol) in v_res
-                if k_sol == "nw"
-                    nw_ids = string.(sort(parse.(Int,keys(v_sol))))
-                    if isodd(length(nw_ids))
-                        Memento.error(_LOGGER, "Attempting to split a result having an odd number of nws.")
-                    else
-                        nn = length(nw_ids)
-                        nw_ids_1 = nw_ids[1:nn÷2]
-                        nw_ids_2 = nw_ids[nn÷2+1:nn]
-                        res_1["solution"]["nw"] = Dict{String,Any}()
-                        res_2["solution"]["nw"] = Dict{String,Any}()
-                        for pos in 1:nn÷2
-                            res_1["solution"]["nw"][nw_ids_1[pos]] = v_sol[nw_ids_1[pos]]
-                            res_2["solution"]["nw"][nw_ids_1[pos]] = v_sol[nw_ids_2[pos]] # In res_2 the same nw_ids of res_1 are used
-                        end
-                    end
-                else
-                    res_1["solution"][k_sol] = v_sol
-                    res_2["solution"][k_sol] = deepcopy(v_sol)
-                end
-            end
-        else
-            res_1[k_res] = v_res
-            res_2[k_res] = deepcopy(v_res)
-        end
+"Run a model, ensure it is solved to optimality (error otherwise), return solution."
+function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optimizer, build_method::Function, ref_extensions, solution_processors, setting, relax_integrality=false, return_solution::Bool=true, direct_model=false, kwargs...)
+    start_time = time()
+    Memento.trace(_LOGGER, "┌ running $(String(nameof(build_method)))...")
+    if direct_model
+        result = _PM.run_model(
+            data, model_type, nothing, build_method;
+            ref_extensions,
+            solution_processors,
+            multinetwork = true,
+            relax_integrality,
+            setting,
+            jump_model = JuMP.direct_model(optimizer),
+            kwargs...
+        )
+    else
+        result = _PM.run_model(
+            data, model_type, optimizer, build_method;
+            ref_extensions,
+            solution_processors,
+            multinetwork = true,
+            relax_integrality,
+            setting,
+            kwargs...
+        )
     end
-    return res_1, res_2
-end
-
-
-
-## Distribution candidates handling
-
-function add_dist_candidate!(dist_candidates::Dict{String,Any}, name::String, r_import::Dict{String,Any}, r_export::Dict{String,Any}, r_base::Dict{String,Any} = Dict{String,Any}())
-
-    c = dist_candidates[name] = Dict{String,Any}()
-
-    result = c["result"] = Dict{String,Any}()
-    result["export"] = r_export
-    result["import"] = r_import
-    if !isempty(r_base)
-        result["base"] = r_base
+    Memento.trace(_LOGGER, "└ solved in $(round(time()-start_time;sigdigits=3)) seconds (of which $(round(result["solve_time"];sigdigits=3)) seconds for solver)")
+    if result["termination_status"] ∉ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED)
+        Memento.error(_LOGGER, "Unable to solve $(String(nameof(build_method))) ($(result["optimizer"]) termination status: $(result["termination_status"]))")
     end
-
-    # Results to compare with: r_export is used at first, then r_import and possibly r_base are compared with r_export.
-    ctrl_res = isempty(r_base) ? (r_import,) : (r_import, r_base)
-
-    # Store ordered ids of components (nw, branch, etc.) and check that they are the same in each result.
-    ids = c["ids"] = Dict{String,Any}()
-    ids["nw"] = keys(r_export["solution"]["nw"])
-    for res in ctrl_res
-        if ids["nw"] ≠ keys(res["solution"]["nw"])
-            Memento.error(_LOGGER, "Results of flex candidate \"$name\" have different nw ids.")
-        end
-    end
-    ids["nw"] = string.(sort(parse.(Int, ids["nw"])))
-    first_period = ids["nw"][1]
-    for comp in ("branch", "ne_branch", "storage", "ne_storage")
-        if haskey(r_export["solution"]["nw"][first_period], comp)
-            comp_keys = keys(r_export["solution"]["nw"][first_period][comp])
-            for res in ctrl_res
-                if comp_keys ≠ keys(res["solution"]["nw"][first_period][comp])
-                    Memento.error(_LOGGER, "Results of flex candidate \"$name\" have different $comp ids.")
-                end
-            end
-            ids[comp] = string.(sort(parse.(Int, comp_keys)))
-        else
-            ids[comp] = Vector{String}()
-        end
-    end
-
-    # Check that investment decisions are the same in each result (only first period is used);
-    # create a component key only if component is present in results.
-    investment = c["investment"] = Dict{String,Any}()
-    function _isbuilt(result, component, built_keyword)
-        Bool.(round.(result["solution"]["nw"][first_period][component][k][built_keyword] for k in ids[component]))
-    end
-    for (comp, built_keyword) in ("ne_branch"=>"built", "ne_storage"=>"isbuilt")
-        if !isempty(ids[comp])
-            built = _isbuilt(r_export, comp, built_keyword)
-            for res in ctrl_res
-                if built ≠ _isbuilt(res, comp, built_keyword)
-                    Memento.error(_LOGGER, "Results of flex candidate \"$name\" have different $comp investment decisions.")
-                end
-            end
-            investment[comp] = Dict{String,Any}(ids[comp] .=> built)
-        end
-    end
-end
-
-function add_dist_candidates_cost!(dist_candidates::Dict{String,Any}, mn_data::Dict{String,Any})
-
-    # Store investment cost of each network component regardless of whether it is built or not (it depends on dist candidate)
-    cost_lookup = Dict{Int,Any}()
-    for n in _FP.nw_ids(mn_data; hour=1, scenario=1)
-        sn_data = mn_data["nw"]["$n"]
-        cl_n = cost_lookup[n] = Dict{String,Any}()
-        if haskey(sn_data, "ne_branch")
-            cl_n_comp = cl_n["ne_branch"] = Dict{String,Float64}()
-            for (i,comp) in sn_data["ne_branch"]
-                cl_n_comp[i] = comp["construction_cost"]
-            end
-        end
-        if haskey(sn_data, "ne_storage")
-            cl_n_comp = cl_n["ne_storage"] = Dict{String,Float64}()
-            for (i,comp) in sn_data["ne_storage"]
-                cl_n_comp[i] = comp["eq_cost"] + comp["inst_cost"]
-            end
-        end
-    end
-
-    # Compute the cost of each dist candidate
-    for candidate in values(dist_candidates)
-        candidate["cost"] = sum( sum( sum( cost_lookup[n][comp_name][id] * built for (id, built) in comp_inv) for (comp_name, comp_inv) in candidate["investment"]) for n in _FP.nw_ids(mn_data; hour=1, scenario=1))
-    end
+    return return_solution ? result["solution"] : result
 end

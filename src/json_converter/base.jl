@@ -1,34 +1,56 @@
+const dict_candidate_lookup = Dict{String,String}(
+    "acBuses"       => "acBus",
+    "dcBuses"       => "dcBus",
+    "acBranches"    => "acBranch",
+    "dcBranches"    => "dcBranch",
+    "converters"    => "converter",
+    "transformers"  => "acBranch",
+    "storage"       => "storage",
+    "generators"    => "generator",
+    "flexibleLoads" => "load",
+    "psts"          => "pst",
+)
+
+function cand_name_from_dict(dict::String)
+    dict_candidate_lookup[dict]
+end
+
 """
     convert_JSON(file; <keyword arguments>)
     convert_JSON(dict; <keyword arguments>)
 
 Convert a JSON `file` or a `dict` conforming to the FlexPlan WP3 API into a FlexPlan.jl dict.
 
-Costs are scaled with the assumption that every representative year represents 10 years.
-
 # Arguments
+- `oltc::Bool=true`: in distribution networks, whether to add OLTCs with ±10% voltage
+  regulation to existing and candidate transformers.
+- `scale_gen::Real=1.0`: scale factor of all generators.
+- `scale_load::Real=1.0`: scale factor of loads.
 - `number_of_hours::Union{Int,Nothing}=nothing`: parse only the first hours of the
   file/dict.
 - `number_of_scenarios::Union{Int,Nothing}=nothing`: parse only the first scenarios of the
   file/dict.
 - `number_of_years::Union{Int,Nothing}=nothing`: parse only the first years of the
   file/dict.
-- `cost_scale_factor::Float64=1.0`: scale factor for all costs.
+- `cost_scale_factor::Real=1.0`: scale factor for all costs.
+- `year_scale_factor::Union{Real,Nothing}=nothing`: how many years a representative year
+  should represent (default: read from JSON).
 - `init_data_extensions::Vector{<:Function}=Function[]`: functions to be applied to the
   target dict after its initialization. They must have exactly one argument (the target
   dict) and can modify it; the return value is unused.
 - `sn_data_extensions::Vector{<:Function}=Function[]`: functions to be applied to the
   single-network dictionaries containing data for each single year, just before
-  `_FP.make_multinetwork` is called. They must have exactly one argument (the single-network
-  dict) and can modify it; the return value is unused.
+  `_FP.scale_data!` is called. They must have exactly one argument (the single-network dict)
+  and can modify it; the return value is unused.
+- `share_data::Bool=true`: whether constant data is shared across networks (faster) or
+  duplicated (uses more memory, but ensures networks are independent; useful if further
+  transformations will be applied).
 
 # Extended help
 Features of FlexPlan WP3 API not supported in FlexPlan.jl:
 - scenario probabilities depending on year (only constant probabilities are allowed);
 - number of hours depending on scenario (all scenarios must have the same number of hours);
-- combined transmission and distribution networks;
 - PSTs;
-- curtailment of renewable generators;
 - `gridModelInputFile.converters.ratedActivePowerDC`;
 - `gridModelInputFile.storage.minEnergy`;
 - `gridModelInputFile.storage.maxAbsRamp`;
@@ -44,12 +66,17 @@ function convert_JSON(file::String; kwargs...)
 end
 
 function convert_JSON(source::AbstractDict;
+        oltc::Bool = true,
+        scale_gen::Real = 1.0,
+        scale_load::Real = 1.0,
         number_of_hours::Union{Int,Nothing} = nothing,
         number_of_scenarios::Union{Int,Nothing} = nothing,
         number_of_years::Union{Int,Nothing} = nothing,
-        cost_scale_factor::Float64 = 1.0,
+        cost_scale_factor::Real = 1.0,
+        year_scale_factor::Union{Real,Nothing} = nothing,
         init_data_extensions::Vector{<:Function} = Function[],
         sn_data_extensions::Vector{<:Function} = Function[],
+        share_data::Bool = true,
     )
 
     # Define target dict
@@ -93,7 +120,13 @@ function convert_JSON(source::AbstractDict;
     elseif number_of_years > length(source["genericParameters"]["years"])
         Memento.error(_LOGGER, "$number_of_years years requested, but only " * string(length(source["genericParameters"]["years"])) * " found in input dict.")
     end
-    year_scale_factor = 10 # Assumption: every representative year represents 10 years
+    if isnothing(year_scale_factor)
+        if haskey(source["genericParameters"], "nbRepresentedYears")
+            year_scale_factor = source["genericParameters"]["nbRepresentedYears"]
+        else
+            Memento.error(_LOGGER, "At least one of JSON attribute `genericParameters.nbRepresentedYears` and function keyword argument `year_scale_factor` must be specified.")
+        end
+    end
     _FP.add_dimension!(target, :year, number_of_years; metadata = Dict{String,Any}("scale_factor"=>year_scale_factor))
 
     # Generate ID lookup dict
@@ -143,8 +176,7 @@ function convert_JSON(source::AbstractDict;
     # Build data year by year
 
     for y in 1:number_of_years
-        sn_data = haskey(source, "candidatesInputFile") ? nw(source, lookup, cand_availability, y) : nw(source, lookup, y)
-        _FP.scale_data!(sn_data; year_idx=y, number_of_years, year_scale_factor, cost_scale_factor)
+        sn_data = haskey(source, "candidatesInputFile") ? nw(source, lookup, cand_availability, y; oltc, scale_gen) : nw(source, lookup, y; oltc, scale_gen)
         sn_data["dim"] = target["dim"]
 
         # Apply single network data extensions
@@ -152,8 +184,9 @@ function convert_JSON(source::AbstractDict;
             f!(sn_data)
         end
 
-        time_series = make_time_series(source, lookup, y, sn_data; number_of_hours, number_of_scenarios)
-        year_data = _FP.make_multinetwork(sn_data, time_series; number_of_nws=number_of_hours*number_of_scenarios, nw_id_offset=number_of_hours*number_of_scenarios*(y-1))
+        _FP.scale_data!(sn_data; year_idx=y, cost_scale_factor)
+        time_series = make_time_series(source, lookup, y, sn_data; number_of_hours, number_of_scenarios, scale_load)
+        year_data = _FP.make_multinetwork(sn_data, time_series; number_of_nws=number_of_hours*number_of_scenarios, nw_id_offset=number_of_hours*number_of_scenarios*(y-1), share_data)
         add_singular_data!(year_data, source, lookup, y)
         _FP.import_nws!(target, year_data)
     end

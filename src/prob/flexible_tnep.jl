@@ -5,7 +5,8 @@ function flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs..
     require_dim(data, :hour, :year)
     return _PM.run_model(
         data, model_type, optimizer, post_flex_tnep;
-        ref_extensions = [ref_add_gen!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!],
+        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
+        solution_processors = [_PM.sol_data_model!],
         multinetwork = true,
         kwargs...
     )
@@ -16,7 +17,7 @@ function flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFMode
     require_dim(data, :hour, :year)
     return _PM.run_model(
         data, model_type, optimizer, post_flex_tnep;
-        ref_extensions = [ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!],
+        ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
         solution_processors = [_PM.sol_data_model!],
         multinetwork = true,
         kwargs...
@@ -24,13 +25,15 @@ function flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFMode
 end
 
 "TNEP with flexible loads and storage, combines transmission and distribution networks"
-function flex_tnep(t_data::Dict{String,Any}, d_data::Dict{String,Any}, t_model_type::Type, d_model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
+function flex_tnep(t_data::Dict{String,Any}, d_data::Vector{Dict{String,Any}}, t_model_type::Type{<:_PM.AbstractPowerModel}, d_model_type::Type{<:_PM.AbstractPowerModel}, optimizer; kwargs...)
     require_dim(t_data, :hour, :year)
-    require_dim(d_data, :hour, :year)
+    for data in d_data
+        require_dim(data, :hour, :year)
+    end
     return run_model(
         t_data, d_data, t_model_type, d_model_type, optimizer, post_flex_tnep;
-        t_ref_extensions = [ref_add_gen!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
-        d_ref_extensions = [ref_add_gen!, _PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
+        t_ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
+        d_ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
         t_solution_processors = [_PM.sol_data_model!],
         d_solution_processors = [_PM.sol_data_model!, sol_td_coupling!],
         kwargs...
@@ -328,7 +331,7 @@ function post_flex_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertemp
         constraint_ne_model_current(pm; nw = n)
 
         if haskey(dim_prop(pm), :sub_nw)
-            constraint_td_coupling_power_reactive_bounds(pm; nw = n)
+            constraint_td_coupling_power_reactive_bounds(pm, get(pm.setting, "qs_ratio_bound", 0.48); nw = n)
         end
 
         for i in _PM.ids(pm, n, :ref_buses)

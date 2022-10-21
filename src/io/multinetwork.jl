@@ -1,5 +1,5 @@
 """
-    make_multinetwork(sn_data, time_series; global_keys, number_of_nws, nw_id_offset)
+    make_multinetwork(sn_data, time_series; <keyword arguments>)
 
 Generate a multinetwork data structure from a single network and a time series.
 
@@ -12,6 +12,9 @@ Generate a multinetwork data structure from a single network and a time series.
   default: read from `dim`.
 - `nw_id_offset`: optional value to be added to `time_series` ids to shift `nw` ids in
   multinetwork data structure; default: read from `dim`.
+- `share_data`: whether constant data is shared across networks (default, faster) or
+  duplicated (uses more memory, but ensures networks are independent; useful if further
+  transformations will be applied).
 - `check_dim`: whether to check for `dim` in `sn_data`; default: `true`.
 """
 function make_multinetwork(
@@ -20,6 +23,7 @@ function make_multinetwork(
         global_keys = ["dim","multinetwork","name","per_unit","source_type","source_version"],
         number_of_nws::Int = length(dim(sn_data)[:li]),
         nw_id_offset::Int = dim(sn_data)[:offset],
+        share_data::Bool = true,
         check_dim::Bool = true
     )
 
@@ -32,7 +36,7 @@ function make_multinetwork(
 
     mn_data = Dict{String,Any}("nw"=>Dict{String,Any}())
     _add_mn_global_values!(mn_data, sn_data, global_keys)
-    _add_time_series!(mn_data, sn_data, global_keys, time_series, number_of_nws, nw_id_offset)
+    _add_time_series!(mn_data, sn_data, global_keys, time_series, number_of_nws, nw_id_offset; share_data)
 
     return mn_data
 end
@@ -220,23 +224,24 @@ function _make_template_nw(sn_data, global_keys)
 end
 
 # Build multinetwork data structure: for each network, replicate the template and replace with data from time_series
-function _add_time_series!(mn_data, sn_data, global_keys, time_series, number_of_nws, offset)
+function _add_time_series!(mn_data, sn_data, global_keys, time_series, number_of_nws, offset; share_data)
     template_nw = _make_template_nw(sn_data, global_keys)
     for time_series_idx in 1:number_of_nws
         n = time_series_idx + offset
-        mn_data["nw"]["$n"] = _build_nw(template_nw, time_series, time_series_idx)
+        mn_data["nw"]["$n"] = _build_nw(template_nw, time_series, time_series_idx; share_data)
     end
 end
 
-# Build the nw by shallow-copying the template and substituting data from time_series only if is different.
-function _build_nw(template_nw, time_series, idx)
-    nw = copy(template_nw)
+# Build the nw by copying the template and substituting data from time_series.
+function _build_nw(template_nw, time_series, idx; share_data)
+    copy_function = share_data ? copy : deepcopy
+    nw = copy_function(template_nw)
     for (key, element) in time_series
         if haskey(nw, key)
-            nw[key] = copy(template_nw[key])
+            nw[key] = copy_function(template_nw[key])
             for (l, element) in time_series[key]
                 if haskey(nw[key], l)
-                    nw[key][l] = copy(template_nw[key][l])
+                    nw[key][l] = copy_function(template_nw[key][l])
                     for (m, property) in time_series[key][l]
                         nw[key][l][m] = property[idx]
                     end

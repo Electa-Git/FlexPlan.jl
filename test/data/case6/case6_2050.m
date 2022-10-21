@@ -6,8 +6,9 @@
 function mpc = case6
 mpc.version = '2';
 mpc.baseMVA = 100.0;
+mpc.time_elapsed = 1.0;
 
-%% bus data
+%% buses
 % bus_i type   pd  qd   gs   bs bus_area     vm      va base_kv zone  vmax  vmin
 mpc.bus = [
       1    3   96  16  0.0  0.0        1  1.100   -0.00   240.0    1  1.05  0.95;
@@ -18,25 +19,19 @@ mpc.bus = [
       6    2    0   0  0.0  0.0        1  0.900  -17.27   240.0    1  1.05  0.95;
 ];
 
-%% generator data
-% gen_bus     pg    qg   qmax   qmin     vg  mBase gen_status   pmax pmin  pc1  pc2 qc1min qc1max qc2min qc2max ramp_agc ramp_10 ramp_30 ramp_q  apf
+%% dispatchable generators
+% gen_bus     pg    qg   qmax   qmin     vg  mBase gen_status   pmax pmin
 mpc.gen = [
-        1  148.0  54.0   48.0  -10.0  1.1    100.0          1  150.0  0.0  0.0  0.0    0.0    0.0    0.0    0.0      0.0     0.0     0.0    0.0  0.0;
-        3  170.0  -8.0  101.0  -10.0  0.9    100.0          1  180.0  0.0  0.0  0.0    0.0    0.0    0.0    0.0      0.0     0.0     0.0    0.0  0.0;
-        3  170.0  -8.0  101.0  -10.0  0.9    100.0          1  300.0  0.0  0.0  0.0    0.0    0.0    0.0    0.0      0.0     0.0     0.0    0.0  0.0;
-        6    0.0  -4.0  183.0  -10.0  0.9    100.0          1  120.0  0.0  0.0  0.0    0.0    0.0    0.0    0.0      0.0     0.0     0.0    0.0  0.0;
-        6    0.0  -4.0  183.0  -10.0  0.9    100.0          1  400.0  0.0  0.0  0.0    0.0    0.0    0.0    0.0      0.0     0.0     0.0    0.0  0.0;
-        6    0.0  -4.0  183.0  -10.0  0.9    100.0          1  400.0  0.0  0.0  0.0    0.0    0.0    0.0    0.0      0.0     0.0     0.0    0.0  0.0;
+        1  148.0  54.0   48.0  -10.0  1.1    100.0          1  150.0  0.0;
+        3  170.0  -8.0  101.0  -10.0  0.9    100.0          1  180.0  0.0;
+        6    0.0  -4.0  183.0  -10.0  0.9    100.0          1  120.0  0.0;
 ];
 
 %column_names% emission_factor
 mpc.gen_extra = [
                            0.1;
                            0.1;
-                           0.0;
                            0.1;
-                           0.0;
-                           0.0;
 ]
 
 % https://en.wikipedia.org/wiki/Cost_of_electricity_by_source
@@ -49,13 +44,18 @@ mpc.gen_extra = [
 mpc.gencost = [
       2     0.0      0.0     2  49.6  0.0; % NG
       2     0.0      0.0     2  94.1  0.0; % Coal
-      2     0.0      0.0     2  38.6  0.0; % Wind
       2     0.0      0.0     2  49.6  0.0; % NG
-      2     0.0      0.0     2  38.6  0.0; % Wind
-      2     0.0      0.0     2  42.8  0.0; % Solar
 ];
 
-%% branch data
+%% non-dispatchable generators
+%column_names% gen_bus   pref   qmax   qmin gen_status cost_gen cost_curt
+mpc.ndgen = [
+                     3  300.0  101.0  -10.0          1     38.6    1000.0; % Wind
+                     6  400.0  183.0  -10.0          1     38.6    1000.0; % Wind
+                     6  400.0  183.0  -10.0          1     42.8    1000.0; % Solar
+];
+
+%% existing AC branches
 % f_bus t_bus   br_r   br_x  br_b rate_a rate_b rate_c tap shift br_status angmin angmax
 mpc.branch = [
       1     2  0.040  0.400  0.00    100    100    100   0     0         1    -60     60;
@@ -64,9 +64,9 @@ mpc.branch = [
       2     4  0.040  0.400  0.00    100    100    100   0     0         1    -60     60;
 ];
 
+%% candidate AC branches
 % OHL costs approx. 1 MEuro/km for double circuit OHL 400 kV; lifetime: 60 years
 % UGC cable cost approx. 4 MEuro / km for double circuit cable 400 kV; lifetime: 40 years
-
 %column_names% f_bus t_bus   br_r   br_x  br_b rate_a rate_b rate_c tap shift br_status angmin angmax construction_cost co2_cost replace lifetime
 mpc.ne_branch = [
                    1     3  0.020  0.200  0.00    100    100    100   0     0         1    -60     60         250000000        0       0       60;  % 250 km
@@ -75,14 +75,40 @@ mpc.ne_branch = [
                    2     3  0.040  0.400  0.00    100    100    100   0     0         1    -60     60         508000000        0       1       60;  % 508 km
 ];
 
-
-%% existing dc bus data
+%% existing DC buses
 %column_names% busdc_i grid Pdc Vdc basekVdc Vdcmax Vdcmin Cdc
 mpc.busdc = [
                      1    1   0   1      320    1.1    0.9   0;
                      2    1   0   1      320    1.1    0.9   0;
                      3    1   0   1      320    1.1    0.9   0;
                      4    1   0   1      320    1.1    0.9   0;
+];
+
+%% candidate DC buses
+%column_names% busdc_i grid Pdc Vdc basekVdc Vdcmax Vdcmin Cdc
+mpc.busdc_ne = [
+                     5    1   0   1      320    1.1    0.9   0;
+                     6    1   0   1      320    1.1    0.9   0;
+                     7    1   0   1      320    1.1    0.9   0;
+                     8    1   0   1      320    1.1    0.9   0;
+                     9    1   0   1      320    1.1    0.9   0;
+];
+
+%% existing DC branches
+%column_names% fbusdc tbusdc     r     l     c  rateA rateB rateC status
+mpc.branchdc = [
+                    1      3  0.01  0.00  0.00  100.0   0.0   0.0    1.0;
+                    2      4  0.01  0.00  0.00  100.0   0.0   0.0    1.0;
+];
+
+%% candidate DC branches
+% dc cable cost: Land ~ 2.1 MEuro / km, submarine 1.7 MEuro; lifetime: 40 years
+%column_names% fbusdc tbusdc     r     l     c  rateA rateB rateC status       cost co2_cost lifetime
+mpc.branchdc_ne = [
+                    5      6  0.01  0.00  0.00  330.0   0.0   0.0    1.0  891000000      0.5       40;  % 345 + 145 km
+                    5      7  0.01  0.00  0.00  330.0   0.0   0.0    1.0  710200000      0.5       40;  % 230 + 152 km
+                    5      8  0.01  0.00  0.00  330.0   0.0   0.0    1.0  977400000      0.5       40;  % 360 + 174 km
+                    5      9  0.01  0.00  0.00  330.0   0.0   0.0    1.0 1300000000      0.5       40;  %
 ];
 
 %% existing converters
@@ -94,35 +120,8 @@ mpc.convdc = [
                      4       3       3       1  -360  -1.66     0  1.0  0.01  0.01           1  1  0.01      1  0.01  0.01       1      320   1.1   0.9   15       1  1.1033  0.887    2.885    2.885  0.0050  -52.7  1.0079       0    110   -110     50    -50;
 ];
 
-%% existing dc branches
-%column_names% fbusdc tbusdc     r     l     c  rateA rateB rateC status
-mpc.branchdc = [
-                    1      3  0.01  0.00  0.00  100.0   0.0   0.0    1.0;
-                    2      4  0.01  0.00  0.00  100.0   0.0   0.0    1.0;
- ];
-
-%% candidate dc bus data
-%column_names% busdc_i grid Pdc Vdc basekVdc Vdcmax Vdcmin Cdc
-mpc.busdc_ne = [
-                     5    1   0   1      320    1.1    0.9   0;
-                     6    1   0   1      320    1.1    0.9   0;
-                     7    1   0   1      320    1.1    0.9   0;
-                     8    1   0   1      320    1.1    0.9   0;
-                     9    1   0   1      320    1.1    0.9   0;
-];
-
-% dc cable cost: Land ~ 2.1 MEuro / km, submarine 1.7 MEuro; lifetime: 40 years
-
-%% candidate branches
-%column_names% fbusdc tbusdc     r     l     c  rateA rateB rateC status       cost co2_cost lifetime
-mpc.branchdc_ne = [
-                    5      6  0.01  0.00  0.00  330.0   0.0   0.0    1.0  891000000      0.5       40;  % 345 + 145 km
-                    5      7  0.01  0.00  0.00  330.0   0.0   0.0    1.0  710200000      0.5       40;  % 230 + 152 km
-                    5      8  0.01  0.00  0.00  330.0   0.0   0.0    1.0  977400000      0.5       40;  % 360 + 174 km
-                    5      9  0.01  0.00  0.00  330.0   0.0   0.0    1.0 1300000000      0.5       40;  %
- ];
-
-%% candidate converters. Lifetime: 30 years
+%% candidate converters
+% Lifetime: 30 years
 %column_names% busdc_i busac_i type_dc type_ac   P_g    Q_g islcc Vtar   rtf   xtf transformer tm    bf filter    rc    xc reactor basekVac Vmmax Vmmin Imax status   LossA  LossB LossCrec LossCinv   droop Pdcset  Vdcset dVdcset Pacmax Pacmin Qacmax Qacmin      cost co2_cost lifetime
 mpc.convdc_ne = [
                      5       6       1       1  -360  -1.66     0  1.0  0.01  0.01           1  1  0.01      1  0.01  0.01       1      320   1.1   0.9   15      1  1.1033  0.887    2.885    2.885  0.0050  -52.7  1.0079       0    330   -330     50    -50  40000000      0.5       30;
@@ -134,22 +133,18 @@ mpc.convdc_ne = [
                      9       2       1       1  -360  -1.66     0  1.0  0.01  0.01           1  1  0.01      1  0.01  0.01       1      320   1.1   0.9   15      1  1.1033  0.887    2.885    2.885  0.0050  -52.7  1.0079       0    330   -330     50    -50  40000000      0.5       30;
 ];
 
-% hours
-mpc.time_elapsed = 1.0
-
-%% storage data
+%% existing storage devices
 % storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating    qmin   qmax    r    x p_loss q_loss status
 mpc.storage = [
             5  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      0;
 ];
 
-%% storage additional data
 %column_names% stationary_energy_inflow stationary_energy_outflow self_discharge_rate
 mpc.storage_extra = [
                                       0                         0               0.001;
 ];
 
-%% storage data
+%% candidate storage devices
 % Cost of battery storage: 350 k€/MWh; lifetime: 10 years
 %column_names% storage_bus   ps   qs energy energy_rating charge_rating discharge_rating charge_efficiency discharge_efficiency thermal_rating    qmin   qmax    r    x p_loss q_loss status stationary_energy_inflow stationary_energy_outflow self_discharge_rate    eq_cost inst_cost co2_cost lifetime
 mpc.ne_storage = [
@@ -158,8 +153,7 @@ mpc.ne_storage = [
                          6  0.0  0.0    0.0        1000.0         250.0            250.0               0.9                  0.9          500.0  -250.0  250.0  0.0  0.0    0.0    0.0      1                        0                         0               0.001  350000000         0      0.0       10;
 ];
 
-
-%% load additional data
+%% loads
 % Investment cost: 1 k€/MW; lifetime: 10 years
 %column_names% load_id ered_rel_max pred_rel_max pshift_up_rel_max pshift_down_rel_max eshift_rel_max tshift_up tshift_down cost_red cost_shift cost_curt cost_inv flex co2_cost lifetime
 mpc.load_extra = [

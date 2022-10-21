@@ -25,12 +25,12 @@ function create_profile_data_italy!(data)
         if monte_carlo == false
             for h in 1 : hours
                 h_idx = scnr["start"] + ((h-1) * 3600000)
-                genprofile[3, start_idx + h] = pv_south_central["data"]["$h_idx"]["electricity"]
+                genprofile[4, start_idx + h] = pv_south_central["data"]["$h_idx"]["electricity"]
                 genprofile[5, start_idx + h] = pv_sicily["data"]["$h_idx"]["electricity"]
                 genprofile[6, start_idx + h] = wind_sicily["data"]["$h_idx"]["electricity"]
             end
         else
-            genprofile[3, start_idx + 1 : start_idx + hours] = pv_south_central[1: hours]
+            genprofile[4, start_idx + 1 : start_idx + hours] = pv_south_central[1: hours]
             genprofile[5, start_idx + 1 : start_idx + hours] = pv_sicily[1: hours]
             genprofile[6, start_idx + 1 : start_idx + hours] = wind_sicily[1: hours]
         end
@@ -154,19 +154,19 @@ function create_profile_data_cigre(data, number_of_hours; start_period = 1, scal
 
     # Define a Dict for the technology of generators, indexed by the gen ids used by `data`
     gen_tech = Dict{String,Symbol}()
-    gen_tech["1"]  = :pv
     gen_tech["2"]  = :pv
     gen_tech["3"]  = :pv
-    gen_tech["4"]  = :fuel_cell
-    gen_tech["5"]  = :pv
-    gen_tech["6"]  = :wind
-    gen_tech["7"]  = :pv
+    gen_tech["4"]  = :pv
+    gen_tech["5"]  = :fuel_cell
+    gen_tech["6"]  = :pv
+    gen_tech["7"]  = :wind
     gen_tech["8"]  = :pv
-    gen_tech["9"]  = :chp_diesel
-    gen_tech["10"] = :chp_fuel_cell
-    gen_tech["11"] = :pv
-    gen_tech["12"] = :fuel_cell
-    gen_tech["13"] = :pv
+    gen_tech["9"]  = :pv
+    gen_tech["10"] = :chp_diesel
+    gen_tech["11"] = :chp_fuel_cell
+    gen_tech["12"] = :pv
+    gen_tech["13"] = :fuel_cell
+    gen_tech["14"] = :pv
 
     # Compute active and reactive power profiles of each generator
     extradata["gen"]  = Dict{String,Any}()
