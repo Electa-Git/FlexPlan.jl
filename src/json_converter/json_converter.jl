@@ -1,6 +1,6 @@
 module JSONConverter
 
-export convert_JSON
+export convert_JSON, convert_JSON_td
 
 using ..FlexPlan
 const _FP = FlexPlan
@@ -13,5 +13,6 @@ include("base.jl")
 include("nw.jl")
 include("time_series.jl")
 include("singular_data.jl")
+include("td.jl")
 
 end

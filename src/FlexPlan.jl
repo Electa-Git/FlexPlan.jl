@@ -54,6 +54,7 @@ include("core/constraint.jl")
 include("core/line_replacement.jl")
 include("core/distribution.jl")
 include("core/td_coupling.jl")
+include("core/solution.jl")
 
 include("form/bf.jl")
 include("form/bfarad.jl")
@@ -64,6 +65,9 @@ include("formconv/dcp.jl")
 
 include("json_converter/json_converter.jl")
 using .JSONConverter
+
+include("benders/benders.jl")
+using .Benders
 
 include("td_decoupling/td_decoupling.jl")
 using .TDDecoupling

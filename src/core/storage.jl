@@ -32,7 +32,7 @@ function variable_absorbed_energy_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_
     report && _PM.sol_component_value(pm, nw, :ne_storage, :e_abs_ne, _PM.ids(pm, nw, :ne_storage_bounded_absorption), e_abs)
 end
 
-function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
+function variable_storage_power_ne(pm::_PM.AbstractPowerModel; investment::Bool=true, kwargs...)
     variable_storage_power_real_ne(pm; kwargs...)
     variable_storage_power_imaginary_ne(pm; kwargs...)
     variable_storage_power_control_imaginary_ne(pm; kwargs...)
@@ -41,7 +41,7 @@ function variable_storage_power_ne(pm::_PM.AbstractPowerModel; kwargs...)
     variable_storage_charge_ne(pm; kwargs...)
     variable_storage_discharge_ne(pm; kwargs...)
     variable_storage_indicator(pm; kwargs..., relax=true)
-    variable_storage_investment(pm; kwargs...)
+    investment && variable_storage_investment(pm; kwargs...)
 end
 
 function variable_storage_power_real_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
@@ -400,10 +400,14 @@ function _PM.constraint_storage_thermal_limit(pm::BFARadPowerModel, n::Int, i, r
     c_perp = cos(π/8) # ~0.92
     c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
 
-    JuMP.@constraint(pm.model, -c_perp*rating <= ps      <= c_perp*rating)
-    JuMP.@constraint(pm.model, -c_perp*rating <=      qs <= c_perp*rating)
-    JuMP.@constraint(pm.model, -c_diag*rating <= ps + qs <= c_diag*rating)
-    JuMP.@constraint(pm.model, -c_diag*rating <= ps - qs <= c_diag*rating)
+    JuMP.@constraint(pm.model, ps      >= -c_perp*rating)
+    JuMP.@constraint(pm.model, ps      <=  c_perp*rating)
+    JuMP.@constraint(pm.model,      qs >= -c_perp*rating)
+    JuMP.@constraint(pm.model,      qs <=  c_perp*rating)
+    JuMP.@constraint(pm.model, ps + qs >= -c_diag*rating)
+    JuMP.@constraint(pm.model, ps + qs <=  c_diag*rating)
+    JuMP.@constraint(pm.model, ps - qs >= -c_diag*rating)
+    JuMP.@constraint(pm.model, ps - qs <=  c_diag*rating)
 end
 
 function constraint_storage_thermal_limit_ne(pm::_PM.AbstractActivePowerModel, n::Int, i, rating)
@@ -420,10 +424,14 @@ function constraint_storage_thermal_limit_ne(pm::BFARadPowerModel, n::Int, i, ra
     c_perp = cos(π/8) # ~0.92
     c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
 
-    JuMP.@constraint(pm.model, -c_perp*rating <= ps      <= c_perp*rating)
-    JuMP.@constraint(pm.model, -c_perp*rating <=      qs <= c_perp*rating)
-    JuMP.@constraint(pm.model, -c_diag*rating <= ps + qs <= c_diag*rating)
-    JuMP.@constraint(pm.model, -c_diag*rating <= ps - qs <= c_diag*rating)
+    JuMP.@constraint(pm.model, ps      >= -c_perp*rating)
+    JuMP.@constraint(pm.model, ps      <=  c_perp*rating)
+    JuMP.@constraint(pm.model,      qs >= -c_perp*rating)
+    JuMP.@constraint(pm.model,      qs <=  c_perp*rating)
+    JuMP.@constraint(pm.model, ps + qs >= -c_diag*rating)
+    JuMP.@constraint(pm.model, ps + qs <=  c_diag*rating)
+    JuMP.@constraint(pm.model, ps - qs >= -c_diag*rating)
+    JuMP.@constraint(pm.model, ps - qs <=  c_diag*rating)
 end
 
 function constraint_storage_losses_ne(pm::_PM.AbstractAPLossLessModels, n::Int, i, bus, r, x, p_loss, q_loss)
@@ -607,12 +615,4 @@ function constraint_ne_storage_activation(pm::_PM.AbstractPowerModel, n::Int, i:
     investments = _PM.var.(Ref(pm), horizon, :z_strg_ne_investment, i)
 
     JuMP.@constraint(pm.model, indicator == sum(investments))
-end
-
-# Force investment decisions in two different nws to be the same.
-function constraint_ne_storage_investment_same(pm::_PM.AbstractPowerModel, n_1::Int, n_2::Int, i::Int)
-    investment_1 = _PM.var(pm, n_1, :z_strg_ne_investment, i)
-    investment_2 = _PM.var(pm, n_2, :z_strg_ne_investment, i)
-
-    JuMP.@constraint(pm.model, investment_1 == investment_2)
 end

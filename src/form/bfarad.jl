@@ -241,10 +241,14 @@ function _PM.constraint_thermal_limit_from(pm::BFARadPowerModel, n::Int, f_idx, 
     c_perp = cos(π/8) # ~0.92
     c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
 
-    JuMP.@constraint(pm.model, -c_perp*rate_a <= p_fr        <= c_perp*rate_a)
-    JuMP.@constraint(pm.model, -c_perp*rate_a <=        q_fr <= c_perp*rate_a)
-    JuMP.@constraint(pm.model, -c_diag*rate_a <= p_fr + q_fr <= c_diag*rate_a)
-    JuMP.@constraint(pm.model, -c_diag*rate_a <= p_fr - q_fr <= c_diag*rate_a)
+    JuMP.@constraint(pm.model, p_fr        >= -c_perp*rate_a)
+    JuMP.@constraint(pm.model, p_fr        <=  c_perp*rate_a)
+    JuMP.@constraint(pm.model,        q_fr >= -c_perp*rate_a)
+    JuMP.@constraint(pm.model,        q_fr <=  c_perp*rate_a)
+    JuMP.@constraint(pm.model, p_fr + q_fr >= -c_diag*rate_a)
+    JuMP.@constraint(pm.model, p_fr + q_fr <=  c_diag*rate_a)
+    JuMP.@constraint(pm.model, p_fr - q_fr >= -c_diag*rate_a)
+    JuMP.@constraint(pm.model, p_fr - q_fr <=  c_diag*rate_a)
 end
 
 "Complex power is limited by an octagon instead of a circle, so as to keep the model linear"

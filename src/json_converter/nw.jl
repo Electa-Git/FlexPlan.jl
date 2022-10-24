@@ -1,5 +1,5 @@
 # Single-network containing only fixed data (i.e. data that does not depend on year), method without candidates
-function nw(source::AbstractDict, lookup::AbstractDict, y::Int)
+function nw(source::AbstractDict, lookup::AbstractDict, y::Int; oltc::Bool, scale_gen::Real)
     target = Dict{String,Any}(
         "branch"       => Dict{String,Any}(),
         "branchdc"     => Dict{String,Any}(),
@@ -37,7 +37,7 @@ function nw(source::AbstractDict, lookup::AbstractDict, y::Int)
         source_id = push!(copy(branch_path), comp["id"])
         f_bus     = lookup["acBuses"][comp["acBusOrigin"]]
         t_bus     = lookup["acBuses"][comp["acBusExtremity"]]
-        target["branch"]["$index"] = make_branch(comp, index, source_id, f_bus, t_bus, y; transformer=true)
+        target["branch"]["$index"] = make_branch(comp, index, source_id, f_bus, t_bus, y; transformer=true, oltc)
     end
 
     branchdc_path = ["gridModelInputFile", "dcBranches"]
@@ -78,7 +78,7 @@ function nw(source::AbstractDict, lookup::AbstractDict, y::Int)
         index     = lookup["generators"][comp["id"]]
         source_id = push!(copy(gen_path), comp["id"])
         gen_bus   = lookup["acBuses"][comp["acBusConnected"]]
-        target["gen"]["$index"] = make_gen(comp, index, source_id, gen_bus, y)
+        target["gen"]["$index"] = make_gen(comp, index, source_id, gen_bus, y; scale_gen)
     end
 
     load_path = ["gridModelInputFile", "loads"]
@@ -101,9 +101,9 @@ function nw(source::AbstractDict, lookup::AbstractDict, y::Int)
 end
 
 # Single-network containing only fixed data (i.e. data that does not depend on year), method with candidates
-function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::AbstractDict, y::Int)
+function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::AbstractDict, y::Int; oltc::Bool, scale_gen::Real)
 
-    target = nw(source, lookup, y)
+    target = nw(source, lookup, y; oltc, scale_gen)
     target["branchdc_ne"] = Dict{String,Any}()
     target["busdc_ne"]    = Dict{String,Any}()
     target["convdc_ne"]   = Dict{String,Any}()
@@ -123,7 +123,7 @@ function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::Abstr
             t = make_branch(comp, index, source_id, f_bus, t_bus, y; transformer=false)
             t["construction_cost"] = cand["invCost"][y]
             t["lifetime"]          = cand["lifetime"]
-            t["replace"]           = replace(cand, comp["id"], lookup["acBranches"]) # Assumption: specified id is that of the branch that connects the same buses.
+            t["replace"]           = !comp["isTransmission"] # Transmission AC branches are added in parallel to existing branches, if any; distribution AC branches replace existing ones.
             target["ne_branch"]["$index"] = t
         end
     end
@@ -135,10 +135,10 @@ function nw(source::AbstractDict, lookup::AbstractDict, cand_availability::Abstr
             source_id = push!(copy(ne_branch_path), comp["id"])
             f_bus     = lookup["acBuses"][comp["acBusOrigin"]]
             t_bus     = lookup["acBuses"][comp["acBusExtremity"]]
-            t = make_branch(comp, index, source_id, f_bus, t_bus, y; transformer=true)
+            t = make_branch(comp, index, source_id, f_bus, t_bus, y; transformer=true, oltc)
             t["construction_cost"] = cand["invCost"][y]
             t["lifetime"]          = cand["lifetime"]
-            t["replace"]           = replace(cand, comp["id"], lookup["transformers"]) # Assumption: specified id is that of the branch that connects the same buses.
+            t["replace"]           = !comp["isTransmission"] # Transmission transformers are added in parallel to existing transfomers, if any; distribution transformers replace existing ones.
             target["ne_branch"]["$index"] = t
         end
     end
@@ -225,22 +225,7 @@ function optional_value(target::AbstractDict, target_key::String, source::Abstra
     end
 end
 
-function replace(cand::AbstractDict, id::String, comp_lookup::AbstractDict)
-    if haskey(cand, "replace")
-        if haskey(comp_lookup, cand["replace"])
-            # FlexPlan.jl only supports replacement of the only branch that connects the same buses as the candidate.
-            # That branch will be replaced, regardless of which branch is specified by `cand["replace"]`.
-            return true
-        else
-            Memento.warn(_LOGGER, "Cannot set \"$id\" to replace \"" * cand["replace"] * "\" because \"" * cand["replace"] * "\" does not exist.")
-            return false
-        end
-    else
-        return false
-    end
-end
-
-function make_branch(source::AbstractDict, index::Int, source_id::Vector{String}, f_bus::Int, t_bus::Int, y::Int; transformer::Bool)
+function make_branch(source::AbstractDict, index::Int, source_id::Vector{String}, f_bus::Int, t_bus::Int, y::Int; transformer::Bool, oltc::Bool=false)
     target = Dict{String,Any}(
         "index"       => index,
         "source_id"   => source_id,
@@ -266,6 +251,10 @@ function make_branch(source::AbstractDict, index::Int, source_id::Vector{String}
     else
         target["br_r"] = source["resistance"]
         target["br_x"] = source["reactance"]
+        if transformer && oltc
+            target["tm_max"] = 1.1
+            target["tm_min"] = 0.9
+        end
     end
     return target
 end
@@ -352,7 +341,7 @@ function make_convdc(source::AbstractDict, index::Int, source_id::Vector{String}
     return target
 end
 
-function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, gen_bus::Int, y::Int)
+function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, gen_bus::Int, y::Int; scale_gen::Real)
     target = Dict{String,Any}(
         "index"        => index,
         "source_id"    => source_id,
@@ -367,14 +356,14 @@ function make_gen(source::AbstractDict, index::Int, source_id::Vector{String}, g
     )
     pmin = source["minActivePower"][y]
     pmax = source["maxActivePower"][y]
-    target["pmax"] = pmax
+    target["pmax"] = scale_gen * pmax
     if pmin == pmax # Non-dispatchable generators are characterized in JSON file by having coincident power bounds
         target["dispatchable"] = false
         target["pmin"] = 0.0 # Must be zero to allow for curtailment
         target["cost_curt"] = source["curtailmentCosts"][y]
     else
         target["dispatchable"] = true
-        target["pmin"] = pmin
+        target["pmin"] = scale_gen * pmin
     end
     return target
 end

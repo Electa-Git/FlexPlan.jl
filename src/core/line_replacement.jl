@@ -20,7 +20,7 @@ end
 ### Actual expressions ###
 
 function expression_branch_indicator(pm::_PM.AbstractPowerModel, n::Int, br_idx, f_bus, t_bus)
-    branch_ne_sum = sum(_PM.var(pm, n, :branch_ne, l) for l in _PM.ref(pm, n, :ne_buspairs, (f_bus,t_bus), "branches")) 
+    branch_ne_sum = sum(_PM.var(pm, n, :branch_ne, l) for l in _PM.ref(pm, n, :ne_buspairs, (f_bus,t_bus), "branches"))
 
     _PM.var(pm, n, :z_branch)[br_idx] = 1 - branch_ne_sum
 end
@@ -50,7 +50,7 @@ function constraint_ohms_yt_from_repl(pm::_PM.AbstractPowerModel, i::Int; nw::In
     vad_max = _PM.ref(pm, nw, :off_angmax)
 
 
-    # track if a certain candidate branch is replacing a line 
+    # track if a certain candidate branch is replacing a line
     replace, ne_br_idx = replace_branch(pm, nw, f_bus, t_bus)
     # If lines is to be repalced use formulations below, else use PowerModels constraint for existing branches
     if replace  == 0
@@ -77,7 +77,7 @@ function constraint_ohms_yt_to_repl(pm::_PM.AbstractPowerModel, i::Int; nw::Int=
     vad_min = _PM.ref(pm, nw, :off_angmin)
     vad_max = _PM.ref(pm, nw, :off_angmax)
 
-    # track if a certain candidate branch is replacing a line 
+    # track if a certain candidate branch is replacing a line
     replace, ne_br_idx = replace_branch(pm, nw, f_bus, t_bus)
     # If lines is to be repalced use formulations below, else use PowerModels constraint for existing branches
     if replace  == 0
@@ -96,7 +96,7 @@ function constraint_voltage_angle_difference_repl(pm::_PM.AbstractPowerModel, i:
     vad_min = _PM.ref(pm, nw, :off_angmin)
     vad_max = _PM.ref(pm, nw, :off_angmax)
 
-    # track if a certain candidate branch is replacing a line 
+    # track if a certain candidate branch is replacing a line
     replace, ne_br_idx = replace_branch(pm, nw, f_bus, t_bus)
     # If lines is to be repalced use formulations below, else use PowerModels constraint for existing branches
     if replace  == 0
@@ -116,7 +116,7 @@ function constraint_thermal_limit_from_repl(pm::_PM.AbstractPowerModel, i::Int; 
         Memento.error(_LOGGER, "constraint_thermal_limit_from_ne requires a rate_a value on all branches, calc_thermal_limits! can be used to generate reasonable values")
     end
 
-    # track if a certain candidate branch is replacing a line 
+    # track if a certain candidate branch is replacing a line
     replace, ne_br_idx = replace_branch(pm, nw, f_bus, t_bus)
     # If lines is to be repalced use formulations below, else use PowerModels constraint for existing branches
     if replace  == 0
@@ -136,7 +136,7 @@ function constraint_thermal_limit_to_repl(pm::_PM.AbstractPowerModel, i::Int; nw
     if !haskey(branch, "rate_a")
         Memento.error(_LOGGER, "constraint_thermal_limit_to_ne requires a rate_a value on all branches, calc_thermal_limits! can be used to generate reasonable values")
     end
-    # track if a certain candidate branch is replacing a line 
+    # track if a certain candidate branch is replacing a line
     replace, ne_br_idx = replace_branch(pm, nw, f_bus, t_bus)
     # If lines is to be repalced use formulations below, else use PowerModels constraint for existing branches
     if replace  == 0
@@ -506,7 +506,7 @@ function constraint_voltage_magnitude_difference_on_off(pm::_PM.AbstractBFAModel
     to_bus = _PM.ref(pm, n, :bus, t_bus)
     M_hi   =  fr_bus["vmax"]^2/tm^2 - to_bus["vmin"]^2
     M_lo   = -fr_bus["vmin"]^2/tm^2 + to_bus["vmax"]^2
-    
+
     p_fr = _PM.var(pm, n, :p, f_idx)
     q_fr = _PM.var(pm, n, :q, f_idx)
     w_fr = _PM.var(pm, n, :w, f_bus)
@@ -524,7 +524,7 @@ function constraint_voltage_magnitude_difference_frb_on_off(pm::_PM.AbstractBFAM
     to_bus = _PM.ref(pm, n, :bus, t_bus)
     M_hi   =  1.0^2/tm^2 - to_bus["vmin"]^2
     M_lo   = -1.0^2/tm^2 + to_bus["vmax"]^2
-    
+
     p_fr = _PM.var(pm, n, :p, f_idx)
     q_fr = _PM.var(pm, n, :q, f_idx)
     w_to = _PM.var(pm, n, :w, t_bus)
@@ -542,7 +542,7 @@ function constraint_voltage_magnitude_difference_oltc_on_off(pm::_PM.AbstractBFA
     to_bus = _PM.ref(pm, n, :bus, t_bus)
     M_hi   =  1.0^2/tm_min^2 - to_bus["vmin"]^2
     M_lo   = -1.0^2/tm_max^2 + to_bus["vmax"]^2
-    
+
     p_fr = _PM.var(pm, n, :p, f_idx)
     q_fr = _PM.var(pm, n, :q, f_idx)
     ttmi = _PM.var(pm, n, :ttmi, i)

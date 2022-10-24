@@ -46,11 +46,11 @@ function variable_ne_converter_investment(pm::_PM.AbstractPowerModel; nw::Int=_P
 end
 
 # To be used instead of _PMACDC.variable_dc_converter_ne() - supports deduplication of variables
-function variable_dc_converter_ne(pm::_PM.AbstractPowerModel; kwargs...)
+function variable_dc_converter_ne(pm::_PM.AbstractPowerModel; investment::Bool=true, kwargs...)
     _PMACDC.variable_conv_tranformer_flow_ne(pm; kwargs...)
     _PMACDC.variable_conv_reactor_flow_ne(pm; kwargs...)
     variable_ne_converter_indicator(pm; kwargs..., relax=true) # FlexPlan version: replaces _PMACDC.variable_converter_ne().
-    variable_ne_converter_investment(pm; kwargs...)
+    investment &&variable_ne_converter_investment(pm; kwargs...)
 
     _PMACDC.variable_converter_active_power_ne(pm; kwargs...)
     _PMACDC.variable_converter_reactive_power_ne(pm; kwargs...)

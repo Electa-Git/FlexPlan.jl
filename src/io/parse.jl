@@ -60,6 +60,7 @@ function add_gen_data!(data::Dict{String,Any})
 
             # Convert the cost of power produced by non-dispatchable generators into
             # polynomial form (the same used by dispatchable generators).
+            ndgen["model"] = 2 # Cost model (2 => polynomial cost)
             ndgen["cost"] = [ndgen["cost_gen"], 0.0]
             delete!(ndgen, "cost_gen")
 
@@ -144,7 +145,7 @@ function add_flexible_demand_data!(data)
             data["load"]["$idx"]["tshift_down"] = load_extra["tshift_down"]
         end
 
-        # Compensation for demand shifting (€/MWh), applied only to the power shifted upward to avoid double counting
+        # Compensation for demand shifting (€/MWh), applied half to the power shifted upward and half to the power shifted downward
         data["load"]["$idx"]["cost_shift"] = load_extra["cost_shift"]
 
         # Compensation for load curtailment (i.e. involuntary demand reduction) (€/MWh)

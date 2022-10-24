@@ -1,10 +1,9 @@
 # Time series having length == number_of_hours * number_of_scenarios
-function make_time_series(source::AbstractDict, lookup::AbstractDict, y::Int, sn_data::AbstractDict; number_of_hours::Int, number_of_scenarios::Int)
+function make_time_series(source::AbstractDict, lookup::AbstractDict, y::Int, sn_data::AbstractDict; number_of_hours::Int, number_of_scenarios::Int, scale_load::Real)
     target = Dict{String,Any}(
         "gen"        => Dict{String,Any}(),
         "load"       => Dict{String,Any}(),
         "storage"    => Dict{String,Any}(),
-        "ne_storage" => Dict{String,Any}(),
     )
 
     for comp in source["scenarioDataInputFile"]["generators"]
@@ -18,7 +17,7 @@ function make_time_series(source::AbstractDict, lookup::AbstractDict, y::Int, sn
     for comp in source["scenarioDataInputFile"]["loads"]
         index = lookup["loads"][comp["id"]]
         pd    = ts_vector(comp, "demandReference", y; number_of_hours, number_of_scenarios)
-        target["load"]["$index"] = Dict{String,Any}("pd" => pd)
+        target["load"]["$index"] = Dict{String,Any}("pd" => scale_load*pd)
     end
 
     for comp in source["scenarioDataInputFile"]["storage"]
@@ -41,6 +40,7 @@ function make_time_series(source::AbstractDict, lookup::AbstractDict, y::Int, sn
     end
 
     if haskey(source, "candidatesInputFile")
+        target["ne_storage"] = Dict{String,Any}()
         for cand in source["candidatesInputFile"]["storage"]
             comp = cand["storageData"]
             index = lookup["cand_storage"][comp["id"]]
