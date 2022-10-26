@@ -9,9 +9,6 @@ import ..FlexPlan: _LOGGER
 import PowerModels
 const _PM = PowerModels
 
-import MathOptInterface
-const _MOI = MathOptInterface
-
 import JuMP
 import Memento
 using Printf

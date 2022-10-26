@@ -3,6 +3,7 @@
 using CSV
 using DataFrames
 using Dates
+import JuMP
 
 function initialize_tasks(params::Dict)
     DataFrame([name=>type[] for (name,type) in [params[:case]; params[:optimization]]])
@@ -29,7 +30,7 @@ end
 function run_and_time(
         data::Dict{String,<:Any},
         model_type::Type,
-        optimizer::Union{_FP._MOI.AbstractOptimizer, _FP._MOI.OptimizerWithAttributes},
+        optimizer::Union{JuMP.MOI.AbstractOptimizer, JuMP.MOI.OptimizerWithAttributes},
         build_method::Function;
         kwargs...
     )

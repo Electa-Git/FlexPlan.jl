@@ -4,7 +4,7 @@ export run_benders_decomposition
 
 using ..FlexPlan
 const _FP = FlexPlan
-import ..FlexPlan: _MOI, _IM, _PM, _LOGGER
+import ..FlexPlan: _IM, _PM, _LOGGER
 import JuMP
 import Memento
 using Printf

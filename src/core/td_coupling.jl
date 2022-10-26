@@ -10,7 +10,7 @@ function run_model(
         d_data::Vector{Dict{String,Any}},
         t_model_type::Type{<:_PM.AbstractPowerModel},
         d_model_type::Type{<:_PM.AbstractPowerModel},
-        optimizer::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
+        optimizer::Union{JuMP.MOI.AbstractOptimizer, JuMP.MOI.OptimizerWithAttributes},
         build_method::Function;
         t_ref_extensions::Vector{<:Function} = Function[],
         d_ref_extensions::Vector{<:Function} = Function[],

@@ -12,8 +12,6 @@ const _PMACDC = PowerModelsACDC
 import InfrastructureModels
 #import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
 const _IM = InfrastructureModels
-import MathOptInterface
-const _MOI = MathOptInterface
 
 import JuMP: optimizer_with_attributes
 export optimizer_with_attributes

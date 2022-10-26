@@ -21,10 +21,10 @@ the combined T&D model.
   bus id to which the distribution network is to be connected.
 - `t_model_type::Type{<:PowerModels.AbstractPowerModel}`.
 - `d_model_type::Type{<:PowerModels.AbstractPowerModel}`.
-- `t_optimizer::Union{MathOptInterface.AbstractOptimizer,MathOptInterface.OptimizerWithAttributes}`:
+- `t_optimizer::Union{JuMP.MOI.AbstractOptimizer,JuMP.MOI.OptimizerWithAttributes}`:
   optimizer for transmission network. It has to solve a MILP problem and can exploit
   multi-threading.
-- `d_optimizer::Union{MathOptInterface.AbstractOptimizer,MathOptInterface.OptimizerWithAttributes}`:
+- `d_optimizer::Union{JuMP.MOI.AbstractOptimizer,JuMP.MOI.OptimizerWithAttributes}`:
   optimizer for distribution networks. It has to solve 2 MILP and 4 LP problems per
   distribution network; since multi-threading is used to run optimizations of different
   distribution networks in parallel, it is better for this optimizer to be single-threaded.
@@ -44,8 +44,8 @@ function run_td_decoupling(
         d_data::Vector{Dict{String,Any}},
         t_model_type::Type{<:_PM.AbstractPowerModel},
         d_model_type::Type{<:_PM.AbstractPowerModel},
-        t_optimizer::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
-        d_optimizer::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
+        t_optimizer::Union{JuMP.MOI.AbstractOptimizer, JuMP.MOI.OptimizerWithAttributes},
+        d_optimizer::Union{JuMP.MOI.AbstractOptimizer, JuMP.MOI.OptimizerWithAttributes},
         build_method::Function;
         t_ref_extensions::Vector{<:Function} = Function[],
         d_ref_extensions::Vector{<:Function} = Function[],
