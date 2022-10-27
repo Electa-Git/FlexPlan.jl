@@ -69,7 +69,7 @@ end
 
 ## Distribution networks
 
-"Like ref_add_ne_branch!, but ne_buspairs are built using calc_buspair_parameters_allbranches"
+"Like ref_add_ne_branch!, but ne_buspairs are built using _calc_buspair_parameters_allbranches"
 function ref_add_ne_branch_allbranches!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
     for (nw, nw_ref) in ref[:it][_PM.pm_it_sym][:nw]
         if !haskey(nw_ref, :ne_branch)
@@ -91,7 +91,7 @@ function ref_add_ne_branch_allbranches!(ref::Dict{Symbol,<:Any}, data::Dict{Stri
         if !haskey(nw_ref, :ne_buspairs)
             ismc = haskey(nw_ref, :conductors)
             cid = nw_ref[:conductor_ids]
-            nw_ref[:ne_buspairs] = calc_buspair_parameters_allbranches(nw_ref[:bus], nw_ref[:ne_branch], cid, ismc)
+            nw_ref[:ne_buspairs] = _calc_buspair_parameters_allbranches(nw_ref[:bus], nw_ref[:ne_branch], cid, ismc)
         end
     end
 end
@@ -155,8 +155,8 @@ function ref_add_oltc_branch!(ref::Dict{Symbol,Any}, data::Dict{String,<:Any})
     end
 end
 
-"Like calc_buspair_parameters, but retains indices of all the branches and drops keys that depend on branch"
-function calc_buspair_parameters_allbranches(buses, branches, conductor_ids, ismulticondcutor)
+"Like PowerModels.calc_buspair_parameters, but retains indices of all the branches and drops keys that depend on branch"
+function _calc_buspair_parameters_allbranches(buses, branches, conductor_ids, ismulticondcutor)
     bus_lookup = Dict(bus["index"] => bus for (i,bus) in buses if bus["bus_type"] != 4)
 
     branch_lookup = Dict(branch["index"] => branch for (i,branch) in branches if branch["br_status"] == 1 && haskey(bus_lookup, branch["f_bus"]) && haskey(bus_lookup, branch["t_bus"]))

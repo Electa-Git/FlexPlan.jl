@@ -133,7 +133,7 @@ if report_intermediate_results
 
     # Intermediate solutions used for building the surrogate model
     d_data_intermediate = deepcopy(d_data_sub)
-    _FP.add_dimension!(d_data_intermediate, :sub_nw, Dict(1 => Dict{String,Any}("d_gen"=>_FP.get_reference_gen(d_data_intermediate))))
+    _FP.add_dimension!(d_data_intermediate, :sub_nw, Dict(1 => Dict{String,Any}("d_gen"=>_FP._get_reference_gen(d_data_intermediate))))
     sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_intermediate; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
     intermediate_results_dir = joinpath(out_dir, "intermediate_results")
     for (sol,name) in [(sol_up,"up"), (sol_base,"base"), (sol_down,"down")]

@@ -49,6 +49,6 @@ s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "a
 pm = _PM.instantiate_model(data, model_type, _FP.build_stoch_flex_tnep; ref_extensions=[_FP.ref_add_gen!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting=s)
 result = _PM.optimize_model!(pm; optimizer)
 
-@assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
+@assert result["termination_status"] ∈ (_FP.OPTIMAL, _FP.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
 
 println("Test completed")

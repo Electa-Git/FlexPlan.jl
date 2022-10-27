@@ -2,7 +2,9 @@ isdefined(Base, :__precompile__) && __precompile__()
 
 module FlexPlan
 
-# import Compat
+
+## Imports
+
 import JuMP
 import Memento
 import PowerModels
@@ -13,18 +15,20 @@ import InfrastructureModels
 #import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
 const _IM = InfrastructureModels
 
-import JuMP: optimizer_with_attributes
-export optimizer_with_attributes
-
 using Printf
+
+
+## Memento settings
 
 # Create our module level logger (this will get precompiled)
 const _LOGGER = Memento.getlogger(@__MODULE__)
 
-# Register the module level logger at runtime so that folks can access the logger via `getlogger(PowerModels)`
-# NOTE: If this line is not included then the precompiled `_PM._LOGGER` won't be registered at runtime.
+# Register the module level logger at runtime so that folks can access the logger via `getlogger(FlexPlan)`
+# NOTE: If this line is not included then the precompiled `FlexPlan._LOGGER` won't be registered at runtime.
 __init__() = Memento.register(_LOGGER)
 
+
+## Includes
 
 include("prob/storage_tnep.jl")
 include("prob/flexible_tnep.jl")
@@ -59,7 +63,7 @@ include("form/bfarad.jl")
 include("formconv/dcp.jl")
 
 
-# Submodules
+## Submodules
 
 include("json_converter/json_converter.jl")
 using .JSONConverter
@@ -69,5 +73,48 @@ using .Benders
 
 include("td_decoupling/td_decoupling.jl")
 using .TDDecoupling
+
+
+## Exports
+
+# FlexPlan exports everything except internal symbols, which are defined as those whose name
+# starts with an underscore. If you don't want all of these symbols in your environment,
+# then use `import FlexPlan` instead of `using FlexPlan`.
+
+# Do not add FlexPlan-defined symbols to this exclude list. Instead, rename them with an
+# underscore.
+const _EXCLUDE_SYMBOLS = [Symbol(@__MODULE__), :eval, :include]
+
+for sym in names(@__MODULE__, all=true)
+    sym_string = string(sym)
+    if sym in _EXCLUDE_SYMBOLS || startswith(sym_string, "_") || startswith(sym_string, "@_")
+        continue
+    end
+    if !(Base.isidentifier(sym) || (startswith(sym_string, "@") &&
+         Base.isidentifier(sym_string[2:end])))
+       continue
+    end
+    #println("$(sym)")
+    @eval export $sym
+end
+
+# The following items are also exported for user-friendlyness when calling `using FlexPlan`,
+# so that users do not need to import JuMP to use a solver with FlexPlan.
+import JuMP: optimizer_with_attributes
+export optimizer_with_attributes
+
+import JuMP: TerminationStatusCode
+export TerminationStatusCode
+
+import JuMP: ResultStatusCode
+export ResultStatusCode
+
+for status_code_enum in [TerminationStatusCode, ResultStatusCode]
+    for status_code in instances(status_code_enum)
+        @eval import JuMP: $(Symbol(status_code))
+        @eval export $(Symbol(status_code))
+    end
+end
+
 
 end

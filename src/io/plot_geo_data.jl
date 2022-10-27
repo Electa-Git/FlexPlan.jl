@@ -26,26 +26,26 @@ function plot_geo_data(data_in, filename, settings; solution = Dict())
     end
     if settings["add_nodes"] == true
         for (b, bus) in data["bus"]
-            plot_bus(io, bus, b)
+            _plot_bus(io, bus, b)
         end
     end
     for (b, branch) in data["branch"]
-        plot_branch(io, branch, b, data; color_in = "blue")
+        _plot_branch(io, branch, b, data; color_in = "blue")
     end
     if haskey(data, "ne_branch")
         for (b, branch) in data["ne_branch"]
             if haskey(settings, "plot_solution_only")
                 if  sol["ne_branch"]["$b"]["built"] == 1
-                    plot_branch(io, branch, b, data; color_in = "blue", name = "Candidate Line")
+                    _plot_branch(io, branch, b, data; color_in = "blue", name = "Candidate Line")
                 end
             else
-                plot_branch(io, branch, b, data; color_in = "green", name = "Candidate Line")
+                _plot_branch(io, branch, b, data; color_in = "green", name = "Candidate Line")
             end
         end
     end
     if haskey(data, "branchdc")
        for (bdc, branchdc) in data["branchdc"]
-            plot_dc_branch(io, branchdc, bdc, data; color_in = "yellow")
+            _plot_dc_branch(io, branchdc, bdc, data; color_in = "yellow")
        end
     end
 
@@ -53,17 +53,17 @@ function plot_geo_data(data_in, filename, settings; solution = Dict())
         for (bdc, branchdc) in data["branchdc_ne"]
             if haskey(settings, "plot_solution_only")
                 if  sol["branchdc_ne"]["$bdc"]["isbuilt"] == 1
-                    plot_dc_branch(io, branchdc, bdc, data; color_in = "yellow", name = "Candidate DC Line")
+                    _plot_dc_branch(io, branchdc, bdc, data; color_in = "yellow", name = "Candidate DC Line")
                 end
             else
-                plot_dc_branch(io, branchdc, bdc, data; color_in = "red", name = "Candidate DC Line")
+                _plot_dc_branch(io, branchdc, bdc, data; color_in = "red", name = "Candidate DC Line")
             end
         end
      end
 
      if haskey(data, "convdc")
         for (cdc, convdc) in data["convdc"]
-             plot_dc_conv(io, convdc, cdc, data; color_in = "yellow")
+             _plot_dc_conv(io, convdc, cdc, data; color_in = "yellow")
         end
      end
 
@@ -71,17 +71,17 @@ function plot_geo_data(data_in, filename, settings; solution = Dict())
         for (cdc, convdc) in data["convdc_ne"]
             if haskey(settings, "plot_solution_only")
                 if  sol["convdc_ne"]["$cdc"]["isbuilt"] == 1
-                    plot_dc_conv(io, convdc, cdc, data; color_in = "yellow", name = "Candidate DC converter")
+                    _plot_dc_conv(io, convdc, cdc, data; color_in = "yellow", name = "Candidate DC converter")
                 end
             else
-                plot_dc_conv(io, convdc, cdc, data; color_in = "red", name = "Candidate DC converter")
+                _plot_dc_conv(io, convdc, cdc, data; color_in = "red", name = "Candidate DC converter")
             end
         end
      end
 
      if haskey(data, "storage")
         for (s, storage) in data["storage"]
-             plot_storage(io, storage, s, data; color_in = "yellow")
+             _plot_storage(io, storage, s, data; color_in = "yellow")
         end
      end
 
@@ -89,10 +89,10 @@ function plot_geo_data(data_in, filename, settings; solution = Dict())
         for (s, storage) in data["ne_storage"]
             if haskey(settings, "plot_solution_only")
                 if  sol["ne_storage"]["$s"]["isbuilt"] == 1
-                    plot_storage(io, storage, s, data; color_in = "yellow", name = "Candidate storage")
+                    _plot_storage(io, storage, s, data; color_in = "yellow", name = "Candidate storage")
                 end
             else
-                plot_storage(io, storage, s, data; color_in = "red", name = "Candidate storage")
+                _plot_storage(io, storage, s, data; color_in = "red", name = "Candidate storage")
             end
         end
      end
@@ -103,7 +103,7 @@ function plot_geo_data(data_in, filename, settings; solution = Dict())
 end
 
 
-function plot_bus(io, bus, b)
+function _plot_bus(io, bus, b)
     lat = bus["lat"]
     lon = bus["lon"]
     println(io, string("<Placemark> "));
@@ -130,7 +130,7 @@ function plot_bus(io, bus, b)
     return io
 end
 
-function plot_branch(io, branch, b, data; color_in = "blue", name = "Line")
+function _plot_branch(io, branch, b, data; color_in = "blue", name = "Line")
     println(io, string("<Placemark> "));
     println(io, string("<name>",name,"$b","</name> "))
     println(io, string("<LineString>"))
@@ -163,7 +163,7 @@ function plot_branch(io, branch, b, data; color_in = "blue", name = "Line")
 end
 
 
-function plot_dc_branch(io, branch, b, data; color_in = "yellow", name = "DC Line")
+function _plot_dc_branch(io, branch, b, data; color_in = "yellow", name = "DC Line")
     println(io, string("<Placemark> "));
     println(io, string("<name>",name,"$b","</name> "))
     println(io, string("<LineString>"))
@@ -171,23 +171,25 @@ function plot_dc_branch(io, branch, b, data; color_in = "yellow", name = "DC Lin
     println(io, string("<coordinates>"))
     fbusdc = branch["fbusdc"]
     tbusdc = branch["tbusdc"]
+    fbus = 0
+    tbus = 0
     if haskey(data, "convdc")
         for (c, conv) in data["convdc"]
             if conv["busdc_i"] == fbusdc
-                global fbus = conv["busac_i"]
+                fbus = conv["busac_i"]
             end
             if conv["busdc_i"] == tbusdc
-                global tbus = conv["busac_i"]
+                tbus = conv["busac_i"]
             end
         end
     end
     if haskey(data, "convdc_ne")
         for (c, conv) in data["convdc_ne"]
             if conv["busdc_i"] == fbusdc
-                global fbus = conv["busac_i"]
+                fbus = conv["busac_i"]
             end
             if conv["busdc_i"] == tbusdc
-                global tbus = conv["busac_i"]
+                tbus = conv["busac_i"]
             end
         end
     end
@@ -216,7 +218,7 @@ function plot_dc_branch(io, branch, b, data; color_in = "yellow", name = "DC Lin
 end
 
 
-function plot_dc_conv(io, conv, c, data; color_in = "yellow", name = "DC Converter")
+function _plot_dc_conv(io, conv, c, data; color_in = "yellow", name = "DC Converter")
     println(io, string("<Placemark> "));
     println(io, string("<name>",name,"$c","</name> "))
     println(io, string("<LineString>"))
@@ -259,7 +261,7 @@ function plot_dc_conv(io, conv, c, data; color_in = "yellow", name = "DC Convert
 end
 
 
-function plot_storage(io, storage, s, data; color_in = "yellow", name = "Storage")
+function _plot_storage(io, storage, s, data; color_in = "yellow", name = "Storage")
     println(io, string("<Placemark> "));
     println(io, string("<name>",name,"$s","</name> "))
     println(io, string("<LineString>"))

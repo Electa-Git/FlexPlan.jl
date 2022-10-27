@@ -37,7 +37,7 @@ function run_and_time(
 
     time_start = time()
     result = build_method(data, model_type, optimizer; kwargs...)
-    @assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
+    @assert result["termination_status"] ∈ (_FP.OPTIMAL, _FP.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
     result["time"] = Dict{String,Any}("total" => time()-time_start)
     return result
 end
@@ -166,7 +166,7 @@ function run_performance_tests(tasks::DataFrame, params::Dict, settings::Dict; u
                     task_dir = settings[:optimization][:out_dir] = mkpath(joinpath(settings[:session][:tasks_dir], case_string, optimization_string, Dates.format(task_start_time,datetime_format)))
                     switch_log_file(joinpath(task_dir, "algorithm.log"))
                     termination_status, task_duration = optimize_case(case_data, task, settings)
-                    if termination_status != _PM.OPTIMAL
+                    if termination_status != _FP.OPTIMAL
                         Memento.warn(_LOGGER, "$case_string-$optimization_string: termination status is $(termination_status)")
                     end
                     switch_log_file(main_log_file)

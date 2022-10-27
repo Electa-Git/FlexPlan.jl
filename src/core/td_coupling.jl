@@ -49,7 +49,7 @@ function run_model(
         merge_multinetworks!(d_data_merged, data, :sub_nw)
     end
 
-    t_gens = add_td_coupling_generators!(t_data, d_data_merged)
+    t_gens = _add_td_coupling_generators!(t_data, d_data_merged)
 
     # Instantiate models
     start_time_instantiate = time()
@@ -140,7 +140,7 @@ end
 ## Functions that manipulate data structures
 
 """
-    add_td_coupling_generators!(t_data, d_data)
+    _add_td_coupling_generators!(t_data, d_data)
 
 Add and set T&D coupling generators.
 
@@ -157,9 +157,9 @@ Return a vector containing the ids of `t_gen`.
 - A dimension `sub_nw` is defined for `d_data` and a property `t_bus` defines the id of the
   transmission network bus where the distribution network is attached.
 """
-function add_td_coupling_generators!(t_data::Dict{String,Any}, d_data::Dict{String,Any})
+function _add_td_coupling_generators!(t_data::Dict{String,Any}, d_data::Dict{String,Any})
     t_nw_ids = nw_ids(t_data)
-    if !check_constant_number_of_generators(t_data, t_nw_ids)
+    if !_check_constant_number_of_generators(t_data, t_nw_ids)
         Memento.error(_LOGGER, "The number of generators in transmission network is not constant.")
     end
 
@@ -168,13 +168,13 @@ function add_td_coupling_generators!(t_data::Dict{String,Any}, d_data::Dict{Stri
 
     for s in 1:number_of_distribution_networks
         d_nw_ids = nw_ids(d_data; sub_nw=s)
-        if !check_constant_number_of_generators(d_data, d_nw_ids)
+        if !_check_constant_number_of_generators(d_data, d_nw_ids)
             Memento.error(_LOGGER, "The number of generators in distribution network $s is not constant.")
         end
         sub_nw = dim_prop(d_data, :sub_nw, s)
 
         # Get distribution coupling generator id and store it in `sub_nw`` properties
-        d_gen_idx = sub_nw["d_gen"] = get_reference_gen(d_data, s)
+        d_gen_idx = sub_nw["d_gen"] = _get_reference_gen(d_data, s)
 
         t_bus = sub_nw["t_bus"]
 
@@ -227,7 +227,7 @@ end
 
 ## Utility functions
 
-function check_constant_number_of_generators(data::Dict{String,Any}, nws::Vector{Int})
+function _check_constant_number_of_generators(data::Dict{String,Any}, nws::Vector{Int})
     data_nw = data["nw"]
     first_n, rest = Iterators.peel(nws)
     first_n_gen_length = length(data_nw["$first_n"]["gen"])
@@ -239,7 +239,7 @@ function check_constant_number_of_generators(data::Dict{String,Any}, nws::Vector
     return true
 end
 
-function get_reference_gen(data::Dict{String,Any}, s::Int=1)
+function _get_reference_gen(data::Dict{String,Any}, s::Int=1)
     nws = nw_ids(data; sub_nw=s)
     first_nw = data["nw"][ string(first(nws)) ]
 

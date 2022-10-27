@@ -64,7 +64,7 @@ function run_td_decoupling(
     # Data preparation and checks
     for s in 1:number_of_distribution_networks
         data = d_data[s]
-        d_gen_id = _FP.get_reference_gen(data)
+        d_gen_id = _FP._get_reference_gen(data)
         _FP.add_dimension!(data, :sub_nw, Dict(1 => Dict{String,Any}("t_bus"=>data["t_bus"], "d_gen"=>d_gen_id)))
         delete!(data, "t_bus")
 
@@ -181,7 +181,7 @@ function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optim
         )
     end
     Memento.trace(_LOGGER, "└ solved in $(round(time()-start_time;sigdigits=3)) seconds (of which $(round(result["solve_time"];sigdigits=3)) seconds for solver)")
-    if result["termination_status"] ∉ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED)
+    if result["termination_status"] ∉ (OPTIMAL, LOCALLY_SOLVED)
         Memento.error(_LOGGER, "Unable to solve $(String(nameof(build_method))) ($(result["optimizer"]) termination status: $(result["termination_status"]))")
     end
     return return_solution ? result["solution"] : result

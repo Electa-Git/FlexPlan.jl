@@ -22,7 +22,7 @@
     @testset "T&D decoupling" begin
         @testset "calc_surrogate_model" begin
             data = deepcopy(d_data[1])
-            d_gen_id = _FP.get_reference_gen(data)
+            d_gen_id = _FP._get_reference_gen(data)
             _FP.add_dimension!(data, :sub_nw, Dict(1 => Dict{String,Any}("d_gen"=>d_gen_id)))
             sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(data;
                 model_type = _FP.BFARadPowerModel,

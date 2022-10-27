@@ -61,6 +61,6 @@ d_data = [d_data_sub_1, d_data_sub_2]
 ## Solve problem
 
 result = _FP.simple_stoch_flex_tnep(t_data, d_data, t_model_type, d_model_type, optimizer; t_setting, d_setting, direct_model)
-@assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
+@assert result["termination_status"] ∈ (_FP.OPTIMAL, _FP.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
 
 notice(_LOGGER, "Script completed in $(round(time()-time_start;sigdigits=3)) seconds.")

@@ -109,7 +109,7 @@ result_benders = _FP.run_benders_decomposition(
     _FP.build_simple_stoch_flex_tnep_benders_secondary;
     ref_extensions, solution_processors, setting
 )
-if result_benders["termination_status"] != _PM.OPTIMAL
+if result_benders["termination_status"] != _FP.OPTIMAL
     Memento.warn(_LOGGER, "Termination status: $(result_benders["termination_status"]).")
 end
 

@@ -1,5 +1,3 @@
-export stoch_flex_tnep
-
 "Multi-scenario TNEP with flexible loads and storage, for transmission networks"
 function stoch_flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
     require_dim(data, :hour, :scenario, :year)

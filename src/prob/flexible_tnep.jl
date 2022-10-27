@@ -1,5 +1,3 @@
-export flex_tnep
-
 "TNEP with flexible loads and storage, for transmission networks"
 function flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
     require_dim(data, :hour, :year)

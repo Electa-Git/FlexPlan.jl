@@ -1,5 +1,3 @@
-export strg_tnep
-
 "TNEP with storage, for transmission networks"
 function strg_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
     require_dim(data, :hour, :year)

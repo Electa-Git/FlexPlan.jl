@@ -22,12 +22,12 @@
     @testset "TNEP without flex loads" begin
         @testset "Transmission" begin
             result = _FP.strg_tnep(t_data_1scenario, _PM.DCPPowerModel, cbc; setting)
-            @test result["termination_status"] == _PM.OPTIMAL
+            @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 7489.8 rtol=1e-3
         end
         @testset "Distribution" begin
             result = _FP.strg_tnep(d_data, _FP.BFARadPowerModel, cbc)
-            @test result["termination_status"] == _PM.OPTIMAL
+            @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 355.0 rtol=1e-3
         end
     end
@@ -35,12 +35,12 @@
     @testset "TNEP" begin
         @testset "Transmission" begin
             result = _FP.flex_tnep(t_data_1scenario, _PM.DCPPowerModel, cbc; setting)
-            @test result["termination_status"] == _PM.OPTIMAL
+            @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 7486.2 rtol=1e-3
         end
         @testset "Distribution" begin
             result = _FP.flex_tnep(d_data, _FP.BFARadPowerModel, cbc)
-            @test result["termination_status"] == _PM.OPTIMAL
+            @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 354.6 rtol=1e-3
         end
     end
@@ -48,12 +48,12 @@
     @testset "Stochastic TNEP" begin
         @testset "Transmission" begin
             result = _FP.stoch_flex_tnep(t_data, _PM.DCPPowerModel, cbc; setting)
-            @test result["termination_status"] == _PM.OPTIMAL
+            @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 7702.3 rtol=1e-3
         end
         @testset "Distribution" begin
             result = _FP.stoch_flex_tnep(d_data, _FP.BFARadPowerModel, cbc)
-            @test result["termination_status"] == _PM.OPTIMAL
+            @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 354.6 rtol=1e-3
         end
     end
@@ -61,12 +61,12 @@
     @testset "Simplified stochastic TNEP" begin
         @testset "Transmission" begin
             result = _FP.simple_stoch_flex_tnep(t_data, _PM.DCPPowerModel, cbc; setting)
-            @test result["termination_status"] == _PM.OPTIMAL
+            @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 7617.5 rtol=1e-3
         end
         @testset "Distribution" begin
             result = _FP.simple_stoch_flex_tnep(d_data, _FP.BFARadPowerModel, cbc)
-            @test result["termination_status"] == _PM.OPTIMAL
+            @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 354.6 rtol=1e-3
         end
     end
