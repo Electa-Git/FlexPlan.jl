@@ -1,7 +1,7 @@
-import FlexPlan; const _FP = FlexPlan
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC
-import PowerModels; const _PM = PowerModels
-import InfrastructureModels; const _IM = InfrastructureModels
+import FlexPlan as _FP
+import PowerModelsACDC as _PMACDC
+import PowerModels as _PM
+import InfrastructureModels as _IM
 using JuMP
 using Memento
 
@@ -10,9 +10,9 @@ include(normpath(@__DIR__,"..","test","io","multiple_years.jl"))
 include(normpath(@__DIR__,"..","test","io","load_case.jl"))
 
 # Suppress warnings during testing.
-Memento.setlevel!(Memento.getlogger(InfrastructureModels), "error")
-Memento.setlevel!(Memento.getlogger(PowerModelsACDC), "error")
-Memento.setlevel!(Memento.getlogger(PowerModels), "error")
+Memento.setlevel!(Memento.getlogger(_IM), "error")
+Memento.setlevel!(Memento.getlogger(_PMACDC), "error")
+Memento.setlevel!(Memento.getlogger(_PM), "error")
 
 using Ipopt
 using SCS

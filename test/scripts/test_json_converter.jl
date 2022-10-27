@@ -2,9 +2,9 @@
 
 ## Import packages
 
-import PowerModels; const _PM = PowerModels
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC
-import FlexPlan; const _FP = FlexPlan
+import PowerModels as _PM
+import PowerModelsACDC as _PMACDC
+import FlexPlan as _FP
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, # Options: <https://github.com/jump-dev/Cbc.jl#options>
     "logLevel" => 0,

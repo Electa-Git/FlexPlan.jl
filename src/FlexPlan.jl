@@ -3,17 +3,11 @@ module FlexPlan
 
 ## Imports
 
-import JuMP
 import Memento
-import PowerModels
-import PowerModelsACDC
-const _PM = PowerModels
-const _PMACDC = PowerModelsACDC
-import InfrastructureModels
-#import InfrastructureModels: ids, ref, var, con, sol, nw_ids, nws, optimize_model!, @im_fields
-const _IM = InfrastructureModels
-
-using Printf
+import JuMP
+import InfrastructureModels as _IM
+import PowerModels as _PM
+import PowerModelsACDC as _PMACDC
 
 
 ## Memento settings

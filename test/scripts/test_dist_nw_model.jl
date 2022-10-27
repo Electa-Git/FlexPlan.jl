@@ -9,8 +9,8 @@
 
 ## Import packages and choose a solver
 
-import PowerModels; const _PM = PowerModels
-import FlexPlan; const _FP = FlexPlan
+import PowerModels as _PM
+import FlexPlan as _FP
 import Cbc
 optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
 

@@ -1,14 +1,11 @@
-import PowerModelsACDC
-const _PMACDC = PowerModelsACDC
-import PowerModels
-const _PM = PowerModels
+import PowerModels as _PM
+import PowerModelsACDC as _PMACDC
+import FlexPlan as _FP
 import Ipopt
 import Memento
 import JuMP
 import Gurobi  # needs startvalues for all variables!
 import Juniper
-import FlexPlan
-const _FP = FlexPlan
 
 file = normpath(@__DIR__,"../../test/data/case67/case67.m")
 file_2030 = normpath(@__DIR__,"../../test/data/case67/case67_tnep_2030.m")

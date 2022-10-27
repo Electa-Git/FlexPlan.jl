@@ -6,9 +6,9 @@
 using Memento
 _LOGGER = Logger(first(splitext(basename(@__FILE__)))) # A logger for this script, also used by included files.
 
-import PowerModels; const _PM = PowerModels
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC
-import FlexPlan; const _FP = FlexPlan
+import PowerModels as _PM
+import PowerModelsACDC as _PMACDC
+import FlexPlan as _FP
 include("../test/io/load_case.jl") # Include sample data from FlexPlan repository; you can of course also use your own data
 
 

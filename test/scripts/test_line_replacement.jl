@@ -3,9 +3,9 @@
 
 ## Import relevant packages
 
-import FlexPlan; const _FP = FlexPlan
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC # For DC grid
-import PowerModels; const _PM = PowerModels # For AC grid and common functions
+import FlexPlan as _FP
+import PowerModelsACDC as _PMACDC # For DC grid
+import PowerModels as _PM # For AC grid and common functions
 
 # Include sample data from FlexPlan repository; you can of course also use your own data
 include("../io/create_profile.jl")

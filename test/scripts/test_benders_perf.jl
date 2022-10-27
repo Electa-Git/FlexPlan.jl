@@ -1,8 +1,8 @@
 # Test of Benders decomposition performance
 
-import PowerModels; const _PM = PowerModels
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC
-import FlexPlan; const _FP = FlexPlan
+import PowerModels as _PM
+import PowerModelsACDC as _PMACDC
+import FlexPlan as _FP
 using Memento
 using Printf
 _LOGGER = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script, also used by included files.
@@ -36,7 +36,7 @@ settings = Dict(
 settings[:session][:tasks_dir] = mkpath(joinpath(settings[:session][:out_dir],"tasks"))
 settings[:session][:results_dir] = mkpath(joinpath(settings[:session][:out_dir],"results"))
 datetime_format = "yyyymmddTHHMMSS\\Z" # As per ISO 8601. Basic format (i.e. without separators) is used for consistency across operating systems.
-setlevel!.(Memento.getpath(getlogger(FlexPlan)), "debug") # Log messages from FlexPlan having level >= "debug"
+setlevel!.(Memento.getpath(getlogger(_FP)), "debug") # Log messages from FlexPlan having level >= "debug"
 root_logger = getlogger()
 push!(gethandlers(root_logger)["console"], Memento.Filter(rec -> rec.name==_LOGGER.name || root_logger.levels[getlevel(rec)]>=root_logger.levels["warn"])) # Filter console output: display all records from this script and records from other loggers having level >= "warn"
 script_start_time = now(UTC)

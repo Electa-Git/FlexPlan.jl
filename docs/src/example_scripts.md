@@ -7,9 +7,9 @@ A number of example scripts have been provided within `FlexPlan.jl` under `"Flex
 The required packages for FlexPlan.jl are `PowerModels.jl` and `PowerModelsACDC.jl`. You can declare the packages as follows, and use short names to access specific functions without having to type the full package name every time.
 
 ``` julia
-import PowerModels; const _PM = PowerModels
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC
-import FlexPlan; const _FP = FlexPlan
+import PowerModels as _PM
+import PowerModelsACDC as _PMACDC
+import FlexPlan as _FP
 ```
 Any other additional package that you might need, e.g., for printing, plotting, exporting results etc. can be declared in the same way.
 

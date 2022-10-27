@@ -2,9 +2,9 @@
 
 
 ## Import packages and load common code
-import PowerModels; const _PM = PowerModels
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC
-import FlexPlan; const _FP = FlexPlan
+import PowerModels as _PM
+import PowerModelsACDC as _PMACDC
+import FlexPlan as _FP
 include("../io/create_profile.jl")
 include("../io/multiple_years.jl")
 # Solvers are imported later, select name here
@@ -43,7 +43,7 @@ data = create_multi_year_network_data(test_case, number_of_hours, number_of_scen
 s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "add_co2_cost" => false)
 
 # One-step alternative, does not expose pm
-#result = _FP.stoch_flex_tnep(data, model_type, optimizer, multinetwork=_PM._IM.ismultinetwork(data); setting=s)
+#result = _FP.stoch_flex_tnep(data, model_type, optimizer, multinetwork=_FP._IM.ismultinetwork(data); setting=s)
 
 # Two-step alternative, exposes pm
 pm = _PM.instantiate_model(data, model_type, _FP.build_stoch_flex_tnep; ref_extensions=[_FP.ref_add_gen!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!], setting=s)
