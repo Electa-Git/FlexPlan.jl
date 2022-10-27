@@ -5,7 +5,7 @@
 ## Functions replacing PowerModels or InfrastructureModels functions
 
 ""
-function run_model(
+function solve_model(
         t_data::Dict{String,Any},
         d_data::Vector{Dict{String,Any}},
         t_model_type::Type{<:_PM.AbstractPowerModel},

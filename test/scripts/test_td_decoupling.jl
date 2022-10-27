@@ -207,7 +207,7 @@ end
 
 if compare_with_combined_td_model
     info(_LOGGER, "Solving planning problem using combined T&D model...")
-    result_combined = _FP.run_model(
+    result_combined = _FP.solve_model(
         t_data, d_data, t_model_type, d_model_type, optimizer_mt, build_method;
         t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting, direct_model
     )

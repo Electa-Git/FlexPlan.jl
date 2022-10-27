@@ -1,7 +1,7 @@
 "Multi-scenario TNEP with flexible loads and storage, for transmission networks"
 function simple_stoch_flex_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
     require_dim(data, :hour, :scenario, :year)
-    return _PM.run_model(
+    return _PM.solve_model(
         data, model_type, optimizer, build_simple_stoch_flex_tnep;
         ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
         solution_processors = [_PM.sol_data_model!],
@@ -13,7 +13,7 @@ end
 "Multi-scenario TNEP with flexible loads and storage, for distribution networks"
 function simple_stoch_flex_tnep(data::Dict{String,Any}, model_type::Type{<:_PM.AbstractBFModel}, optimizer; kwargs...)
     require_dim(data, :hour, :scenario, :year)
-    return _PM.run_model(
+    return _PM.solve_model(
         data, model_type, optimizer, build_simple_stoch_flex_tnep;
         ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
         solution_processors = [_PM.sol_data_model!],
@@ -28,7 +28,7 @@ function simple_stoch_flex_tnep(t_data::Dict{String,Any}, d_data::Vector{Dict{St
     for data in d_data
         require_dim(data, :hour, :scenario, :year)
     end
-    return run_model(
+    return solve_model(
         t_data, d_data, t_model_type, d_model_type, optimizer, build_simple_stoch_flex_tnep;
         t_ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],
         d_ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!, ref_add_flex_load!],

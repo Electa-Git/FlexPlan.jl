@@ -159,7 +159,7 @@ function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optim
     start_time = time()
     Memento.trace(_LOGGER, "┌ running $(String(nameof(build_method)))...")
     if direct_model
-        result = _PM.run_model(
+        result = _PM.solve_model(
             data, model_type, nothing, build_method;
             ref_extensions,
             solution_processors,
@@ -170,7 +170,7 @@ function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optim
             kwargs...
         )
     else
-        result = _PM.run_model(
+        result = _PM.solve_model(
             data, model_type, optimizer, build_method;
             ref_extensions,
             solution_processors,
