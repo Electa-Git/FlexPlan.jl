@@ -14,8 +14,8 @@ include("../test/io/load_case.jl") # Include sample data from FlexPlan repositor
 
 ## Set up solver
 
-import Cbc
-optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>1, "threads"=>Threads.nthreads())
+import HiGHS
+optimizer = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>false)
 #import CPLEX
 #optimizer = _FP.optimizer_with_attributes(CPLEX.Optimizer, "CPXPARAM_ScreenOutput"=>0)
 direct_model = false # Whether to construct JuMP models using JuMP.direct_model() instead of JuMP.Model(). direct_model is only supported by some solvers.

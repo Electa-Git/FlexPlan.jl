@@ -5,7 +5,7 @@
         _FP.add_dimension!(data, :hour, 1)
         _FP.add_dimension!(data, :year, 1)
         data = _FP.make_multinetwork(data)
-        result = _FP.flex_tnep(data, _FP.BFARadPowerModel, cbc)
+        result = _FP.flex_tnep(data, _FP.BFARadPowerModel, milp_optimizer)
         sol = result["solution"]["nw"]["1"]
         @test result["termination_status"] == OPTIMAL
         @test result["objective"] ≈ 4360.45 rtol=1e-3
@@ -30,7 +30,7 @@
         data["nw"]["1"]["load"]["1"]["pd"] += 10.0 # Bus 1. Changes reactive power demand too, via `pf_angle`.
         data["nw"]["1"]["load"]["12"]["pd"] += 4.0 # Bus 13. Changes reactive power demand too, via `pf_angle`.
         data["nw"]["1"]["branch"]["12"]["rate_a"] = data["nw"]["1"]["branch"]["12"]["rate_b"] = data["nw"]["1"]["branch"]["12"]["rate_c"] = 0.0
-        result = _FP.flex_tnep(data, _FP.BFARadPowerModel, cbc)
+        result = _FP.flex_tnep(data, _FP.BFARadPowerModel, milp_optimizer)
         sol = result["solution"]["nw"]["1"]
         @test result["termination_status"] == OPTIMAL
         @test result["objective"] ≈ 5764.48 rtol=1e-3

@@ -11,8 +11,8 @@
 
 import PowerModels as _PM
 import FlexPlan as _FP
-import Cbc
-optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
+import HiGHS
+optimizer = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>false)
 
 
 ## Settings

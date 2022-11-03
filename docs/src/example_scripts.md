@@ -16,8 +16,8 @@ Any other additional package that you might need, e.g., for printing, plotting, 
 Also, the solution of the problem will require an MILP solver. As ```FlexPlan.jl``` is in the Julia / JuMP environment, it can be interfaced with any optimisation solver. You can declare and initialize the solver as follows:
 
 ``` julia
-import Cbc
-optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
+import HiGHS
+optimizer = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>false)
 ```
 
 ## Step 2: Input data

@@ -7,20 +7,13 @@ import PowerModelsACDC as _PMACDC
 import FlexPlan as _FP
 include("../io/create_profile.jl")
 include("../io/multiple_years.jl")
-# Solvers are imported later, select name here
-solver = "Cbc"
 
 
 ## Import and set solver
-if solver == "Cbc"
-    import Cbc
-    optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer,
-        "logLevel" => 0, # ∈ {0,1}, default: 0
-    ) # Solver options: <https://github.com/jump-dev/Cbc.jl#using-with-jump>
-elseif solver == "Gurobi"
-    import Gurobi
-    optimizer = _FP.optimizer_with_attributes(Gurobi.Optimizer) # Solver options: <https://www.gurobi.com/documentation/current/refman/parameters.html>
-end
+import HiGHS
+optimizer = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>false)
+#import CPLEX
+#optimizer = _FP.optimizer_with_attributes(CPLEX.Optimizer, "CPXPARAM_ScreenOutput"=>0)
 
 
 ## Input parameters

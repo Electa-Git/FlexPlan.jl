@@ -5,10 +5,8 @@
 import PowerModels as _PM
 import PowerModelsACDC as _PMACDC
 import FlexPlan as _FP
-import Cbc
-optimizer = _FP.optimizer_with_attributes(Cbc.Optimizer, # Options: <https://github.com/jump-dev/Cbc.jl#options>
-    "logLevel" => 0,
-)
+import HiGHS
+optimizer = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>false)
 
 
 ## Script parameters
