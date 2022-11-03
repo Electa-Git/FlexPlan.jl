@@ -173,7 +173,7 @@ function _add_td_coupling_generators!(t_data::Dict{String,Any}, d_data::Dict{Str
         end
         sub_nw = dim_prop(d_data, :sub_nw, s)
 
-        # Get distribution coupling generator id and store it in `sub_nw`` properties
+        # Get distribution coupling generator id and store it in `sub_nw` properties
         d_gen_idx = sub_nw["d_gen"] = _get_reference_gen(d_data, s)
 
         t_bus = sub_nw["t_bus"]
@@ -309,7 +309,7 @@ function constraint_td_coupling(t_pm::_PM.AbstractPowerModel, d_pm::_PM.Abstract
 
     for s in keys(dim_prop(d_pm, :sub_nw))
         d_nws = nw_ids(d_pm; sub_nw = s)
-        for i in 1:length(t_nws)
+        for i in eachindex(t_nws)
             t_nw = t_nws[i]
             d_nw = d_nws[i]
 

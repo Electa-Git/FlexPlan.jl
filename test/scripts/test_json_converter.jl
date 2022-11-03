@@ -22,7 +22,7 @@ file = "test/data/json_converter/case6_input_file_2018-2019.json"
 
 ## Convert JSON file
 
-mn_data = _FP.convert_JSON(file) # Conversion caveats and function parameters: see function documentation
+mn_data = _FP.convert_JSON(file; year_scale_factor=10) # Conversion caveats and function parameters: see function documentation
 
 
 ## Instantiate model and solve network expansion problem

@@ -7,7 +7,12 @@
 
 @testset "Problem" begin
 
-    t_data = create_multi_year_network_data("case6", 4, 2, 3; cost_scale_factor=1e-6)
+    t_data = load_case6(;
+        number_of_hours = 4,
+        number_of_scenarios = 2,
+        number_of_years = 3,
+        cost_scale_factor = 1e-6
+    )
     t_data_1scenario = _FP.slice_multinetwork(t_data; scenario=1)
     setting = Dict("conv_losses_mp" => false)
 
