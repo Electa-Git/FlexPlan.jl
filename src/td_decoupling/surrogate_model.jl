@@ -153,10 +153,10 @@ function surrogate_load_ts(load, od, storage, up, bs, dn)
     pd = min(up["td_coupling"]["p"]-storage["charge_rating"]-pshift_up_max, bs["td_coupling"]["p"]-dn["td_coupling"]["p"]-storage["discharge_rating"])
 
     load = copy(load)
-    load["pd"] = pd
-    load["pshift_up_rel_max"]   = pshift_up_max / pd
-    load["pshift_down_rel_max"] = pshift_down_max / pd
-    load["pred_rel_max"]        = pred_max / pd
+    load["pd"]                  = max(pd, 0.0)
+    load["pshift_up_rel_max"]   = pd>0 ? pshift_up_max/pd : 0.0
+    load["pshift_down_rel_max"] = pd>0 ? pshift_down_max/pd : 0.0
+    load["pred_rel_max"]        = pd>0 ? pred_max/pd : 0.0
     load["cost_curt"]           = minimum(ld["cost_curt"] for ld in values(od["load"]))
     if load["flex"]
         load["cost_red"]        = minimum(od["load"][l]["cost_red"] for (l,ld) in bs["load"] if ld["flex"]>0.5)
