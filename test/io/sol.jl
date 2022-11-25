@@ -239,6 +239,65 @@ function sol_report_cost_summary(sol::Dict{String,Any}, data::Dict{String,Any}; 
 end
 
 """
+    sol_report_investment(sol, data; <keyword arguments>)
+
+Report investment decisions made in `sol`.
+
+Return a DataFrame; optionally write a CSV table.
+
+# Arguments
+- `sol::Dict{String,Any}`: the solution Dict contained in the result Dict of a FlexPlan
+  optimization problem.
+- `data::Dict{String,Any}`: the multinetwork data Dict used for the same FlexPlan
+  optimization problem.
+- `out_dir::String=pwd()`: directory for output files.
+- `table::String=""`: if not empty, output a CSV table to `table` file.
+"""
+function sol_report_investment(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir::String=pwd(), table::String="")
+    _FP.require_dim(data, :hour, :scenario, :year)
+    dim = data["dim"]
+
+    df = DataFrame(component=String[], id=Int[], source_id=String[], year=Int[], investment=Bool[])
+    for n in _FP.nw_ids(dim; hour=1, scenario=1)
+        sol_nw = sol["nw"]["$n"]
+        data_nw = data["nw"]["$n"]
+        y = _FP.coord(dim, n, :year)
+
+        for (b,br_sol) in get(sol_nw,"ne_branch",Dict())
+            br_data = data_nw["ne_branch"][b]
+            push!(df, ("ne_branch", parse(Int,b), string(last(br_data["source_id"])), y, br_sol["investment"]>0.5))
+        end
+
+        for (c,conv_sol) in get(sol_nw,"convdc_ne",Dict())
+            conv_data = data_nw["convdc_ne"][c]
+            push!(df, ("convdc_ne", parse(Int,c), string(last(conv_data["source_id"])), y, conv_sol["investment"]>0.5))
+        end
+
+        for (b,br_sol) in get(sol_nw,"branchdc_ne",Dict())
+            br_data = data_nw["branchdc_ne"][b]
+            push!(df, ("branchdc_ne", parse(Int,b), string(last(br_data["source_id"])), y, br_sol["investment"]>0.5))
+        end
+
+        for (s,storage_sol) in get(sol_nw,"ne_storage",Dict())
+            storage_data = data_nw["ne_storage"][s]
+            push!(df, ("ne_storage", parse(Int,s), string(last(storage_data["source_id"])), y, storage_sol["investment"]>0.5))
+        end
+
+        for (l,load_sol) in get(sol_nw,"load",Dict())
+            load_data = data_nw["load"][l]
+            push!(df, ("load", parse(Int,l), string(last(load_data["source_id"])), y, load_sol["investment"]>0.5))
+        end
+    end
+    sort!(df, [:component, :id, :year])
+
+    if !isempty(table)
+        CSV.write(joinpath(out_dir,table), df)
+    end
+
+    return df
+end
+
+"""
     sol_report_investment_summary(sol, data; <keyword arguments>)
 
 Report a summary of investments made in `sol`.

@@ -146,6 +146,7 @@ if report_intermediate_results
         sol_report_load(sol, d_data_intermediate; out_dir=subdir, table="t_load.csv", plot="load.pdf")
         sol_report_load_summary(sol, d_data_intermediate; out_dir=subdir, table="t_load_summary.csv", plot="load_summary.pdf")
         if name == "base"
+            sol_report_investment(sol, d_data_intermediate; out_dir=subdir, table="t_investment.csv")
             sol_report_investment_summary(sol, d_data_intermediate; out_dir=subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
             sol_report_storage(sol, d_data_intermediate; out_dir=subdir, table="t_storage.csv", plot="storage.pdf")
             sol_report_storage_summary(sol, d_data_intermediate; out_dir=subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
@@ -181,6 +182,7 @@ if report_result
     sol_report_gen(t_sol, t_data; out_dir=t_subdir, table="t_gen.csv", plot="gen.pdf")
     sol_report_load(t_sol, t_data; out_dir=t_subdir, table="t_load.csv", plot="load.pdf")
     sol_report_load_summary(t_sol, t_data; out_dir=t_subdir, table="t_load_summary.csv", plot="load_summary.pdf")
+    sol_report_investment(t_sol, t_data; out_dir=t_subdir, table="t_investment.csv")
     sol_report_investment_summary(t_sol, t_data; out_dir=t_subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
     sol_report_storage(t_sol, t_data; out_dir=t_subdir, table="t_storage.csv", plot="storage.pdf")
     sol_report_storage_summary(t_sol, t_data; out_dir=t_subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
@@ -195,6 +197,7 @@ if report_result
         sol_report_gen(sol, d_data_sub; out_dir=subdir, table="t_gen.csv", plot="gen.pdf")
         sol_report_load(sol, d_data_sub; out_dir=subdir, table="t_load.csv", plot="load.pdf")
         sol_report_load_summary(sol, d_data_sub; out_dir=subdir, table="t_load_summary.csv", plot="load_summary.pdf")
+        sol_report_investment(sol, d_data_sub; out_dir=subdir, table="t_investment.csv")
         sol_report_investment_summary(sol, d_data_sub; out_dir=subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
         sol_report_storage(sol, d_data_sub; out_dir=subdir, table="t_storage.csv", plot="storage.pdf")
         sol_report_storage_summary(sol, d_data_sub; out_dir=subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
