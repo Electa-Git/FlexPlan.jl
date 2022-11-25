@@ -19,34 +19,47 @@
         d_data[s]["t_bus"] = mod1(s, length(first(values(t_data["nw"]))["bus"])) # Attach distribution network to a transmission network bus
     end
 
-    @testset "T&D decoupling" begin
-        @testset "calc_surrogate_model" begin
-            data = deepcopy(d_data[1])
-            d_gen_id = _FP.get_reference_gen(data)
-            _FP.add_dimension!(data, :sub_nw, Dict(1 => Dict{String,Any}("d_gen"=>d_gen_id)))
-            sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(data;
-                model_type = _FP.BFARadPowerModel,
-                optimizer = highs,
-                build_method = _FP.post_simple_stoch_flex_tnep,
-                ref_extensions = d_ref_extensions,
-                solution_processors = d_solution_processors
-            )
-            surrogate_distribution = _FP.TDDecoupling.calc_surrogate_model(d_data[1], sol_up, sol_base, sol_down)
-            surr_nw_1 = surrogate_distribution["nw"]["1"]
-            @test length(surr_nw_1["gen"]) == 1
-            @test length(surr_nw_1["load"]) == 1
-            @test length(surr_nw_1["storage"]) == 1
+    @testset "calc_surrogate_model" begin
+        data = deepcopy(d_data[1])
+        d_gen_id = _FP.get_reference_gen(data)
+        _FP.add_dimension!(data, :sub_nw, Dict(1 => Dict{String,Any}("d_gen"=>d_gen_id)))
+        sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(data;
+            model_type = _FP.BFARadPowerModel,
+            optimizer = highs,
+            build_method = _FP.post_simple_stoch_flex_tnep,
+            ref_extensions = d_ref_extensions,
+            solution_processors = d_solution_processors
+        )
+        surrogate_distribution = _FP.TDDecoupling.calc_surrogate_model(d_data[1], sol_up, sol_base, sol_down)
+        surr_nw_1 = surrogate_distribution["nw"]["1"]
+        @test length(surr_nw_1["gen"])     == 1
+        @test length(surr_nw_1["load"])    == 1
+        @test length(surr_nw_1["storage"]) == 1
+        for (n,nw) in surrogate_distribution["nw"]
+            load = nw["load"]["1"]
+            @test load["pd"]                  ≥ 0.0
+            @test load["pshift_up_rel_max"]   ≥ 0.0
+            @test load["pshift_down_rel_max"] ≥ 0.0
+            @test load["pred_rel_max"]        ≥ 0.0
+            storage = nw["storage"]["1"]
+            @test storage["charge_rating"]             ≥ 0.0
+            @test storage["discharge_rating"]          ≥ 0.0
+            @test storage["stationary_energy_inflow"]  ≥ 0.0
+            @test storage["stationary_energy_outflow"] ≥ 0.0
+            @test storage["thermal_rating"]            ≥ 0.0
+            gen = nw["gen"]["1"]
+            @test gen["pmax"] ≥ 0.0
         end
+    end
 
-        @testset "run_td_decoupling" begin
-            result = _FP.run_td_decoupling(
-                t_data, d_data, _PM.DCPPowerModel, _FP.BFARadPowerModel, highs, highs, _FP.post_simple_stoch_flex_tnep;
-                t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting
-            )
-            @test result["objective"] ≈ 2440.8 rtol=1e-3
-            @test length(result["d_solution"]) == number_of_distribution_networks
-            @test length(result["d_objective"]) == number_of_distribution_networks
-        end
+    @testset "run_td_decoupling" begin
+        result = _FP.run_td_decoupling(
+            t_data, d_data, _PM.DCPPowerModel, _FP.BFARadPowerModel, highs, highs, _FP.post_simple_stoch_flex_tnep;
+            t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting
+        )
+        @test result["objective"] ≈ 2440.8 rtol=1e-3
+        @test length(result["d_solution"]) == number_of_distribution_networks
+        @test length(result["d_objective"]) == number_of_distribution_networks
     end
 
 end;
