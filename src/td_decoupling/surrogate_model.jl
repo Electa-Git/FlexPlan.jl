@@ -190,8 +190,8 @@ function surrogate_storage_ts(storage, od, up, bs, dn; standalone)
         + sum(
                 od["ne_storage"][i]["charge_efficiency"]*s["sc_ne"]
                 - s["sd_ne"]/od["ne_storage"][i]["discharge_efficiency"]
-                + od["storage"][i]["stationary_energy_inflow"]
-                - od["storage"][i]["stationary_energy_outflow"]
+                + od["ne_storage"][i]["stationary_energy_inflow"]
+                - od["ne_storage"][i]["stationary_energy_outflow"]
             for (i,s) in get(bs,"ne_storage",Dict()) if s["isbuilt"] > 0.5;
             init=0.0
         )
