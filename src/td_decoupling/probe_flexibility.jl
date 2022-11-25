@@ -15,6 +15,7 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; model_type, 
     add_storage_power_active_lb!(mn_data_up, sol_base)
     add_ne_storage_power_active_lb!(mn_data_up, sol_base)
     add_load_power_active_lb!(mn_data_up, sol_base)
+    add_load_flex_shift_up_lb!(mn_data_up, sol_base)
     sol_up = run_td_decoupling_model(mn_data_up; model_type, optimizer, build_method=build_max_import_with_current_investments_monotonic(build_method), ref_extensions, solution_processors, setting, direct_model, relax_integrality=true)
     apply_td_coupling_power_active!(mn_data_up, sol_up)
     sol_up = run_td_decoupling_model(mn_data_up; model_type, optimizer, build_method=build_min_cost_at_max_import_monotonic(build_method), ref_extensions, solution_processors, setting, direct_model, relax_integrality=true)
@@ -24,6 +25,8 @@ function probe_distribution_flexibility!(mn_data::Dict{String,Any}; model_type, 
     add_storage_power_active_ub!(mn_data_down, sol_base)
     add_ne_storage_power_active_ub!(mn_data_down, sol_base)
     add_load_power_active_ub!(mn_data_down, sol_base)
+    add_load_flex_shift_down_lb!(mn_data_down, sol_base)
+    add_load_flex_red_lb!(mn_data_down, sol_base)
     sol_down = run_td_decoupling_model(mn_data_down; model_type, optimizer, build_method=build_max_export_with_current_investments_monotonic(build_method), ref_extensions, solution_processors, setting, direct_model, relax_integrality=true)
     apply_td_coupling_power_active!(mn_data_down, sol_down)
     sol_down = run_td_decoupling_model(mn_data_down; model_type, optimizer, build_method=build_min_cost_at_max_export_monotonic(build_method), ref_extensions, solution_processors, setting, direct_model, relax_integrality=true)
@@ -76,6 +79,18 @@ end
 
 function add_load_power_active_lb!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
     _copy_comp_key!(mn_data, "load", "pflex_lb", solution, "pflex")
+end
+
+function add_load_flex_shift_up_lb!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
+    _copy_comp_key!(mn_data, "load", "pshift_up_lb", solution, "pshift_up")
+end
+
+function add_load_flex_shift_down_lb!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
+    _copy_comp_key!(mn_data, "load", "pshift_down_lb", solution, "pshift_down")
+end
+
+function add_load_flex_red_lb!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
+    _copy_comp_key!(mn_data, "load", "pred_lb", solution, "pred")
 end
 
 function apply_td_coupling_power_active!(mn_data::Dict{String,Any}, solution::Dict{String,Any})
@@ -195,6 +210,7 @@ function build_max_import_with_current_investments_monotonic(build_method::Funct
             constraint_storage_power_active_lb(pm, n)
             constraint_ne_storage_power_active_lb(pm, n)
             constraint_load_power_active_lb(pm, n)
+            constraint_load_flex_shift_up_lb(pm, n)
         end
         objective_max_import(pm)
     end
@@ -211,6 +227,8 @@ function build_max_export_with_current_investments_monotonic(build_method::Funct
             constraint_storage_power_active_ub(pm, n)
             constraint_ne_storage_power_active_ub(pm, n)
             constraint_load_power_active_ub(pm, n)
+            constraint_load_flex_shift_down_lb(pm, n)
+            constraint_load_flex_red_lb(pm, n)
         end
         objective_max_export(pm)
     end
@@ -228,6 +246,7 @@ function build_min_cost_at_max_import_monotonic(build_method::Function)
             constraint_storage_power_active_lb(pm, n)
             constraint_ne_storage_power_active_lb(pm, n)
             constraint_load_power_active_lb(pm, n)
+            constraint_load_flex_shift_up_lb(pm, n)
         end
     end
 end
@@ -244,6 +263,8 @@ function build_min_cost_at_max_export_monotonic(build_method::Function)
             constraint_storage_power_active_ub(pm, n)
             constraint_ne_storage_power_active_ub(pm, n)
             constraint_load_power_active_ub(pm, n)
+            constraint_load_flex_shift_down_lb(pm, n)
+            constraint_load_flex_red_lb(pm, n)
         end
     end
 end
@@ -304,6 +325,48 @@ function constraint_load_power_active_lb(pm::_PM.AbstractPowerModel, n::Int)
             lb = ub
         end
         JuMP.set_lower_bound(pflex, lb)
+    end
+end
+
+"Put a lower bound on upward shifted power of flexible loads"
+function constraint_load_flex_shift_up_lb(pm::_PM.AbstractPowerModel, n::Int)
+    for i in _PM.ids(pm, n, :flex_load)
+        pshift_up = _PM.var(pm, n, :pshift_up, i)
+        lb = _PM.ref(pm, n, :load, i, "pshift_up_lb")
+        ub = JuMP.upper_bound(pshift_up)
+        if lb > ub
+            Memento.debug(_LOGGER, @sprintf("Decreasing by %.1e the lower bound on upward shifted power of load %i in nw %i to make it equal to existing upper bound (%f).", lb-ub, i, n, ub))
+            lb = ub
+        end
+        JuMP.set_lower_bound(pshift_up, lb)
+    end
+end
+
+"Put a lower bound on downward shifted power of flexible loads"
+function constraint_load_flex_shift_down_lb(pm::_PM.AbstractPowerModel, n::Int)
+    for i in _PM.ids(pm, n, :flex_load)
+        pshift_down = _PM.var(pm, n, :pshift_down, i)
+        lb = _PM.ref(pm, n, :load, i, "pshift_down_lb")
+        ub = JuMP.upper_bound(pshift_down)
+        if lb > ub
+            Memento.debug(_LOGGER, @sprintf("Decreasing by %.1e the lower bound on downward shifted power of load %i in nw %i to make it equal to existing upper bound (%f).", lb-ub, i, n, ub))
+            lb = ub
+        end
+        JuMP.set_lower_bound(pshift_down, lb)
+    end
+end
+
+"Put a lower bound on voluntarily reduced power of flexible loads"
+function constraint_load_flex_red_lb(pm::_PM.AbstractPowerModel, n::Int)
+    for i in _PM.ids(pm, n, :flex_load)
+        pred = _PM.var(pm, n, :pred, i)
+        lb = _PM.ref(pm, n, :load, i, "pred_lb")
+        ub = JuMP.upper_bound(pred)
+        if lb > ub
+            Memento.debug(_LOGGER, @sprintf("Decreasing by %.1e the lower bound on volutarily reduced power of load %i in nw %i to make it equal to existing upper bound (%f).", lb-ub, i, n, ub))
+            lb = ub
+        end
+        JuMP.set_lower_bound(pred, lb)
     end
 end
 
