@@ -285,7 +285,9 @@ function sol_report_investment(sol::Dict{String,Any}, data::Dict{String,Any}; ou
 
         for (l,load_sol) in get(sol_nw,"load",Dict())
             load_data = data_nw["load"][l]
-            push!(df, ("load", parse(Int,l), string(last(load_data["source_id"])), y, load_sol["investment"]>0.5))
+            if load_data["flex"] > 0.5 # Loads that can be made flexible
+                push!(df, ("load", parse(Int,l), string(last(load_data["source_id"])), y, load_sol["investment"]>0.5))
+            end
         end
     end
     sort!(df, [:component, :id, :year])
