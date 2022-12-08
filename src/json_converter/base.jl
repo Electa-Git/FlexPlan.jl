@@ -106,9 +106,10 @@ function convert_JSON(source::AbstractDict;
     end
     if haskey(source["genericParameters"], "scenarioProbabilities")
         if maximum(length.(unique.(source["genericParameters"]["scenarioProbabilities"]))) > 1
-            Memento.warn(_LOGGER, "Only constant probabilities are supported for scenearios. Using first year probabilities for every year.")
+            Memento.warn(_LOGGER, "Only constant probabilities are supported for scenarios. Using first year probabilities for every year.")
         end
         scenario_probabilities = first(first.(source["genericParameters"]["scenarioProbabilities"]), number_of_scenarios) # The outermost `first` is needed if the user has specified a number of scenarios lower than that available.
+        scenario_probabilities = scenario_probabilities ./ sum(scenario_probabilities) # For `_FP.scale_data!` to work properly when applied later, scenario probabilities must be normalized.
     else
         scenario_probabilities = fill(1/number_of_scenarios,number_of_scenarios)
     end
