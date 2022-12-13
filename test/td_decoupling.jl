@@ -43,7 +43,7 @@
                 t_data, d_data, _PM.DCPPowerModel, _FP.BFARadPowerModel, milp_optimizer, milp_optimizer, _FP.build_simple_stoch_flex_tnep;
                 t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting
             )
-            @test result["objective"] ≈ 2440.8 rtol=1e-3
+            @test result["objective"] ≈ 2445.7 rtol=1e-3
             @test length(result["d_solution"]) == number_of_distribution_networks
             @test length(result["d_objective"]) == number_of_distribution_networks
         end
