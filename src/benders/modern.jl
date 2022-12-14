@@ -48,8 +48,8 @@ function run_benders_decomposition(
         algo::Modern,
         data::Dict{String,<:Any},
         model_type::Type,
-        main_opt::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
-        sec_opt::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
+        main_opt::Union{JuMP.MOI.AbstractOptimizer, JuMP.MOI.OptimizerWithAttributes},
+        sec_opt::Union{JuMP.MOI.AbstractOptimizer, JuMP.MOI.OptimizerWithAttributes},
         main_bm::Function,
         sec_bm::Function;
         ref_extensions::Vector{<:Function} = Function[],
@@ -70,12 +70,12 @@ function run_benders_decomposition(
             return
         end
         status = JuMP.callback_node_status(cb_data, pm_main.model)
-        if status != _MOI.CALLBACK_NODE_STATUS_INTEGER
-            if status == _MOI.CALLBACK_NODE_STATUS_FRACTIONAL
+        if status != JuMP.MOI.CALLBACK_NODE_STATUS_INTEGER
+            if status == JuMP.MOI.CALLBACK_NODE_STATUS_FRACTIONAL
                 Memento.warn(_LOGGER, "Benders callback called on fractional solution. Ignoring.")
                 return
             else
-                @assert status == _MOI.CALLBACK_NODE_STATUS_UNKNOWN
+                @assert status == JuMP.MOI.CALLBACK_NODE_STATUS_UNKNOWN
                 Memento.error(_LOGGER, "Benders callback called on unknown solution status (might be fractional or integer).")
             end
         end
@@ -115,7 +115,7 @@ function run_benders_decomposition(
 
     pm_main, pm_sec, num_sp, sp_obj_lb_var = instantiate_model(algo, data, model_type, main_opt, sec_opt, main_bm, sec_bm; ref_extensions, kwargs...)
     mp_obj_expr = JuMP.objective_function(pm_main.model)
-    _MOI.set(pm_main.model, _MOI.LazyConstraintCallback(), optimality_cut_callback)
+    JuMP.MOI.set(pm_main.model, JuMP.MOI.LazyConstraintCallback(), optimality_cut_callback)
 
     ub = Inf
     lb = -Inf
@@ -136,7 +136,7 @@ function run_benders_decomposition(
 
     fix_and_optimize_secondary!(pm_sec, best_main_var_values)
     solution = build_solution(pm_main, pm_sec, solution_processors)
-    termination_status = iter > algo.max_iter ? _MOI.ITERATION_LIMIT : _MOI.OPTIMAL
+    termination_status = iter > algo.max_iter ? JuMP.ITERATION_LIMIT : JuMP.OPTIMAL
     build_result(ub, lb, solution, termination_status, stat, time_procedure_start, time_build)
 end
 
@@ -170,7 +170,7 @@ function add_optimality_cuts!(pm_main, pm_sec, algo::Modern, num_sp, sp_obj_lb_v
             iter_cuts += 1
             optimality_cut_expr = calc_optimality_cut(pm_main, pm_sec[p], main_var_values)
             cut = JuMP.@build_constraint(sp_obj_lb_var[p] >= optimality_cut_expr)
-            _MOI.submit(pm_main.model, _MOI.LazyConstraint(cb_data), cut)
+            JuMP.MOI.submit(pm_main.model, JuMP.MOI.LazyConstraint(cb_data), cut)
         end
     end
     return iter_cuts

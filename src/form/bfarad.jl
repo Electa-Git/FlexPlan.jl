@@ -13,7 +13,7 @@ end
 
 "Voltage angle of all buses is that of the reference bus"
 function _PM.variable_bus_voltage_angle(pm::BFARadPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
-    report && _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :bus, :va, _PM.ids(pm, nw, :bus), last(first(_PM.ref(pm,nw,:ref_buses)))["va"])
+    report && _PM.sol_component_fixed(pm, nw, :bus, :va, _PM.ids(pm, nw, :bus), last(first(_PM.ref(pm,nw,:ref_buses)))["va"])
 end
 
 # Copied from _PM.variable_branch_power_real(pm::AbstractAPLossLessModels; nw::Int, bounded::Bool, report::Bool)
@@ -51,7 +51,7 @@ function _PM.variable_branch_power_real(pm::BFARadPowerModel; nw::Int=_PM.nw_id_
     p_expr = merge(p_expr, Dict( ((l,j,i), -1.0*p[(l,i,j)]) for (l,i,j) in _PM.ref(pm, nw, :arcs_from)))
     _PM.var(pm, nw)[:p] = p_expr
 
-    report && _IM.sol_component_value_edge(pm, _PM.pm_it_sym, nw, :branch, :pf, :pt, _PM.ref(pm, nw, :arcs_from), _PM.ref(pm, nw, :arcs_to), p_expr)
+    report && _PM.sol_component_value_edge(pm, nw, :branch, :pf, :pt, _PM.ref(pm, nw, :arcs_from), _PM.ref(pm, nw, :arcs_to), p_expr)
 end
 
 # Copied from _PM.variable_ne_branch_power_real(pm::AbstractAPLossLessModels; nw::Int, bounded::Bool, report::Bool)
@@ -83,7 +83,7 @@ function _PM.variable_ne_branch_power_real(pm::BFARadPowerModel; nw::Int=_PM.nw_
     p_ne_expr = merge(p_ne_expr, Dict(((l,j,i), -1.0*p_ne[(l,i,j)]) for (l,i,j) in _PM.ref(pm, nw, :ne_arcs_from)))
     _PM.var(pm, nw)[:p_ne] = p_ne_expr
 
-    report && _IM.sol_component_value_edge(pm, _PM.pm_it_sym, nw, :ne_branch, :pf, :pt, _PM.ref(pm, nw, :ne_arcs_from), _PM.ref(pm, nw, :ne_arcs_to), p_ne_expr)
+    report && _PM.sol_component_value_edge(pm, nw, :ne_branch, :pf, :pt, _PM.ref(pm, nw, :ne_arcs_from), _PM.ref(pm, nw, :ne_arcs_to), p_ne_expr)
 end
 
 # Adapted from variable_branch_power_real(pm::BFARadPowerModel; nw::Int, bounded::Bool, report::Bool)
@@ -120,7 +120,7 @@ function _PM.variable_branch_power_imaginary(pm::BFARadPowerModel; nw::Int=_PM.n
     q_expr = merge(q_expr, Dict( ((l,j,i), -1.0*q[(l,i,j)]) for (l,i,j) in _PM.ref(pm, nw, :arcs_from)))
     _PM.var(pm, nw)[:q] = q_expr
 
-    report && _IM.sol_component_value_edge(pm, _PM.pm_it_sym, nw, :branch, :qf, :qt, _PM.ref(pm, nw, :arcs_from), _PM.ref(pm, nw, :arcs_to), q_expr)
+    report && _PM.sol_component_value_edge(pm, nw, :branch, :qf, :qt, _PM.ref(pm, nw, :arcs_from), _PM.ref(pm, nw, :arcs_to), q_expr)
 end
 
 # Adapted from variable_ne_branch_power_real(pm::BFARadPowerModel; nw::Int, bounded::Bool, report::Bool)
@@ -150,7 +150,7 @@ function _PM.variable_ne_branch_power_imaginary(pm::BFARadPowerModel; nw::Int=_P
     q_ne_expr = merge(q_ne_expr, Dict(((l,j,i), -1.0*q_ne[(l,i,j)]) for (l,i,j) in _PM.ref(pm, nw, :ne_arcs_from)))
     _PM.var(pm, nw)[:q_ne] = q_ne_expr
 
-    report && _IM.sol_component_value_edge(pm, _PM.pm_it_sym, nw, :ne_branch, :qf, :qt, _PM.ref(pm, nw, :ne_arcs_from), _PM.ref(pm, nw, :ne_arcs_to), q_ne_expr)
+    report && _PM.sol_component_value_edge(pm, nw, :ne_branch, :qf, :qt, _PM.ref(pm, nw, :ne_arcs_from), _PM.ref(pm, nw, :ne_arcs_to), q_ne_expr)
 end
 
 

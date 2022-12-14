@@ -22,12 +22,12 @@
     @testset "T&D decoupling" begin
         @testset "calc_surrogate_model" begin
             data = deepcopy(d_data[1])
-            d_gen_id = _FP.get_reference_gen(data)
+            d_gen_id = _FP._get_reference_gen(data)
             _FP.add_dimension!(data, :sub_nw, Dict(1 => Dict{String,Any}("d_gen"=>d_gen_id)))
             sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(data;
                 model_type = _FP.BFARadPowerModel,
-                optimizer = highs,
-                build_method = _FP.post_simple_stoch_flex_tnep,
+                optimizer = milp_optimizer,
+                build_method = _FP.build_simple_stoch_flex_tnep,
                 ref_extensions = d_ref_extensions,
                 solution_processors = d_solution_processors
             )
@@ -40,10 +40,10 @@
 
         @testset "run_td_decoupling" begin
             result = _FP.run_td_decoupling(
-                t_data, d_data, _PM.DCPPowerModel, _FP.BFARadPowerModel, highs, highs, _FP.post_simple_stoch_flex_tnep;
+                t_data, d_data, _PM.DCPPowerModel, _FP.BFARadPowerModel, milp_optimizer, milp_optimizer, _FP.build_simple_stoch_flex_tnep;
                 t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting
             )
-            @test result["objective"] ≈ 2440.8 rtol=1e-3
+            @test result["objective"] ≈ 2445.7 rtol=1e-3
             @test length(result["d_solution"]) == number_of_distribution_networks
             @test length(result["d_objective"]) == number_of_distribution_networks
         end

@@ -15,25 +15,25 @@ Other tables can be added as well: they will be made available in the returned o
 """
 function parse_file(file::String; flex_load=true, kwargs...)
     data = _PM.parse_file(file; kwargs...)
-    add_gen_data!(data)
+    _add_gen_data!(data)
     if !haskey(data, "ne_branch")
         data["ne_branch"] = Dict{String,Any}()
     end
     if haskey(data, "busdc") || haskey(data, "busdc_ne")
         _PMACDC.process_additional_data!(data)
     end
-    add_storage_data!(data)
+    _add_storage_data!(data)
     if flex_load
         if !haskey(data, "load_extra")
             Memento.error(_LOGGER, "No `load_extra` table found in input file.")
         end
-        add_flexible_demand_data!(data)
+        _add_flexible_demand_data!(data)
     end
     return data
 end
 
 "Add a `dispatchable` bool field to all generators; add non-dispatchable generators to `data[\"gen\"]`."
-function add_gen_data!(data::Dict{String,Any})
+function _add_gen_data!(data::Dict{String,Any})
     for dgen in values(data["gen"])
         dgen["dispatchable"] = true
     end
@@ -75,7 +75,7 @@ function add_gen_data!(data::Dict{String,Any})
     return data
 end
 
-function add_storage_data!(data)
+function _add_storage_data!(data)
     if haskey(data, "storage")
         for (s, storage) in data["storage"]
             rescale_power = x -> x/data["baseMVA"]
@@ -112,7 +112,7 @@ function add_storage_data!(data)
     return data
 end
 
-function add_flexible_demand_data!(data)
+function _add_flexible_demand_data!(data)
     for (le, load_extra) in data["load_extra"]
 
         # ID of load point
@@ -186,7 +186,7 @@ function add_flexible_demand_data!(data)
     return data
 end
 
-function add_generation_emission_data!(data)
+function _add_generation_emission_data!(data)
     rescale_emission = x -> x * data["baseMVA"]
     for (g, gen) in data["gen"]
         _PM._apply_func!(gen, "emission_factor", rescale_emission)
