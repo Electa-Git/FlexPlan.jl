@@ -3,6 +3,7 @@
 using CSV
 using DataFrames
 using Dates
+import JuMP
 
 function initialize_tasks(params::Dict)
     DataFrame([name=>type[] for (name,type) in [params[:case]; params[:optimization]]])
@@ -29,14 +30,14 @@ end
 function run_and_time(
         data::Dict{String,<:Any},
         model_type::Type,
-        optimizer::Union{_FP._MOI.AbstractOptimizer, _FP._MOI.OptimizerWithAttributes},
+        optimizer::Union{JuMP.MOI.AbstractOptimizer, JuMP.MOI.OptimizerWithAttributes},
         build_method::Function;
         kwargs...
     )
 
     time_start = time()
     result = build_method(data, model_type, optimizer; kwargs...)
-    @assert result["termination_status"] ∈ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
+    @assert result["termination_status"] ∈ (_FP.OPTIMAL, _FP.LOCALLY_SOLVED) "$(result["optimizer"]) termination status: $(result["termination_status"])"
     result["time"] = Dict{String,Any}("total" => time()-time_start)
     return result
 end
@@ -75,8 +76,8 @@ function optimize_case(case_data, task, settings)
             algo,
             case_data[:data], case_data[:model_type],
             optimizer_MILP, optimizer_LP,
-            _FP.post_simple_stoch_flex_tnep_benders_main,
-            _FP.post_simple_stoch_flex_tnep_benders_secondary;
+            _FP.build_simple_stoch_flex_tnep_benders_main,
+            _FP.build_simple_stoch_flex_tnep_benders_secondary;
             ref_extensions=case_data[:ref_extensions], solution_processors=case_data[:solution_processors], setting=case_data[:setting]
         )
         make_benders_plots(case_data[:data], result, opt_s[:out_dir]; display_plots=false)
@@ -165,7 +166,7 @@ function run_performance_tests(tasks::DataFrame, params::Dict, settings::Dict; u
                     task_dir = settings[:optimization][:out_dir] = mkpath(joinpath(settings[:session][:tasks_dir], case_string, optimization_string, Dates.format(task_start_time,datetime_format)))
                     switch_log_file(joinpath(task_dir, "algorithm.log"))
                     termination_status, task_duration = optimize_case(case_data, task, settings)
-                    if termination_status != _PM.OPTIMAL
+                    if termination_status != _FP.OPTIMAL
                         Memento.warn(_LOGGER, "$case_string-$optimization_string: termination status is $(termination_status)")
                     end
                     switch_log_file(main_log_file)

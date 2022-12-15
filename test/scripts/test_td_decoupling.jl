@@ -12,9 +12,9 @@ using Dates
 using Memento
 _LOGGER = Logger(first(splitext(basename(@__FILE__)))) # A logger for this script, also used by included files.
 
-import PowerModels; const _PM = PowerModels
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC
-import FlexPlan; const _FP = FlexPlan
+import PowerModels as _PM
+import PowerModelsACDC as _PMACDC
+import FlexPlan as _FP
 include("../io/load_case.jl")
 include("../io/sol.jl")
 include("../io/td_decoupling.jl")
@@ -28,7 +28,7 @@ number_of_years = 1
 number_of_distribution_networks = 4
 t_model_type = _PM.DCPPowerModel
 d_model_type = _FP.BFARadPowerModel
-build_method = _FP.post_simple_stoch_flex_tnep
+build_method = _FP.build_simple_stoch_flex_tnep
 t_ref_extensions = [_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!]
 d_ref_extensions = [_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!]
 t_solution_processors = [_PM.sol_data_model!]
@@ -133,7 +133,7 @@ if report_intermediate_results
 
     # Intermediate solutions used for building the surrogate model
     d_data_intermediate = deepcopy(d_data_sub)
-    _FP.add_dimension!(d_data_intermediate, :sub_nw, Dict(1 => Dict{String,Any}("d_gen"=>_FP.get_reference_gen(d_data_intermediate))))
+    _FP.add_dimension!(d_data_intermediate, :sub_nw, Dict(1 => Dict{String,Any}("d_gen"=>_FP._get_reference_gen(d_data_intermediate))))
     sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_intermediate; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
     intermediate_results_dir = joinpath(out_dir, "intermediate_results")
     for (sol,name) in [(sol_up,"up"), (sol_base,"base"), (sol_down,"down")]
@@ -207,7 +207,7 @@ end
 
 if compare_with_combined_td_model
     info(_LOGGER, "Solving planning problem using combined T&D model...")
-    result_combined = _FP.run_model(
+    result_combined = _FP.solve_model(
         t_data, d_data, t_model_type, d_model_type, optimizer_mt, build_method;
         t_ref_extensions, d_ref_extensions, t_solution_processors, d_solution_processors, t_setting, d_setting, direct_model
     )

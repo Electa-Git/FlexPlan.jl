@@ -21,10 +21,10 @@ the combined T&D model.
   bus id to which the distribution network is to be connected.
 - `t_model_type::Type{<:PowerModels.AbstractPowerModel}`.
 - `d_model_type::Type{<:PowerModels.AbstractPowerModel}`.
-- `t_optimizer::Union{MathOptInterface.AbstractOptimizer,MathOptInterface.OptimizerWithAttributes}`:
+- `t_optimizer::Union{JuMP.MOI.AbstractOptimizer,JuMP.MOI.OptimizerWithAttributes}`:
   optimizer for transmission network. It has to solve a MILP problem and can exploit
   multi-threading.
-- `d_optimizer::Union{MathOptInterface.AbstractOptimizer,MathOptInterface.OptimizerWithAttributes}`:
+- `d_optimizer::Union{JuMP.MOI.AbstractOptimizer,JuMP.MOI.OptimizerWithAttributes}`:
   optimizer for distribution networks. It has to solve 2 MILP and 4 LP problems per
   distribution network; since multi-threading is used to run optimizations of different
   distribution networks in parallel, it is better for this optimizer to be single-threaded.
@@ -44,8 +44,8 @@ function run_td_decoupling(
         d_data::Vector{Dict{String,Any}},
         t_model_type::Type{<:_PM.AbstractPowerModel},
         d_model_type::Type{<:_PM.AbstractPowerModel},
-        t_optimizer::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
-        d_optimizer::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
+        t_optimizer::Union{JuMP.MOI.AbstractOptimizer, JuMP.MOI.OptimizerWithAttributes},
+        d_optimizer::Union{JuMP.MOI.AbstractOptimizer, JuMP.MOI.OptimizerWithAttributes},
         build_method::Function;
         t_ref_extensions::Vector{<:Function} = Function[],
         d_ref_extensions::Vector{<:Function} = Function[],
@@ -64,7 +64,7 @@ function run_td_decoupling(
     # Data preparation and checks
     for s in 1:number_of_distribution_networks
         data = d_data[s]
-        d_gen_id = _FP.get_reference_gen(data)
+        d_gen_id = _FP._get_reference_gen(data)
         _FP.add_dimension!(data, :sub_nw, Dict(1 => Dict{String,Any}("t_bus"=>data["t_bus"], "d_gen"=>d_gen_id)))
         delete!(data, "t_bus")
 
@@ -159,7 +159,7 @@ function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optim
     start_time = time()
     Memento.trace(_LOGGER, "┌ running $(String(nameof(build_method)))...")
     if direct_model
-        result = _PM.run_model(
+        result = _PM.solve_model(
             data, model_type, nothing, build_method;
             ref_extensions,
             solution_processors,
@@ -170,7 +170,7 @@ function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optim
             kwargs...
         )
     else
-        result = _PM.run_model(
+        result = _PM.solve_model(
             data, model_type, optimizer, build_method;
             ref_extensions,
             solution_processors,
@@ -181,7 +181,7 @@ function run_td_decoupling_model(data::Dict{String,Any}; model_type::Type, optim
         )
     end
     Memento.trace(_LOGGER, "└ solved in $(round(time()-start_time;sigdigits=3)) seconds (of which $(round(result["solve_time"];sigdigits=3)) seconds for solver)")
-    if result["termination_status"] ∉ (_PM.OPTIMAL, _PM.LOCALLY_SOLVED)
+    if result["termination_status"] ∉ (OPTIMAL, LOCALLY_SOLVED)
         Memento.error(_LOGGER, "Unable to solve $(String(nameof(build_method))) ($(result["optimizer"]) termination status: $(result["termination_status"]))")
     end
     return return_solution ? result["solution"] : result

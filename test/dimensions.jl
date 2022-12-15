@@ -2,8 +2,8 @@
 
     # Some tests here intentionally throw errors, so we temporarily raise the FlexPlan
     # logger level to prevent them from being displayed.
-    previous_FlexPlan_logger_level = Memento.getlevel(Memento.getlogger(FlexPlan))
-    Memento.setlevel!(Memento.getlogger(FlexPlan), "alert")
+    previous_FlexPlan_logger_level = Memento.getlevel(Memento.getlogger(_FP))
+    Memento.setlevel!(Memento.getlogger(_FP), "alert")
 
     #=
     julia> DataFrames.DataFrame(
@@ -322,6 +322,6 @@
         @test _FP.dim_length(pm) == _FP.dim_length(dim)
     end
 
-    Memento.setlevel!(Memento.getlogger(FlexPlan), previous_FlexPlan_logger_level)
+    Memento.setlevel!(Memento.getlogger(_FP), previous_FlexPlan_logger_level)
 
 end;
