@@ -3,9 +3,9 @@
 
 ## Import relevant packages
 
-import FlexPlan; const _FP = FlexPlan
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC # For DC grid
-import PowerModels; const _PM = PowerModels # For AC grid and common functions
+import FlexPlan as _FP
+import PowerModelsACDC as _PMACDC # For DC grid
+import PowerModels as _PM # For AC grid and common functions
 
 # Include sample data from FlexPlan repository; you can of course also use your own data
 include("../test/io/create_profile.jl")
@@ -13,21 +13,10 @@ include("../test/io/create_profile.jl")
 # Add solver packages
 # > Note: solver packages are needed to handle communication between the solver and JuMP;
 # > the commercial ones do not include the solver itself.
-import Cbc
-#import Ipopt
-#import Juniper
-#import SCS
-#import Mosek
-#import Gurobi
-
-# Solver configuration
-cbc = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
-#ipopt = _FP.optimizer_with_attributes(Ipopt.Optimizer, "tol"=>1e-4, "print_level"=>0)
-#juniper = _FP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "mip_solver"=>cbc, "time_limit"=>7200)
-#scs = _FP.optimizer_with_attributes(SCS.Optimizer, "max_iters"=>100000)
-#gurobi = Gurobi.Optimizer
-#mosek = Mosek.Optimizer
-optimizer = cbc
+import HiGHS
+optimizer = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>false)
+#import CPLEX
+#optimizer = _FP.optimizer_with_attributes(CPLEX.Optimizer, "CPXPARAM_ScreenOutput"=>0)
 
 
 ## Input parameters

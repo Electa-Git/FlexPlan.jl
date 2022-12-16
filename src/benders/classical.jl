@@ -46,8 +46,8 @@ function run_benders_decomposition(
         algo::Classical,
         data::Dict{String,<:Any},
         model_type::Type,
-        main_opt::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
-        sec_opt::Union{_MOI.AbstractOptimizer, _MOI.OptimizerWithAttributes},
+        main_opt::Union{JuMP.MOI.AbstractOptimizer, JuMP.MOI.OptimizerWithAttributes},
+        sec_opt::Union{JuMP.MOI.AbstractOptimizer, JuMP.MOI.OptimizerWithAttributes},
         main_bm::Function,
         sec_bm::Function;
         ref_extensions::Vector{<:Function} = Function[],
@@ -131,7 +131,7 @@ function run_benders_decomposition(
         fix_and_optimize_secondary!(pm_sec, best_main_var_values)
     end
     solution = build_solution(pm_main, pm_sec, solution_processors)
-    termination_status = iter > algo.max_iter ? _MOI.ITERATION_LIMIT : _MOI.OPTIMAL
+    termination_status = iter > algo.max_iter ? JuMP.ITERATION_LIMIT : JuMP.OPTIMAL
     build_result(ub, lb, solution, termination_status, stat, time_procedure_start, time_build)
 end
 

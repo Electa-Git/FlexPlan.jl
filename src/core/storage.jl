@@ -86,7 +86,7 @@ end
 
 "apo models ignore reactive power flows"
 function variable_storage_power_imaginary_ne(pm::_PM.AbstractActivePowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
-    report && _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :ne_storage, :qs_ne, _PM.ids(pm, nw, :ne_storage), NaN)
+    report && _PM.sol_component_fixed(pm, nw, :ne_storage, :qs_ne, _PM.ids(pm, nw, :ne_storage), NaN)
 end
 
 function variable_storage_power_control_imaginary_ne(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
@@ -114,7 +114,7 @@ end
 
 "apo models ignore reactive power flows"
 function variable_storage_power_control_imaginary_ne(pm::_PM.AbstractActivePowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
-    report && _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :ne_storage, :qsc_ne, _PM.ids(pm, nw, :ne_storage), NaN)
+    report && _PM.sol_component_fixed(pm, nw, :ne_storage, :qsc_ne, _PM.ids(pm, nw, :ne_storage), NaN)
 end
 
 "do nothing by default but some formulations require this"

@@ -3,9 +3,9 @@
 
 ## Import packages and load common code
 
-import PowerModels; const _PM = PowerModels
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC
-import FlexPlan; const _FP = FlexPlan
+import PowerModels as _PM
+import PowerModelsACDC as _PMACDC
+import FlexPlan as _FP
 using Dates
 using Memento
 using Printf
@@ -57,7 +57,7 @@ main_log_file = joinpath(out_dir,"script.log")
 rm(main_log_file; force=true)
 filter!(handler -> first(handler)=="console", gethandlers(getlogger())) # Remove from root logger possible previously added handlers
 push!(getlogger(), DefaultHandler(main_log_file)) # Tell root logger to write to our log file as well
-setlevel!.(Memento.getpath(getlogger(FlexPlan)), "debug") # FlexPlan logger verbosity level. Useful values: "info", "debug", "trace"
+setlevel!.(Memento.getpath(getlogger(_FP)), "debug") # FlexPlan logger verbosity level. Useful values: "info", "debug", "trace"
 info(_LOGGER, "Test case string: \"$test_case_string\"")
 info(_LOGGER, "Algorithm string: \"$algorithm_string\"")
 info(_LOGGER, "          Now is: $(now(UTC)) (UTC)")
@@ -105,11 +105,11 @@ result_benders = _FP.run_benders_decomposition(
     algo,
     data, model_type,
     optimizer_MILP, optimizer_LP,
-    _FP.post_simple_stoch_flex_tnep_benders_main,
-    _FP.post_simple_stoch_flex_tnep_benders_secondary;
+    _FP.build_simple_stoch_flex_tnep_benders_main,
+    _FP.build_simple_stoch_flex_tnep_benders_secondary;
     ref_extensions, solution_processors, setting
 )
-if result_benders["termination_status"] != _PM.OPTIMAL
+if result_benders["termination_status"] != _FP.OPTIMAL
     Memento.warn(_LOGGER, "Termination status: $(result_benders["termination_status"]).")
 end
 

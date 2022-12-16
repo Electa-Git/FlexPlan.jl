@@ -18,6 +18,9 @@ Properties:
 Differences with respect to `BFAPowerModel`:
 - shunt admittances of the branches are neglected;
 - the complex power in the thermal limit constraints of the branches is limited by an octagon
-  instead of a circle, so as to keep the model linear. 
+  instead of a circle, so as to keep the model linear.
 """
-mutable struct BFARadPowerModel <: _PM.AbstractBFAModel _PM.@pm_fields end
+# Using `@im_fields` instead of `@pm_fields` because the latter requires to be explicitly
+# qualified (i.e. prepend `PowerModels.` instead of `_PM.`). The two macros are equal at the
+# moment, but this may need to be changed if they will differ at some point.
+mutable struct BFARadPowerModel <: _PM.AbstractBFAModel _PM.@im_fields end
