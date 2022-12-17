@@ -209,10 +209,6 @@ function sol_report_cost_summary(sol::Dict{String,Any}, data::Dict{String,Any}; 
         push!(df, ("T-D coupling", 0.0, op, 0.0, 0.0, 0.0))
     end
 
-    if !isempty(table)
-        CSV.write(joinpath(out_dir,table), df)
-    end
-
     if !isempty(plot)
         total_cost = sum(sum(df[:,col]) for col in 2:ncol(df))
         horizon = _FP.dim_meta(dim, :year, "scale_factor")
@@ -233,6 +229,18 @@ function sol_report_cost_summary(sol::Dict{String,Any}, data::Dict{String,Any}; 
             seriescolor = [HSLA(0,1,0.5,0.75) HSLA(0,0.67,0.5,0.75) HSLA(0,0.33,0.5,0.75) HSLA(0,0,0.5,0.75) HSLA(210,0.75,0.5,0.75)],
         )
         savefig(plt, joinpath(out_dir,plot))
+    end
+
+    # Add row of totals
+    df2 = combine(df, Not(:component) .=> sum; renamecols=false)
+    df2[!,:component] .= "total"
+    df = vcat(df,df2)
+
+    # Add column of totals
+    transform!(df, Not(:component) => ByRow(+) => :total)
+
+    if !isempty(table)
+        CSV.write(joinpath(out_dir,table), df)
     end
 
     return df
