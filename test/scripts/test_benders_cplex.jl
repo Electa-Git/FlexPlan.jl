@@ -11,10 +11,11 @@ using Memento
 using Printf
 import CPLEX
 _LOGGER = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script, also used by included files.
-include("../io/load_case.jl")
-include("../benders/cplex.jl")
-include("../benders/compare.jl")
-include("../benders/perf.jl")
+const _FP_dir = dirname(dirname(pathof(_FP))) # Root directory of FlexPlan package
+include(joinpath(_FP_dir,"test/io/load_case.jl"))
+include(joinpath(_FP_dir,"test/benders/cplex.jl"))
+include(joinpath(_FP_dir,"test/benders/compare.jl"))
+include(joinpath(_FP_dir,"test/benders/perf.jl"))
 
 
 ## Input parameters
@@ -35,7 +36,7 @@ cost_scale_factor = 1e-6 # Cost scale factor (to test the numerical tractability
 obj_rtol = 1e-6 # Relative tolerance for stopping
 
 # Analysis and output
-out_dir = "test/data/output_files"
+out_dir = "output"
 compare_to_benchmark = true # Solve the problem as MILP, check whether solutions are identical and compare solve times
 
 

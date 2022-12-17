@@ -3,12 +3,11 @@
 
 ## Import relevant packages
 
+import PowerModels as _PM
+import PowerModelsACDC as _PMACDC
 import FlexPlan as _FP
-import PowerModelsACDC as _PMACDC # For DC grid
-import PowerModels as _PM # For AC grid and common functions
-
-# Include sample data from FlexPlan repository; you can of course also use your own data
-include("../test/io/create_profile.jl")
+const _FP_dir = dirname(dirname(pathof(_FP))) # Root directory of FlexPlan package
+include(joinpath(_FP_dir,"test/io/create_profile.jl")) # Include sample data from FlexPlan repository; you can of course also use your own data
 
 # Add solver packages
 # > Note: solver packages are needed to handle communication between the solver and JuMP;
@@ -23,12 +22,13 @@ optimizer = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>false)
 
 number_of_hours = 24 # Number of time points
 planning_horizon = 10 # Years to scale generation costs
-file = "./test/data/case6/case6_2030.m" # Input case, in Matpower m-file format: here 6-bus case with candidate AC, DC lines and candidate storage
+file = joinpath(_FP_dir,"test/data/case6/case6_2030.m") # Input case, in Matpower m-file format: here 6-bus case with candidate AC, DC lines and candidate storage
 scenario_properties = Dict(
     1 => Dict{String,Any}("probability"=>0.5, "start"=>1514764800000), # 1514764800000 is 2018-01-01T00:00, needed by `create_profile_data_italy!` when `mc=false`
     2 => Dict{String,Any}("probability"=>0.5, "start"=>1546300800000), # 1546300800000 is 2019-01-01T00:00, needed by `create_profile_data_italy!` when `mc=false`
 )
 scenario_metadata = Dict{String,Any}("mc"=>false) # Needed by `create_profile_data_italy!`
+out_dir = mkpath("output")
 
 
 ## Load test case
@@ -46,7 +46,7 @@ mn_data = _FP.make_multinetwork(data, time_series) # Create the multinetwork dat
 ## Plot all candidates pre-optimization
 
 plot_settings = Dict("add_nodes" => true, "plot_result_only" => false)
-plot_filename = "./test/data/output_files/candidates_italy.kml"
+plot_filename = joinpath(out_dir,"candidates_italy.kml")
 _FP.plot_geo_data(mn_data, plot_filename, plot_settings)
 
 
@@ -65,7 +65,7 @@ result = _FP.stoch_flex_tnep(mn_data, _PM.DCPPowerModel, optimizer; setting = s)
 ## Plot final topology
 
 plot_settings = Dict("add_nodes" => true, "plot_solution_only" => true)
-plot_filename = "./test/data/output_files/stoch.kml"
+plot_filename = joinpath(out_dir,"stoch.kml")
 _FP.plot_geo_data(mn_data, plot_filename, plot_settings; solution = result)
 
 

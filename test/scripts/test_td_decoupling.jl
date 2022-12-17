@@ -15,9 +15,10 @@ _LOGGER = Logger(first(splitext(basename(@__FILE__)))) # A logger for this scrip
 import PowerModels as _PM
 import PowerModelsACDC as _PMACDC
 import FlexPlan as _FP
-include("../io/load_case.jl")
-include("../io/sol.jl")
-include("../io/td_decoupling.jl")
+const _FP_dir = dirname(dirname(pathof(_FP))) # Root directory of FlexPlan package
+include(joinpath(_FP_dir,"test/io/load_case.jl"))
+include(joinpath(_FP_dir,"test/io/sol.jl"))
+include(joinpath(_FP_dir,"test/io/td_decoupling.jl"))
 
 
 ## Set script parameters
@@ -41,7 +42,7 @@ solver = "highs"
 report_intermediate_results = false
 report_result = false
 compare_with_combined_td_model = true
-out_dir = mkpath("./test/data/output_files/td_decoupling/")
+out_dir = mkpath("output/td_decoupling/")
 
 
 ## Set up optimizers

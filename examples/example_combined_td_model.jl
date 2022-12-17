@@ -9,7 +9,8 @@ _LOGGER = Logger(first(splitext(basename(@__FILE__)))) # A logger for this scrip
 import PowerModels as _PM
 import PowerModelsACDC as _PMACDC
 import FlexPlan as _FP
-include("../test/io/load_case.jl") # Include sample data from FlexPlan repository; you can of course also use your own data
+const _FP_dir = dirname(dirname(pathof(_FP))) # Root directory of FlexPlan package
+include(joinpath(_FP_dir,"test/io/load_case.jl")) # Include sample data from FlexPlan repository; you can of course also use your own data
 
 
 ## Set up solver
