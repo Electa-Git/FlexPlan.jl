@@ -5,13 +5,14 @@
 import PowerModels as _PM
 import PowerModelsACDC as _PMACDC
 import FlexPlan as _FP
+const _FP_dir = dirname(dirname(pathof(_FP))) # Root directory of FlexPlan package
 import HiGHS
 optimizer = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>false)
 
 
 ## Script parameters
 
-file = "test/data/json_converter/case6_input_file_2018-2019.json"
+file = joinpath(_FP_dir,"test/data/json_converter/case6_input_file_2018-2019.json")
 
 
 ## Parse the JSON file to easily check the input

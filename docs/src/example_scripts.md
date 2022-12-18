@@ -33,7 +33,8 @@ These test cases have been used in for the validation of the model in the FlexPl
 The functions are named `load_*` where `*` is the name of a test case.
 For example, `case6` can be loaded using:
 ```julia
-include(joinpath(dirname(pathof(_FP)), "../test/io/load_case.jl"))
+const _FP_dir = dirname(dirname(pathof(_FP))) # Root directory of FlexPlan package
+include(joinpath(_FP_dir,"test/io/load_case.jl"))
 data = load_case6(; number_of_hours=24, number_of_scenarios=1, number_of_years=1)
 ```
 Supported parameters are explained in `load_*` function documentation.
@@ -54,13 +55,14 @@ The procedure is as follows.
 
 Here is some sample code to get started:
 ```julia
-sn_data = _FP.parse_file("./test/data/case6/case6_2030.m")
+const _FP_dir = dirname(dirname(pathof(_FP))) # Root directory of FlexPlan package
+sn_data = _FP.parse_file(joinpath(_FP_dir,"test/data/case6/case6_2030.m"))
 _FP.add_dimension!(sn_data, :hour, 24)
 _FP.add_dimension!(sn_data, :scenario, Dict(1 => Dict{String,Any}("probability"=>1)))
 _FP.add_dimension!(sn_data, :year, 1; metadata = Dict{String,Any}("scale_factor"=>1))
 _FP.scale_data!(sn_data)
 
-include(joinpath(dirname(pathof(_FP)), "../test/io/create_profile.jl")) # Functions to load sample time series. Use your own instead.
+include(joinpath(_FP_dir,"test/io/create_profile.jl")) # Functions to load sample time series. Use your own instead.
 sn_data, loadprofile, genprofile = create_profile_data_italy!(sn_data)
 time_series = create_profile_data(24, sn_data, loadprofile, genprofile) # Your time series should have the same format as this `time_series` dict
 
@@ -84,7 +86,8 @@ Here is an example (using FlexPlan.jl sample data):
 number_of_hours = 4
 number_of_scenarios = 2
 number_of_years = 1
-include(joinpath(dirname(pathof(_FP)), "../test/io/load_case.jl"))
+const _FP_dir = dirname(dirname(pathof(_FP))) # Root directory of FlexPlan package
+include(joinpath(_FP_dir, "test/io/load_case.jl"))
 
 # Transmission network data
 t_data = load_case6(; number_of_hours, number_of_scenarios, number_of_years)

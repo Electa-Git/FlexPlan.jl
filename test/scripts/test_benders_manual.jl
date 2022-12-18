@@ -11,11 +11,12 @@ using Memento
 using Printf
 import CPLEX
 _LOGGER = Logger(basename(@__FILE__)[1:end-3]) # A logger for this script, also used by included files.
-include("../io/load_case.jl")
-include("../benders/cplex.jl")
-include("../benders/compare.jl")
-include("../benders/perf.jl")
-include("../benders/plots.jl")
+const _FP_dir = dirname(dirname(pathof(_FP))) # Root directory of FlexPlan package
+include(joinpath(_FP_dir,"test/io/load_case.jl"))
+include(joinpath(_FP_dir,"test/benders/cplex.jl"))
+include(joinpath(_FP_dir,"test/benders/compare.jl"))
+include(joinpath(_FP_dir,"test/benders/perf.jl"))
+include(joinpath(_FP_dir,"test/benders/plots.jl"))
 
 
 ## Input parameters
@@ -40,7 +41,7 @@ tightening_rtol = 1e-9 # Relative tolerance for adding optimality cuts
 silent = true # Suppress solvers output, taking precedence over any other solver attribute
 
 # Analysis and output
-out_dir = "test/data/output_files"
+out_dir = "output"
 make_plots = true # Make the following plots: solution value vs. iterations, decision variables vs. iterations, iteration times
 display_plots = true
 compare_to_benchmark = true # Solve the problem as MILP, check whether solutions are identical and compare solve times

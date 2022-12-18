@@ -15,9 +15,10 @@ _LOGGER = Logger(first(splitext(basename(@__FILE__)))) # A logger for this scrip
 import PowerModels as _PM
 import PowerModelsACDC as _PMACDC
 import FlexPlan as _FP
-include("../io/load_case.jl")
-include("../io/sol.jl")
-include("../io/td_decoupling.jl")
+const _FP_dir = dirname(dirname(pathof(_FP))) # Root directory of FlexPlan package
+include(joinpath(_FP_dir,"test/io/load_case.jl"))
+include(joinpath(_FP_dir,"test/io/sol.jl"))
+include(joinpath(_FP_dir,"test/io/td_decoupling.jl"))
 
 
 ## Set script parameters
@@ -41,7 +42,7 @@ solver = "highs"
 report_intermediate_results = false
 report_result = false
 compare_with_combined_td_model = true
-out_dir = mkpath("./test/data/output_files/td_decoupling/")
+out_dir = mkpath("output/td_decoupling/")
 
 
 ## Set up optimizers
@@ -129,10 +130,10 @@ info(_LOGGER, "T&D decoupling procedure took $(round(result_decoupling["solve_ti
 ## Report results
 
 if report_intermediate_results
-    info(_LOGGER, "Reporting intermediate results of T&D decoupling procedure...")
+    info(_LOGGER, "Reporting intermediate results of T&D decoupling procedure for first distribution network...")
 
     # Intermediate solutions used for building the surrogate model
-    d_data_intermediate = deepcopy(d_data_sub)
+    d_data_intermediate = deepcopy(first(d_data))
     _FP.add_dimension!(d_data_intermediate, :sub_nw, Dict(1 => Dict{String,Any}("d_gen"=>_FP._get_reference_gen(d_data_intermediate))))
     sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_intermediate; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
     intermediate_results_dir = joinpath(out_dir, "intermediate_results")
@@ -146,6 +147,7 @@ if report_intermediate_results
         sol_report_load(sol, d_data_intermediate; out_dir=subdir, table="t_load.csv", plot="load.pdf")
         sol_report_load_summary(sol, d_data_intermediate; out_dir=subdir, table="t_load_summary.csv", plot="load_summary.pdf")
         if name == "base"
+            sol_report_investment(sol, d_data_intermediate; out_dir=subdir, table="t_investment.csv")
             sol_report_investment_summary(sol, d_data_intermediate; out_dir=subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
             sol_report_storage(sol, d_data_intermediate; out_dir=subdir, table="t_storage.csv", plot="storage.pdf")
             sol_report_storage_summary(sol, d_data_intermediate; out_dir=subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
@@ -181,6 +183,7 @@ if report_result
     sol_report_gen(t_sol, t_data; out_dir=t_subdir, table="t_gen.csv", plot="gen.pdf")
     sol_report_load(t_sol, t_data; out_dir=t_subdir, table="t_load.csv", plot="load.pdf")
     sol_report_load_summary(t_sol, t_data; out_dir=t_subdir, table="t_load_summary.csv", plot="load_summary.pdf")
+    sol_report_investment(t_sol, t_data; out_dir=t_subdir, table="t_investment.csv")
     sol_report_investment_summary(t_sol, t_data; out_dir=t_subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
     sol_report_storage(t_sol, t_data; out_dir=t_subdir, table="t_storage.csv", plot="storage.pdf")
     sol_report_storage_summary(t_sol, t_data; out_dir=t_subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
@@ -188,17 +191,18 @@ if report_result
 
     for (s,sol) in enumerate(result_decoupling["d_solution"])
         subdir = mkpath(joinpath(result_dir, "distribution_$s"))
-        sol_report_cost_summary(sol, d_data_sub; td_coupling=false, out_dir=subdir, table="t_cost.csv", plot="cost.pdf") # `td_coupling=false` because even if data dictionary specifies a positive cost it must not be considered.
-        sol_report_power_summary(sol, d_data_sub; out_dir=subdir, table="t_power.csv", plot="power.pdf")
-        sol_report_branch(sol, d_data_sub; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFARadPowerModel`
-        sol_report_bus_voltage_magnitude(sol, d_data_sub; out_dir=subdir, table="t_bus.csv", plot="bus.pdf")
-        sol_report_gen(sol, d_data_sub; out_dir=subdir, table="t_gen.csv", plot="gen.pdf")
-        sol_report_load(sol, d_data_sub; out_dir=subdir, table="t_load.csv", plot="load.pdf")
-        sol_report_load_summary(sol, d_data_sub; out_dir=subdir, table="t_load_summary.csv", plot="load_summary.pdf")
-        sol_report_investment_summary(sol, d_data_sub; out_dir=subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
-        sol_report_storage(sol, d_data_sub; out_dir=subdir, table="t_storage.csv", plot="storage.pdf")
-        sol_report_storage_summary(sol, d_data_sub; out_dir=subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
-        sol_graph(sol, d_data_sub; plot="map.pdf", out_dir=subdir, hour=1) # Just as an example; dimension coordinates can also be vectors, or be omitted, in which case one plot for each coordinate will be generated.
+        sol_report_cost_summary(sol, d_data[s]; td_coupling=false, out_dir=subdir, table="t_cost.csv", plot="cost.pdf") # `td_coupling=false` because even if data dictionary specifies a positive cost it must not be considered.
+        sol_report_power_summary(sol, d_data[s]; out_dir=subdir, table="t_power.csv", plot="power.pdf")
+        sol_report_branch(sol, d_data[s]; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFARadPowerModel`
+        sol_report_bus_voltage_magnitude(sol, d_data[s]; out_dir=subdir, table="t_bus.csv", plot="bus.pdf")
+        sol_report_gen(sol, d_data[s]; out_dir=subdir, table="t_gen.csv", plot="gen.pdf")
+        sol_report_load(sol, d_data[s]; out_dir=subdir, table="t_load.csv", plot="load.pdf")
+        sol_report_load_summary(sol, d_data[s]; out_dir=subdir, table="t_load_summary.csv", plot="load_summary.pdf")
+        sol_report_investment(sol, d_data[s]; out_dir=subdir, table="t_investment.csv")
+        sol_report_investment_summary(sol, d_data[s]; out_dir=subdir, table="t_investment_summary.csv", plot="investment_summary.pdf")
+        sol_report_storage(sol, d_data[s]; out_dir=subdir, table="t_storage.csv", plot="storage.pdf")
+        sol_report_storage_summary(sol, d_data[s]; out_dir=subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
+        sol_graph(sol, d_data[s]; plot="map.pdf", out_dir=subdir, hour=1) # Just as an example; dimension coordinates can also be vectors, or be omitted, in which case one plot for each coordinate will be generated.
     end
 end
 
