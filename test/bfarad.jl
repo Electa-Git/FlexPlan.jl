@@ -5,9 +5,9 @@
         _FP.add_dimension!(data, :hour, 1)
         _FP.add_dimension!(data, :year, 1)
         data = _FP.make_multinetwork(data)
-        result = _FP.flex_tnep(data, _FP.BFARadPowerModel, cbc)
+        result = _FP.flex_tnep(data, _FP.BFARadPowerModel, milp_optimizer)
         sol = result["solution"]["nw"]["1"]
-        @test result["termination_status"] == _PM.OPTIMAL
+        @test result["termination_status"] == OPTIMAL
         @test result["objective"] ≈ 4360.45 rtol=1e-3
         @test sol["branch"]["16"]["pf"] ≈ -sol["branch"]["16"]["pt"] rtol=1e-3 # Zero active power losses in OLTC branch
         @test sol["branch"]["16"]["qf"] ≈ -sol["branch"]["16"]["qt"] rtol=1e-3 # Zero reactive power losses in OLTC branch
@@ -30,9 +30,9 @@
         data["nw"]["1"]["load"]["1"]["pd"] += 10.0 # Bus 1. Changes reactive power demand too, via `pf_angle`.
         data["nw"]["1"]["load"]["12"]["pd"] += 4.0 # Bus 13. Changes reactive power demand too, via `pf_angle`.
         data["nw"]["1"]["branch"]["12"]["rate_a"] = data["nw"]["1"]["branch"]["12"]["rate_b"] = data["nw"]["1"]["branch"]["12"]["rate_c"] = 0.0
-        result = _FP.flex_tnep(data, _FP.BFARadPowerModel, cbc)
+        result = _FP.flex_tnep(data, _FP.BFARadPowerModel, milp_optimizer)
         sol = result["solution"]["nw"]["1"]
-        @test result["termination_status"] == _PM.OPTIMAL
+        @test result["termination_status"] == OPTIMAL
         @test result["objective"] ≈ 5764.48 rtol=1e-3
         @test sol["ne_branch"]["1"]["built"] ≈ 1.0 atol=1e-1 # Replacement OLTC ne_branch
         @test sol["ne_branch"]["2"]["built"] ≈ 1.0 atol=1e-1 # frb ne_branch added in parallel

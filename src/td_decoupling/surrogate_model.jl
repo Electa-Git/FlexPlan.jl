@@ -153,10 +153,10 @@ function surrogate_load_ts(load, od, storage, up, bs, dn)
     pd = min(up["td_coupling"]["p"]-storage["charge_rating"]-pshift_up_max, bs["td_coupling"]["p"]-dn["td_coupling"]["p"]-storage["discharge_rating"])
 
     load = copy(load)
-    load["pd"] = pd
-    load["pshift_up_rel_max"]   = pshift_up_max / pd
-    load["pshift_down_rel_max"] = pshift_down_max / pd
-    load["pred_rel_max"]        = pred_max / pd
+    load["pd"]                  = max(pd, 0.0)
+    load["pshift_up_rel_max"]   = pd>0 ? pshift_up_max/pd : 0.0
+    load["pshift_down_rel_max"] = pd>0 ? pshift_down_max/pd : 0.0
+    load["pred_rel_max"]        = pd>0 ? pred_max/pd : 0.0
     load["cost_curt"]           = minimum(ld["cost_curt"] for ld in values(od["load"]))
     if load["flex"]
         load["cost_red"]        = minimum(od["load"][l]["cost_red"] for (l,ld) in bs["load"] if ld["flex"]>0.5)
@@ -190,8 +190,8 @@ function surrogate_storage_ts(storage, od, up, bs, dn; standalone)
         + sum(
                 od["ne_storage"][i]["charge_efficiency"]*s["sc_ne"]
                 - s["sd_ne"]/od["ne_storage"][i]["discharge_efficiency"]
-                + od["storage"][i]["stationary_energy_inflow"]
-                - od["storage"][i]["stationary_energy_outflow"]
+                + od["ne_storage"][i]["stationary_energy_inflow"]
+                - od["ne_storage"][i]["stationary_energy_outflow"]
             for (i,s) in get(bs,"ne_storage",Dict()) if s["isbuilt"] > 0.5;
             init=0.0
         )

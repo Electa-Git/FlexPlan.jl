@@ -157,19 +157,24 @@ function extract_distribution(source::AbstractDict, dist_id, pcc_bus_id)
     push!(dist["gridModelInputFile"]["acBuses"], pcc_bus)
 
     # Add reference generator
-    pos = findfirst(transformer -> transformer["acBusOrigin"]==pcc_bus_id, dist["gridModelInputFile"]["transformers"])
-    pcc_transformer = dist["gridModelInputFile"]["transformers"][pos]
     number_of_years = length(source["genericParameters"]["years"])
+    init = zeros(number_of_years)
+    rated_power = (
+            sum(t["ratedApparentPower"] for t in dist["gridModelInputFile"]["transformers"] if !t["isTransmission"] && (t["acBusOrigin"]==pcc_bus_id || t["acBusExtremity"]==pcc_bus_id); init)
+            + sum(t["acBranch"]["ratedApparentPower"] for t in dist["candidatesInputFile"]["transformers"] if !t["acBranch"]["isTransmission"] && (t["acBranch"]["acBusOrigin"]==pcc_bus_id || t["acBranch"]["acBusExtremity"]==pcc_bus_id); init)
+            + sum(b["ratedApparentPower"] for b in dist["gridModelInputFile"]["acBranches"] if !b["isTransmission"] && (b["acBusOrigin"]==pcc_bus_id || b["acBusExtremity"]==pcc_bus_id); init)
+            + sum(b["acBranch"]["ratedApparentPower"] for b in dist["candidatesInputFile"]["acBranches"] if !b["acBranch"]["isTransmission"] && (b["acBranch"]["acBusOrigin"]==pcc_bus_id || b["acBranch"]["acBusExtremity"]==pcc_bus_id); init)
+        )
     estimated_cost = source["genericParameters"]["estimateCostTdExchange"]
     pcc_gen = Dict{String,Any}(
         "id"               => "PCC",
         "acBusConnected"   => pcc_bus["id"],
-        "maxActivePower"   => pcc_transformer["ratedApparentPower"], # Will be limited by the transformer, no need for a tight bound here.
-        "minActivePower"   => -pcc_transformer["ratedApparentPower"], # Will be limited by the transformer, no need for a tight bound here.
-        "maxReactivePower" => pcc_transformer["ratedApparentPower"], # Will be limited by the transformer, no need for a tight bound here.
-        "minReactivePower" => -pcc_transformer["ratedApparentPower"], # Will be limited by the transformer, no need for a tight bound here.
+        "maxActivePower"   => rated_power, # Will be limited by distribution network constraints, no need for a tight bound here.
+        "minActivePower"   => -rated_power, # Will be limited by distribution network constraints, no need for a tight bound here.
+        "maxReactivePower" => rated_power, # Will be limited by distribution network constraints, no need for a tight bound here.
+        "minReactivePower" => -rated_power, # Will be limited by distribution network constraints, no need for a tight bound here.
         "generationCosts"  => repeat([estimated_cost], number_of_years),
-        "curtailmentCosts" => repeat([0.0], number_of_years)
+        "curtailmentCosts" => zeros(number_of_years)
     )
     push!(dist["gridModelInputFile"]["generators"], pcc_gen)
 

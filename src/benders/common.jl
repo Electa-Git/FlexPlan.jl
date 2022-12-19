@@ -129,13 +129,13 @@ function fix_and_optimize_secondary!(pm_sec, main_var_values)
 end
 
 function check_solution_main(pm)
-    if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
+    if JuMP.termination_status(pm.model) ∉ (JuMP.OPTIMAL, JuMP.LOCALLY_SOLVED)
         Memento.error(_LOGGER, "Main problem: $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
     end
 end
 
 function check_solution_secondary(pm)
-    if JuMP.termination_status(pm.model) ∉ (_MOI.OPTIMAL, _MOI.LOCALLY_SOLVED)
+    if JuMP.termination_status(pm.model) ∉ (JuMP.OPTIMAL, JuMP.LOCALLY_SOLVED)
         Memento.error(_LOGGER, "Secondary problem, scenario $(_FP.dim_meta(pm,:scenario,"orig_id")), year $(_FP.dim_meta(pm,:year,"orig_id")): $(JuMP.solver_name(pm.model)) termination status is $(JuMP.termination_status(pm.model)).")
     end
 end

@@ -54,7 +54,7 @@ end
         loadprofile = collect(reshape(range(0,2;length=number_of_hours),:,1)) # Create a load profile: ramp from 0 to 2 times the rated value of load
         time_series = _FP.make_time_series(data; loadprofile) # Compute time series by multiplying the rated value by the profile
         mn_data = _FP.make_multinetwork(data, time_series)
-        result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc)
+        result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, milp_optimizer)
         #plot_flex_load(mn_data, result)
 
         @test result["solution"]["nw"][ "1"]["load"]["1"]["flex"]            ≈   1.0     atol=1e-3
@@ -86,7 +86,7 @@ end
         loadprofile = collect(reshape(range(0,2;length=number_of_hours),:,1)) # Create a load profile: ramp from 0 to 2 times the rated value of load
         time_series = _FP.make_time_series(data; loadprofile) # Compute time series by multiplying the rated value by the profile
         mn_data = _FP.make_multinetwork(data, time_series)
-        result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc)
+        result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, milp_optimizer)
         #plot_flex_load(mn_data, result)
 
         @test result["solution"]["nw"][ "1"]["load"]["1"]["flex"]            ≈   0.0     atol=1e-3
@@ -121,7 +121,7 @@ end
         loadprofile = collect(reshape(range(0,2;length=number_of_hours),:,1)) # Create a load profile: ramp from 0 to 2 times the rated value of load
         time_series = _FP.make_time_series(data; loadprofile) # Compute time series by multiplying the rated value by the profile
         mn_data = _FP.make_multinetwork(data, time_series)
-        result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, cbc)
+        result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, milp_optimizer)
         #plot_flex_load(mn_data, result)
 
         @test result["solution"]["nw"][ "1"]["load"]["1"]["flex"]            ≈   0.0     atol=1e-3
@@ -158,7 +158,7 @@ end
         time_series = _FP.make_time_series(data; loadprofile) # Compute time series by multiplying the rated value by the profile
         mn_data = _FP.make_multinetwork(data, time_series)
         setting = Dict("demand_shifting_balance_period" => 9) # Not a divisor of 24, to verify that the balance constraint is also applied to the last period, which is not full length.
-        result = _FP.simple_stoch_flex_tnep(mn_data, _FP.BFARadPowerModel, cbc; setting)
+        result = _FP.simple_stoch_flex_tnep(mn_data, _FP.BFARadPowerModel, milp_optimizer; setting)
         #plot_flex_load(mn_data, result)
 
         @test result["solution"]["nw"][ "1"]["load"]["1"]["flex"]            ≈   1.0     atol=1e-3

@@ -9,7 +9,7 @@ function expression_gen_curtailment(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_i
         i => ndgen["pmax"] - _PM.var(pm,nw,:pg,i) for (i,ndgen) in _PM.ref(pm,nw,:ndgen)
     )
     if report
-        _IM.sol_component_fixed(pm, _PM.pm_it_sym, nw, :gen, :pgcurt, _PM.ids(pm, nw, :dgen), 0.0)
+        _PM.sol_component_fixed(pm, nw, :gen, :pgcurt, _PM.ids(pm, nw, :dgen), 0.0)
         _PM.sol_component_value(pm, nw, :gen, :pgcurt, _PM.ids(pm, nw, :ndgen), pgcurt)
     end
 end

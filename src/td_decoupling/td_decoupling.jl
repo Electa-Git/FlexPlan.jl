@@ -4,13 +4,7 @@ export run_td_decoupling
 
 using ..FlexPlan
 const _FP = FlexPlan
-import ..FlexPlan: _LOGGER
-
-import PowerModels
-const _PM = PowerModels
-
-import MathOptInterface
-const _MOI = MathOptInterface
+import ..FlexPlan: _PM, _LOGGER
 
 import JuMP
 import Memento

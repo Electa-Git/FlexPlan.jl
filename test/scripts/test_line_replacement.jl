@@ -3,38 +3,26 @@
 
 ## Import relevant packages
 
-import FlexPlan; const _FP = FlexPlan
-import PowerModelsACDC; const _PMACDC = PowerModelsACDC # For DC grid
-import PowerModels; const _PM = PowerModels # For AC grid and common functions
-
-# Include sample data from FlexPlan repository; you can of course also use your own data
-include("../io/create_profile.jl")
+import PowerModels as _PM # For AC grid and common functions
+import PowerModelsACDC as _PMACDC # For DC grid
+import FlexPlan as _FP
+const _FP_dir = dirname(dirname(pathof(_FP))) # Root directory of FlexPlan package
+include(joinpath(_FP_dir,"test/io/create_profile.jl")) # Include sample data from FlexPlan repository; you can of course also use your own data
 
 # Add solver packages
 # > Note: solver packages are needed to handle communication between the solver and JuMP;
 # > the commercial ones do not include the solver itself.
-import Cbc
-#import Ipopt
-#import Juniper
-#import SCS
-#import Mosek
-#import Gurobi
-
-# Solver configuration
-cbc = _FP.optimizer_with_attributes(Cbc.Optimizer, "logLevel"=>0)
-#ipopt = _FP.optimizer_with_attributes(Ipopt.Optimizer, "tol"=>1e-4, "print_level"=>0)
-#juniper = _FP.optimizer_with_attributes(Juniper.Optimizer, "nl_solver"=>ipopt, "mip_solver"=>cbc, "time_limit"=>7200)
-#scs = _FP.optimizer_with_attributes(SCS.Optimizer, "max_iters"=>100000)
-#gurobi = Gurobi.Optimizer
-#mosek = Mosek.Optimizer
-optimizer = cbc
+import HiGHS
+optimizer = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>false)
+#import CPLEX
+#optimizer = _FP.optimizer_with_attributes(CPLEX.Optimizer, "CPXPARAM_ScreenOutput"=>0)
 
 
 ## Input parameters
 
 number_of_hours = 24 # Number of time points
 planning_horizon = 10 # Years to scale generation costs
-file = "./test/data/case6/case6_replacement.m" # Input case, in Matpower m-file format: here 6-bus case with candidate AC, DC lines and candidate storage
+file = joinpath(_FP_dir,"test/data/case6/case6_replacement.m") # Input case, in Matpower m-file format: here 6-bus case with candidate AC, DC lines and candidate storage
 scenario_properties = Dict(
     1 => Dict{String,Any}("probability"=>0.5, "start"=>1514764800000), # 1514764800000 is 2018-01-01T00:00, needed by `create_profile_data_italy!` when `mc=false`
     2 => Dict{String,Any}("probability"=>0.5, "start"=>1546300800000), # 1546300800000 is 2019-01-01T00:00, needed by `create_profile_data_italy!` when `mc=false`
