@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - This changelog
+- Ability to choose period duration when importing JSON files
 
 ## [0.3.0] - 2022-12-19
 

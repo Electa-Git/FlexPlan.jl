@@ -33,6 +33,7 @@ Convert a JSON `file` or a `dict` conforming to the FlexPlan WP3 API into a Flex
 - `number_of_years::Union{Int,Nothing}=nothing`: parse only the first years of the
   file/dict.
 - `cost_scale_factor::Real=1.0`: scale factor for all costs.
+- `hour_scale_factor::Real=1.0`: how many hours an optimization period should represent.
 - `year_scale_factor::Union{Real,Nothing}=nothing`: how many years a representative year
   should represent (default: read from JSON).
 - `init_data_extensions::Vector{<:Function}=Function[]`: functions to be applied to the
@@ -73,6 +74,7 @@ function convert_JSON(source::AbstractDict;
         number_of_scenarios::Union{Int,Nothing} = nothing,
         number_of_years::Union{Int,Nothing} = nothing,
         cost_scale_factor::Real = 1.0,
+        hour_scale_factor::Real = 1.0,
         year_scale_factor::Union{Real,Nothing} = nothing,
         init_data_extensions::Vector{<:Function} = Function[],
         sn_data_extensions::Vector{<:Function} = Function[],
@@ -109,9 +111,9 @@ function convert_JSON(source::AbstractDict;
             Memento.warn(_LOGGER, "Only constant probabilities are supported for scenarios. Using first year probabilities for every year.")
         end
         scenario_probabilities = first(first.(source["genericParameters"]["scenarioProbabilities"]), number_of_scenarios) # The outermost `first` is needed if the user has specified a number of scenarios lower than that available.
-        scenario_probabilities = scenario_probabilities ./ sum(scenario_probabilities) # For `_FP.scale_data!` to work properly when applied later, scenario probabilities must be normalized.
+        scenario_probabilities = scenario_probabilities ./ (hour_scale_factor*sum(scenario_probabilities)) # For `_FP.scale_data!` to work properly when applied later, the sum of scenario probabilities must be 1/hour_scale_factor.
     else
-        scenario_probabilities = fill(1/number_of_scenarios,number_of_scenarios)
+        scenario_probabilities = fill(1/(hour_scale_factor*number_of_scenarios),number_of_scenarios)
     end
     scenario_properties = Dict(id => Dict{String,Any}("probability"=>prob) for (id,prob) in enumerate(scenario_probabilities))
     _FP.add_dimension!(target, :scenario, scenario_properties)
