@@ -411,12 +411,13 @@ Return a DataFrame; optionally write a CSV table and a plot.
   optimization problem.
 - `data::Dict{String,Any}`: the multinetwork data Dict used for the same FlexPlan
   optimization problem.
+- `td_coupling::Bool=false`: whether to include power exchanged with other networks.
 - `out_dir::String=pwd()`: directory for output files.
 - `table::String=""`: if not empty, output a CSV table to `table` file.
 - `plot::String=""`: if not empty, output a plot to `plot` file; file type is based on
   `plot` extension.
 """
-function sol_report_power_summary(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir::String=pwd(), table::String="", plot::String="")
+function sol_report_power_summary(sol::Dict{String,Any}, data::Dict{String,Any}; td_coupling::Bool=false, out_dir::String=pwd(), table::String="", plot::String="")
     _FP.require_dim(data, :hour, :scenario, :year)
     dim = data["dim"]
     sol_nw = sol["nw"]
@@ -434,7 +435,7 @@ function sol_report_power_summary(sol::Dict{String,Any}, data::Dict{String,Any};
         push!(df, (h, s, y, load, storage_abs, storage_inj, gen))
     end
 
-    if _FP.has_dim(data, :sub_nw)
+    if td_coupling
         df.td_coupling = [sol_nw["$n"]["td_coupling"]["p"] for n in _FP.nw_ids(dim)]
     end
 

@@ -140,7 +140,7 @@ if report_intermediate_results
     for (sol,name) in [(sol_up,"up"), (sol_base,"base"), (sol_down,"down")]
         subdir = mkpath(joinpath(intermediate_results_dir, name))
         sol_report_cost_summary(sol, d_data_intermediate; out_dir=subdir, table="t_cost.csv", plot="cost.pdf")
-        sol_report_power_summary(sol, d_data_intermediate; out_dir=subdir, table="t_power.csv", plot="power.pdf")
+        sol_report_power_summary(sol, d_data_intermediate; td_coupling=true, out_dir=subdir, table="t_power.csv", plot="power.pdf")
         sol_report_branch(sol, d_data_intermediate; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFARadPowerModel`
         sol_report_bus_voltage_magnitude(sol, d_data_intermediate; out_dir=subdir, table="t_bus.csv", plot="bus.pdf")
         sol_report_gen(sol, d_data_intermediate; out_dir=subdir, table="t_gen.csv", plot="gen.pdf")
@@ -163,7 +163,7 @@ if report_intermediate_results
     # Planning obtained by using the surrogate model as it were an ordinary distribution network
     sol_surr = _FP.TDDecoupling.run_td_decoupling_model(surrogate_dist; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting)
     sol_report_cost_summary(sol_surr, surrogate_dist; out_dir=surrogate_subdir, table="t_cost.csv", plot="cost.pdf")
-    sol_report_power_summary(sol_surr, surrogate_dist; out_dir=surrogate_subdir, table="t_power.csv", plot="power.pdf")
+    sol_report_power_summary(sol_surr, surrogate_dist; td_coupling=true, out_dir=surrogate_subdir, table="t_power.csv", plot="power.pdf")
     sol_report_gen(sol_surr, surrogate_dist; out_dir=surrogate_subdir, table="t_gen.csv", plot="gen.pdf")
     sol_report_load_summary(sol_surr, surrogate_dist; out_dir=surrogate_subdir, table="t_load_summary.csv", plot="load_summary.pdf")
     sol_report_storage_summary(sol_surr, surrogate_dist; out_dir=surrogate_subdir, table="t_storage_summary.csv", plot="storage_summary.pdf")
@@ -192,7 +192,7 @@ if report_result
     for (s,sol) in enumerate(result_decoupling["d_solution"])
         subdir = mkpath(joinpath(result_dir, "distribution_$s"))
         sol_report_cost_summary(sol, d_data[s]; td_coupling=false, out_dir=subdir, table="t_cost.csv", plot="cost.pdf") # `td_coupling=false` because even if data dictionary specifies a positive cost it must not be considered.
-        sol_report_power_summary(sol, d_data[s]; out_dir=subdir, table="t_power.csv", plot="power.pdf")
+        sol_report_power_summary(sol, d_data[s]; td_coupling=true, out_dir=subdir, table="t_power.csv", plot="power.pdf")
         sol_report_branch(sol, d_data[s]; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFARadPowerModel`
         sol_report_bus_voltage_magnitude(sol, d_data[s]; out_dir=subdir, table="t_bus.csv", plot="bus.pdf")
         sol_report_gen(sol, d_data[s]; out_dir=subdir, table="t_gen.csv", plot="gen.pdf")
