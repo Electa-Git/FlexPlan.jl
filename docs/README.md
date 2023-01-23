@@ -27,11 +27,11 @@ Please note that FlexPlan.jl is research-grade software library and is constantl
 - Hakan Ergun, KU Leuven / EnergyVille
 - Matteo Rossini, RSE
 - Marco Rossi, RSE
-- Damien Lapage, N-Side
+- Damien Lepage, N-Side
 - Iver Bakken Sperstad, SINTEF
 - Espen Flo Bødal, SINTEF
 - Merkebu Zenebe Degefa, SINTEF
-- Reinhilde D'hulst, VITO / EnergyVille
+- Reinhilde D'Hulst, VITO / EnergyVille
 
 ## Installation of FlexPlan
 

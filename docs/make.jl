@@ -4,7 +4,7 @@ Documenter.makedocs(
     modules = FlexPlan,
     format = Documenter.HTML(),
     sitename = "FlexPlan",
-    authors = "Hakan Ergun, Matteo Rossini, Damien Lapage, Iver Bakken Sperstad, Espen Flo Bødal, Marco Rossi, Merkebu Zenebe Degefa, Reinhilde D'hulst",
+    authors = "Hakan Ergun, Matteo Rossini, Damien Lepage, Iver Bakken Sperstad, Espen Flo Bødal, Marco Rossi, Merkebu Zenebe Degefa, Reinhilde D'Hulst",
     pages = [
         "Home" => "index.md"
         "Manual" => [
