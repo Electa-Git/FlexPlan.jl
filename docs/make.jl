@@ -1,20 +1,21 @@
 using Documenter, FlexPlan
 
 Documenter.makedocs(
-    modules = FlexPlan,
+    modules = [FlexPlan],
     format = Documenter.HTML(),
     sitename = "FlexPlan",
     authors = "Hakan Ergun, Matteo Rossini, Damien Lepage, Iver Bakken Sperstad, Espen Flo Bødal, Marco Rossi, Merkebu Zenebe Degefa, Reinhilde D'Hulst",
     pages = [
         "Home" => "index.md"
         "Manual" => [
-            "Getting started" => "quickguide.md"
-            "Example scripts" => "example_scripts.md"
+            "Installation" => "installation.md"
+            "Examples" => "examples.md"
+            "Tutorial" => "tutorial.md"
         ]
         "Library" => [
             "Problem types" => "problem_types.md"
             "Network formulations" => "network_formulations.md"
-            "Multi - period, multi-stage modelling" => [
+            "Multiperiod, multistage modelling" => [
                 "Modelling assumptions" => "modeling_assumptions.md"
                 "Model dimensions" => "dimensions.md"
             ]

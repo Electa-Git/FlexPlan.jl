@@ -1,13 +1,16 @@
-# Quickguide
+# Examples
+
+Some scripts are provided in [`/examples/`](https://github.com/Electa-Git/FlexPlan.jl/tree/master/examples) and in [`/test/scripts/`](https://github.com/Electa-Git/FlexPlan.jl/tree/master/test/scripts) to test the package functionality.
 
 ## How to run scripts
 
-Some scripts have been provided in `FlexPlan/test/scripts` to test the package functionality. To run those scripts, you need to activate an environment and import all the needed packages.
+To run the above scripts, you need to activate an environment and import all the needed packages.
 
 1. In a Julia REPL, choose a directory where to create the environment:
    ```
    julia> cd("path/to/env/dir")
    ```
+
 2. Enter the Pkg REPL by pressing `]` from the Julia REPL:
    ```
    julia> ]

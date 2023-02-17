@@ -1,50 +1,34 @@
-# FlexPlan.jl
+# Documentation for FlexPlan.jl
 
-Status:
-[![CI](https://github.com/Electa-Git/FlexPlan.jl/workflows/CI/badge.svg)](https://github.com/Electa-Git/FlexPlan.jl/actions?query=workflow%3ACI)
-<a href="https://codecov.io/gh/Electa-Git/FlexPlan.jl"><img src="https://img.shields.io/codecov/c/github/Electa-Git/FlexPlan.jl?logo=Codecov"></img></a>
-<a href="https://electa-git.github.io/FlexPlan.jl/stable/"><img src="https://github.com/Electa-Git/FlexPlan.jl/workflows/Documentation/badge.svg"></img></a>
+You can read this documentation online at <https://electa-git.github.io/FlexPlan.jl/dev/>.
 
+## Preview the documentation (for developers)
 
-## Overview
+While developing FlexPlan you can also preview the documentation locally in your browser
+with live-reload capability, i.e. when modifying a file, every browser (tab) currently
+displaying the corresponding page is automatically refreshed.
 
-FlexPlan.jl is a Julia/JuMP package to carry out transmission and distribution network planning considering, ac and dc technology, storage and demand flexibility as possible expansion candidates. Using time series input on renewble generation and demand, as well a list of candidates for grid expansion, a mixed-integer linear problem is cosntrcuted which can be solved with any commercial or open-source MILP solver. Some modelling features are:
+### Instructions for *nix
 
-- Multi-period, multi-stage formulation to model a number of planning years, and planning hours within years for a sequential grid expansion plan
-- Stoachestic formulation of the planning problem, based on scenario probabilities for a number of different time series
-- Linearized DistFlow model considering reactive power and voltage magnitudes for radial distribution grids
-- Extensive, parametrized models for storage, demand flexibility and dc grids
-- Different decomposition methods for solving the large-scale MILP problem
+1. Copy the following zsh/Julia code snippet:
 
-This package builds upon the PowerModels.jl and PowerModelsACDC.jl packages, and uses a similar structure.
+   ```julia
+   #!/bin/zsh
+   #= # Following line is zsh code
+   julia -i $0:a # The string `$0:a` represents this file in zsh
+   =# # Following lines are Julia code
+   import Pkg
+   Pkg.activate(; temp=true)
+   Pkg.develop("FlexPlan")
+   Pkg.add("Documenter")
+   Pkg.add("LiveServer")
+   using FlexPlan, LiveServer
+   cd(dirname(dirname(pathof(FlexPlan))))
+   servedocs()
+   exit()
+   ```
 
-## Collaboration / improvements
-
-Please note that FlexPlan.jl is research-grade software library and is constantly being improved and extended. If you have suggetions for improvement, please contact us via the issues page on the repository.
-
-## Developed by:
-
-- Hakan Ergun, KU Leuven / EnergyVille
-- Matteo Rossini, RSE
-- Marco Rossi, RSE
-- Damien Lepage, N-Side
-- Iver Bakken Sperstad, SINTEF
-- Espen Flo Bødal, SINTEF
-- Merkebu Zenebe Degefa, SINTEF
-- Reinhilde D'Hulst, VITO / EnergyVille
-
-## Installation of FlexPlan
-
-The latest stable release of FlexPlan can be installed using the Julia package manager with:
-
-```julia
-] add "FlexPlan"
-```
-
-## Acknowledgement
-
-This software implementation is conducted within the European Union’s Horizon  2020 research and innovation programme under the FlexPlan project (grantagreement no. 863819).
-
-## Special Thanks To
-
-Carleton Coffrin (Los Alamos National Laboratory) for his countless design tips.
+2. Save it as a zsh script (name it like `preview_flexplan_docs.sh`).
+3. Assign execute permission to the script: `chmod u+x preview_flexplan_docs.sh`.
+4. Run the script.
+5. Open your favorite web browser and navigate to `http://localhost:8000`.
