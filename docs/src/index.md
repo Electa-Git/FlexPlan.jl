@@ -10,7 +10,7 @@ FlexPlan.jl is a Julia/JuMP package to carry out transmission and distribution n
 Using time series input on renewable generation and demand, as well a list of candidates for grid expansion, a mixed-integer linear problem is constructed which can be solved with any commercial or open-source MILP solver.
 The package builds upon the [PowerModels](https://github.com/lanl-ansi/PowerModels.jl) and [PowerModelsACDC](https://github.com/Electa-Git/PowerModelsACDC.jl) packages, and uses a similar structure.
 
-Some modelling features are:
+Modelling features provided by the package include:
 
 - Joint multistage, multiperiod formulation to model a number of planning years, and planning hours within years for a sequential grid expansion plan.
 - Stochastic formulation of the planning problem, based on scenario probabilities for a number of different time series.
@@ -23,6 +23,7 @@ Some modelling features are:
 These presentations provide a brief introduction to various aspects of FlexPlan:
 
 - Network expansion planning with FlexPlan.jl [[PDF](./assets/20230216_flexplan_seminar_energyville.pdf)] – EnergyVille, 16/02/2023
+- FlexPlan.jl – An open-source Julia tool for holistic transmission and distribution grid planning [[PDF](./assets/20230328_osmses2023_conference.pdf)] – OSMSES 2023 conference, Aachen, 28/03/2023
 
 ## Acknowledgements
 
@@ -40,6 +41,23 @@ Developed by:
 - Reinhilde D'Hulst (VITO / EnergyVille)
 
 The developers thank Carleton Coffrin (Los Alamos National Laboratory) for his countless design tips.
+
+## Citing FlexPlan.jl
+
+If you find FlexPlan.jl useful in your work, we kindly request that you cite the following [publication](https://doi.org/10.1109/osmses58477.2023.10089624) ([preprint](https://doi.org/10.5281/zenodo.7705908)):
+
+```bibtex
+@inproceedings{FlexPlan.jl,
+    author = {Matteo Rossini and Hakan Ergun and Marco Rossi},
+    title = {{FlexPlan}.jl – An open-source {Julia} tool for holistic transmission and distribution grid planning},
+    booktitle = {2023 Open Source Modelling and Simulation of Energy Systems ({OSMSES})},
+    year = {2023},
+    month = {mar},
+    publisher = {{IEEE}},
+    doi = {10.1109/osmses58477.2023.10089624},
+    url = {https://doi.org/10.1109/osmses58477.2023.10089624}
+}
+```
 
 ## License
 
