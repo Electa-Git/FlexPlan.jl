@@ -43,4 +43,4 @@ The developers thank Carleton Coffrin (Los Alamos National Laboratory) for his c
 
 ## License
 
-This code is provided under a [BSD 3-Clause License](https://github.com/Electa-Git/FlexPlan.jl/blob/master/LICENSE).
+This code is provided under a [BSD 3-Clause License](https://github.com/Electa-Git/FlexPlan.jl/blob/master/LICENSE.md).
