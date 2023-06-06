@@ -40,4 +40,7 @@ milp_optimizer = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>f
     # Decompositions
     include("td_decoupling.jl")
 
+    # Exported symbols
+    include("export.jl")
+
 end;
