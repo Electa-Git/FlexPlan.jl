@@ -42,7 +42,7 @@ solver = "highs"
 report_intermediate_results = false
 report_result = false
 compare_with_combined_td_model = true
-out_dir = mkpath("output/td_decoupling/")
+out_dir = joinpath("output", "td_decoupling")
 
 
 ## Set up optimizers
@@ -136,7 +136,7 @@ if report_intermediate_results
     d_data_intermediate = deepcopy(first(d_data))
     _FP.add_dimension!(d_data_intermediate, :sub_nw, Dict(1 => Dict{String,Any}("d_gen"=>_FP._get_reference_gen(d_data_intermediate))))
     sol_up, sol_base, sol_down = _FP.TDDecoupling.probe_distribution_flexibility!(d_data_intermediate; model_type=d_model_type, optimizer=optimizer_mt, build_method, ref_extensions=d_ref_extensions, solution_processors=d_solution_processors, setting=d_setting, direct_model)
-    intermediate_results_dir = joinpath(out_dir, "intermediate_results")
+    intermediate_results_dir = mkpath(joinpath(out_dir, "intermediate_results"))
     for (sol,name) in [(sol_up,"up"), (sol_base,"base"), (sol_down,"down")]
         subdir = mkpath(joinpath(intermediate_results_dir, name))
         sol_report_cost_summary(sol, d_data_intermediate; out_dir=subdir, table="t_cost.csv", plot="cost.pdf")
@@ -172,7 +172,7 @@ end
 if report_result
     info(_LOGGER, "Reporting results of T&D decoupling procedure...")
 
-    result_dir = joinpath(out_dir, "result")
+    result_dir = mkpath(joinpath(out_dir, "result"))
 
     t_sol = result_decoupling["t_solution"]
     t_subdir = mkpath(joinpath(result_dir, "transmission"))
