@@ -45,7 +45,7 @@ mn_data = _FP.make_multinetwork(data, time_series) # Create the multinetwork dat
 ## Solve the planning problem
 
 # PowerModels(ACDC) and FlexPlan settings
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "allow_line_replacement" => true)
+s = Dict("conv_losses_mp" => false, "allow_line_replacement" => true)
 
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application

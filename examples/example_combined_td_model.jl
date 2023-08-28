@@ -29,7 +29,7 @@ number_of_scenarios = 2
 number_of_years = 1
 t_model_type = _PM.DCPPowerModel
 d_model_type = _FP.BFARadPowerModel
-t_setting = Dict("output" => Dict("branch_flows"=>true), "conv_losses_mp" => false)
+t_setting = Dict("conv_losses_mp" => false)
 d_setting = Dict{String,Any}()
 
 

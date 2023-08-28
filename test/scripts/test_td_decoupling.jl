@@ -34,7 +34,7 @@ t_ref_extensions = [_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_stora
 d_ref_extensions = [_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!]
 t_solution_processors = [_PM.sol_data_model!]
 d_solution_processors = [_PM.sol_data_model!, _FP.sol_td_coupling!]
-t_setting = Dict("output" => Dict("branch_flows"=>true), "conv_losses_mp" => false)
+t_setting = Dict("conv_losses_mp" => false)
 d_setting = Dict{String,Any}()
 cost_scale_factor = 1e-6
 

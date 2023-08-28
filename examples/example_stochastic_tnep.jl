@@ -53,7 +53,7 @@ _FP.plot_geo_data(mn_data, plot_filename, plot_settings)
 ## Solve the planning problem
 
 # PowerModels(ACDC) and FlexPlan settings
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => false, "add_co2_cost" => false)
+s = Dict("conv_losses_mp" => false, "add_co2_cost" => false)
 
 # Build optimisation model, solve it and write solution dictionary:
 # This is the "problem file" which needs to be constructed individually depending on application

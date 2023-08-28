@@ -9,7 +9,7 @@
     d_ref_extensions = [_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!]
     t_solution_processors = [_PM.sol_data_model!]
     d_solution_processors = [_PM.sol_data_model!, _FP.sol_td_coupling!]
-    t_setting = Dict("output" => Dict("branch_flows"=>true), "conv_losses_mp" => false)
+    t_setting = Dict("conv_losses_mp" => false)
     d_setting = Dict{String,Any}()
     t_data = load_case6(; number_of_hours, number_of_scenarios=1, number_of_years=1, cost_scale_factor, share_data=false)
     d_data_sub = load_cigre_mv_eu(; flex_load=true, ne_storage=true, scale_gen=5.0, scale_wind=6.0, scale_load=1.0, number_of_hours, cost_scale_factor)

@@ -16,7 +16,7 @@ ipopt = JuMP.optimizer_with_attributes(Ipopt.Optimizer, "tol" => 1e-6, "print_le
 gurobi = JuMP.optimizer_with_attributes(Gurobi.Optimizer)
 juniper = JuMP.optimizer_with_attributes(Juniper.Optimizer)
 
-s = Dict("output" => Dict("branch_flows" => true), "conv_losses_mp" => true)
+s = Dict("conv_losses_mp" => true)
 
 resultAC = _PMACDC.run_acdcopf(file, _PM.ACPPowerModel, ipopt; setting = s)
 resultDC = _PMACDC.run_acdcopf(file, _PM.DCPPowerModel, gurobi; setting = s)
