@@ -1,10 +1,8 @@
 using Documenter, FlexPlan
 
-Documenter.makedocs(
+makedocs(
     modules = [FlexPlan],
-    format = Documenter.HTML(),
     sitename = "FlexPlan",
-    authors = "Hakan Ergun, Matteo Rossini, Damien Lepage, Iver Bakken Sperstad, Espen Flo Bødal, Marco Rossi, Merkebu Zenebe Degefa, Reinhilde D'Hulst",
     pages = [
         "Home" => "index.md"
         "Manual" => [
@@ -24,6 +22,6 @@ Documenter.makedocs(
     ]
 )
 
-Documenter.deploydocs(
+deploydocs(
     repo = "github.com/Electa-Git/FlexPlan.jl.git"
 )
