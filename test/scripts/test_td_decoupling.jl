@@ -141,7 +141,7 @@ if report_intermediate_results
         subdir = mkpath(joinpath(intermediate_results_dir, name))
         sol_report_cost_summary(sol, d_data_intermediate; out_dir=subdir, table="t_cost.csv", plot="cost.pdf")
         sol_report_power_summary(sol, d_data_intermediate; td_coupling=true, out_dir=subdir, table="t_power.csv", plot="power.pdf")
-        sol_report_branch(sol, d_data_intermediate; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFA8PowerModel`
+        sol_report_branch(sol, d_data_intermediate; out_dir=subdir, table="t_branch.csv", plot="branch.pdf")
         sol_report_bus_voltage_magnitude(sol, d_data_intermediate; out_dir=subdir, table="t_bus.csv", plot="bus.pdf")
         sol_report_gen(sol, d_data_intermediate; out_dir=subdir, table="t_gen.csv", plot="gen.pdf")
         sol_report_load(sol, d_data_intermediate; out_dir=subdir, table="t_load.csv", plot="load.pdf")
@@ -193,7 +193,7 @@ if report_result
         subdir = mkpath(joinpath(result_dir, "distribution_$s"))
         sol_report_cost_summary(sol, d_data[s]; td_coupling=false, out_dir=subdir, table="t_cost.csv", plot="cost.pdf") # `td_coupling=false` because even if data dictionary specifies a positive cost it must not be considered.
         sol_report_power_summary(sol, d_data[s]; td_coupling=true, out_dir=subdir, table="t_power.csv", plot="power.pdf")
-        sol_report_branch(sol, d_data[s]; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFA8PowerModel`
+        sol_report_branch(sol, d_data[s]; out_dir=subdir, table="t_branch.csv", plot="branch.pdf")
         sol_report_bus_voltage_magnitude(sol, d_data[s]; out_dir=subdir, table="t_bus.csv", plot="bus.pdf")
         sol_report_gen(sol, d_data[s]; out_dir=subdir, table="t_gen.csv", plot="gen.pdf")
         sol_report_load(sol, d_data[s]; out_dir=subdir, table="t_load.csv", plot="load.pdf")

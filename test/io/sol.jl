@@ -489,9 +489,8 @@ Return a DataFrame; optionally write a CSV table and a plot.
 - `table::String=""`: if not empty, output a CSV table to `table` file.
 - `plot::String=""`: if not empty, output a plot to `plot` file; file type is based on
   `plot` extension.
-- `rated_power_scale_factor::Float64=1.0`: scale the rated power further.
 """
-function sol_report_branch(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir::String=pwd(), table::String="", plot::String="", rated_power_scale_factor::Float64=1.0)
+function sol_report_branch(sol::Dict{String,Any}, data::Dict{String,Any}; out_dir::String=pwd(), table::String="", plot::String="")
     _FP.require_dim(data, :hour, :scenario, :year)
     dim = data["dim"]
 
@@ -509,7 +508,7 @@ function sol_report_branch(sol::Dict{String,Any}, data::Dict{String,Any}; out_di
                 rate = data_br["rate_a"]
                 p = br["pf"]
                 q = br["qf"]
-                p_rel = abs(p) / (rated_power_scale_factor * rate)
+                p_rel = abs(p) / rate
                 push!(df, (h, s, y, comp, parse(Int,b), source_id, p, q, p_rel))
             end
         end

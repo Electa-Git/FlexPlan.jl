@@ -238,17 +238,16 @@ end
 function _PM.constraint_thermal_limit_from(pm::BFA8PowerModel, n::Int, f_idx, rate_a)
     p_fr = _PM.var(pm, n, :p, f_idx)
     q_fr = _PM.var(pm, n, :q, f_idx)
-    c_perp = cos(π/8) # ~0.92
-    c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
+    c = sqrt(2) - 1 # == tan(π/8), ~0.414
 
-    JuMP.@constraint(pm.model, p_fr        >= -c_perp*rate_a)
-    JuMP.@constraint(pm.model, p_fr        <=  c_perp*rate_a)
-    JuMP.@constraint(pm.model,        q_fr >= -c_perp*rate_a)
-    JuMP.@constraint(pm.model,        q_fr <=  c_perp*rate_a)
-    JuMP.@constraint(pm.model, p_fr + q_fr >= -c_diag*rate_a)
-    JuMP.@constraint(pm.model, p_fr + q_fr <=  c_diag*rate_a)
-    JuMP.@constraint(pm.model, p_fr - q_fr >= -c_diag*rate_a)
-    JuMP.@constraint(pm.model, p_fr - q_fr <=  c_diag*rate_a)
+    JuMP.@constraint(pm.model,    p_fr + c*q_fr <= rate_a)
+    JuMP.@constraint(pm.model,  c*p_fr +   q_fr <= rate_a)
+    JuMP.@constraint(pm.model, -c*p_fr +   q_fr <= rate_a)
+    JuMP.@constraint(pm.model,   -p_fr + c*q_fr <= rate_a)
+    JuMP.@constraint(pm.model,   -p_fr - c*q_fr <= rate_a)
+    JuMP.@constraint(pm.model, -c*p_fr -   q_fr <= rate_a)
+    JuMP.@constraint(pm.model,  c*p_fr -   q_fr <= rate_a)
+    JuMP.@constraint(pm.model,    p_fr - c*q_fr <= rate_a)
 end
 
 "Complex power is limited by an octagon instead of a circle, so as to keep the model linear"
@@ -256,17 +255,16 @@ function _PM.constraint_thermal_limit_from_on_off(pm::BFA8PowerModel, n::Int, i,
     p_fr = _PM.var(pm, n, :p, f_idx)
     q_fr = _PM.var(pm, n, :q, f_idx)
     z    = _PM.var(pm, n, :z_branch, i)
-    c_perp = cos(π/8) # ~0.92
-    c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
+    c = sqrt(2) - 1 # == tan(π/8), ~0.414
 
-    JuMP.@constraint(pm.model, p_fr        >= -c_perp*rate_a*z)
-    JuMP.@constraint(pm.model, p_fr        <=  c_perp*rate_a*z)
-    JuMP.@constraint(pm.model,        q_fr >= -c_perp*rate_a*z)
-    JuMP.@constraint(pm.model,        q_fr <=  c_perp*rate_a*z)
-    JuMP.@constraint(pm.model, p_fr + q_fr >= -c_diag*rate_a*z)
-    JuMP.@constraint(pm.model, p_fr + q_fr <=  c_diag*rate_a*z)
-    JuMP.@constraint(pm.model, p_fr - q_fr >= -c_diag*rate_a*z)
-    JuMP.@constraint(pm.model, p_fr - q_fr <=  c_diag*rate_a*z)
+    JuMP.@constraint(pm.model,    p_fr + c*q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model,  c*p_fr +   q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model, -c*p_fr +   q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model,   -p_fr + c*q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model,   -p_fr - c*q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model, -c*p_fr -   q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model,  c*p_fr -   q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model,    p_fr - c*q_fr <= rate_a*z)
 end
 
 "Complex power is limited by an octagon instead of a circle, so as to keep the model linear"
@@ -274,17 +272,16 @@ function _PM.constraint_ne_thermal_limit_from(pm::BFA8PowerModel, n::Int, i, f_i
     p_fr = _PM.var(pm, n, :p_ne, f_idx)
     q_fr = _PM.var(pm, n, :q_ne, f_idx)
     z    = _PM.var(pm, n, :branch_ne, i)
-    c_perp = cos(π/8) # ~0.92
-    c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
+    c = sqrt(2) - 1 # == tan(π/8), ~0.414
 
-    JuMP.@constraint(pm.model, p_fr        >= -c_perp*rate_a*z)
-    JuMP.@constraint(pm.model, p_fr        <=  c_perp*rate_a*z)
-    JuMP.@constraint(pm.model,        q_fr >= -c_perp*rate_a*z)
-    JuMP.@constraint(pm.model,        q_fr <=  c_perp*rate_a*z)
-    JuMP.@constraint(pm.model, p_fr + q_fr >= -c_diag*rate_a*z)
-    JuMP.@constraint(pm.model, p_fr + q_fr <=  c_diag*rate_a*z)
-    JuMP.@constraint(pm.model, p_fr - q_fr >= -c_diag*rate_a*z)
-    JuMP.@constraint(pm.model, p_fr - q_fr <=  c_diag*rate_a*z)
+    JuMP.@constraint(pm.model,    p_fr + c*q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model,  c*p_fr +   q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model, -c*p_fr +   q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model,   -p_fr + c*q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model,   -p_fr - c*q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model, -c*p_fr -   q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model,  c*p_fr -   q_fr <= rate_a*z)
+    JuMP.@constraint(pm.model,    p_fr - c*q_fr <= rate_a*z)
 end
 
 ""

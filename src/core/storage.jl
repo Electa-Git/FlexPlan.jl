@@ -396,18 +396,16 @@ end
 function _PM.constraint_storage_thermal_limit(pm::BFA8PowerModel, n::Int, i, rating)
     ps = _PM.var(pm, n, :ps, i)
     qs = _PM.var(pm, n, :qs, i)
+    c = sqrt(2) - 1 # == tan(π/8), ~0.414
 
-    c_perp = cos(π/8) # ~0.92
-    c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
-
-    JuMP.@constraint(pm.model, ps      >= -c_perp*rating)
-    JuMP.@constraint(pm.model, ps      <=  c_perp*rating)
-    JuMP.@constraint(pm.model,      qs >= -c_perp*rating)
-    JuMP.@constraint(pm.model,      qs <=  c_perp*rating)
-    JuMP.@constraint(pm.model, ps + qs >= -c_diag*rating)
-    JuMP.@constraint(pm.model, ps + qs <=  c_diag*rating)
-    JuMP.@constraint(pm.model, ps - qs >= -c_diag*rating)
-    JuMP.@constraint(pm.model, ps - qs <=  c_diag*rating)
+    JuMP.@constraint(pm.model,    ps + c*qs <= rating)
+    JuMP.@constraint(pm.model,  c*ps +   qs <= rating)
+    JuMP.@constraint(pm.model, -c*ps +   qs <= rating)
+    JuMP.@constraint(pm.model,   -ps + c*qs <= rating)
+    JuMP.@constraint(pm.model,   -ps - c*qs <= rating)
+    JuMP.@constraint(pm.model, -c*ps -   qs <= rating)
+    JuMP.@constraint(pm.model,  c*ps -   qs <= rating)
+    JuMP.@constraint(pm.model,    ps - c*qs <= rating)
 end
 
 function constraint_storage_thermal_limit_ne(pm::_PM.AbstractActivePowerModel, n::Int, i, rating)
@@ -420,18 +418,16 @@ end
 function constraint_storage_thermal_limit_ne(pm::BFA8PowerModel, n::Int, i, rating)
     ps = _PM.var(pm, n, :ps_ne, i)
     qs = _PM.var(pm, n, :qs_ne, i)
+    c = sqrt(2) - 1 # == tan(π/8), ~0.414
 
-    c_perp = cos(π/8) # ~0.92
-    c_diag = sin(π/8) + cos(π/8) # == cos(π/8) * sqrt(2), ~1.31
-
-    JuMP.@constraint(pm.model, ps      >= -c_perp*rating)
-    JuMP.@constraint(pm.model, ps      <=  c_perp*rating)
-    JuMP.@constraint(pm.model,      qs >= -c_perp*rating)
-    JuMP.@constraint(pm.model,      qs <=  c_perp*rating)
-    JuMP.@constraint(pm.model, ps + qs >= -c_diag*rating)
-    JuMP.@constraint(pm.model, ps + qs <=  c_diag*rating)
-    JuMP.@constraint(pm.model, ps - qs >= -c_diag*rating)
-    JuMP.@constraint(pm.model, ps - qs <=  c_diag*rating)
+    JuMP.@constraint(pm.model,    ps + c*qs <= rating)
+    JuMP.@constraint(pm.model,  c*ps +   qs <= rating)
+    JuMP.@constraint(pm.model, -c*ps +   qs <= rating)
+    JuMP.@constraint(pm.model,   -ps + c*qs <= rating)
+    JuMP.@constraint(pm.model,   -ps - c*qs <= rating)
+    JuMP.@constraint(pm.model, -c*ps -   qs <= rating)
+    JuMP.@constraint(pm.model,  c*ps -   qs <= rating)
+    JuMP.@constraint(pm.model,    ps - c*qs <= rating)
 end
 
 function constraint_storage_losses_ne(pm::_PM.AbstractAPLossLessModels, n::Int, i, bus, r, x, p_loss, q_loss)
