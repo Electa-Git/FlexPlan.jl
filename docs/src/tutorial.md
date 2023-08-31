@@ -127,7 +127,7 @@ result = _FP.simple_stoch_flex_tnep(data, _PM.DCPPowerModel, optimizer; setting=
 ```
 of, for the combined T&D model:
 ```julia
-result = _FP.simple_stoch_flex_tnep(t_data, d_data, _PM.DCPPowerModel, _FP.BFARadPowerModel, optimizer; t_setting=Dict("conv_losses_mp"=>false))
+result = _FP.simple_stoch_flex_tnep(t_data, d_data, _PM.DCPPowerModel, _FP.BFA8PowerModel, optimizer; t_setting=Dict("conv_losses_mp"=>false))
 ```
 
 For other possible problem types and decomposed models, please check the [Problem types](@ref) section.

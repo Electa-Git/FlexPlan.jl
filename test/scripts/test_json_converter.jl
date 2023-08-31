@@ -38,9 +38,9 @@ result = _FP.simple_stoch_flex_tnep(mn_data, _PM.DCPPowerModel, optimizer; setti
 
 # Distribution network
 
-#result = _FP.simple_stoch_flex_tnep(mn_data, _FP.BFARadPowerModel, optimizer)
+#result = _FP.simple_stoch_flex_tnep(mn_data, _FP.BFA8PowerModel, optimizer)
 # Two-step alternative: exposes `pm`
-#pm = _PM.instantiate_model(mn_data, _FP.BFARadPowerModel, _FP.build_simple_stoch_flex_tnep; ref_extensions=[_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!])
+#pm = _PM.instantiate_model(mn_data, _FP.BFA8PowerModel, _FP.build_simple_stoch_flex_tnep; ref_extensions=[_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!])
 #result = _PM.optimize_model!(pm; optimizer=optimizer, solution_processors=[_PM.sol_data_model!])
 
 

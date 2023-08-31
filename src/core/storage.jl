@@ -393,7 +393,7 @@ end
 ############### Constraints
 ###################################################
 
-function _PM.constraint_storage_thermal_limit(pm::BFARadPowerModel, n::Int, i, rating)
+function _PM.constraint_storage_thermal_limit(pm::BFA8PowerModel, n::Int, i, rating)
     ps = _PM.var(pm, n, :ps, i)
     qs = _PM.var(pm, n, :qs, i)
 
@@ -417,7 +417,7 @@ function constraint_storage_thermal_limit_ne(pm::_PM.AbstractActivePowerModel, n
     JuMP.upper_bound(ps) >  rating && JuMP.set_upper_bound(ps,  rating)
 end
 
-function constraint_storage_thermal_limit_ne(pm::BFARadPowerModel, n::Int, i, rating)
+function constraint_storage_thermal_limit_ne(pm::BFA8PowerModel, n::Int, i, rating)
     ps = _PM.var(pm, n, :ps_ne, i)
     qs = _PM.var(pm, n, :qs_ne, i)
 

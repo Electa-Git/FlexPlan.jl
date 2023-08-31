@@ -42,7 +42,7 @@ The problem is defined both for transmission networks, using the linearised 'DC'
 
 ```julia
 result_tnep = FlexPlan.strg_tnep(data, PowerModels.DCPPowerModel, solver; setting)
-result_dnep = FlexPlan.strg_tnep(data, FlexPlan.BFARadPowerModel, solver; setting)
+result_dnep = FlexPlan.strg_tnep(data, FlexPlan.BFA8PowerModel, solver; setting)
 ```
 ## TNEP problem with storage candidates and demand flexibility (Flexible T(D)NEP)
 
@@ -78,13 +78,13 @@ The problem is defined both for transmission networks, using the linearised 'DC'
 
 ```julia
 result_tnep = FlexPlan.flex_tnep(data, PowerModels.DCPPowerModel, solver; setting)
-result_dnep = FlexPlan.flex_tnep(data, FlexPlan.BFARadPowerModel, solver; setting)
+result_dnep = FlexPlan.flex_tnep(data, FlexPlan.BFA8PowerModel, solver; setting)
 ```
 
 Additionally, this particular problem can also be solved for both transmission and distribution networks combined, using specific data for both the transmission and the distribution network:
 
 ```julia
-result_t_and_d_nep = FlexPlan.flex_tnep(t_data, d_data, PowerModels.DCPPowerModel, FlexPlan.BFARadPowerModel, solver; setting)
+result_t_and_d_nep = FlexPlan.flex_tnep(t_data, d_data, PowerModels.DCPPowerModel, FlexPlan.BFA8PowerModel, solver; setting)
 ```
 
 ## Stochastic flexbile T(D)NEP
@@ -113,5 +113,5 @@ The problem is defined both for transmission networks, using the linearised 'DC'
 
 ```julia
 result_tnep = FlexPlan.stoch_flex_tnep(data, PowerModels.DCPPowerModel, solver; setting)
-result_dnep = FlexPlan.stoch_flex_tnep(data, FlexPlan.BFARadPowerModel, solver; setting)
+result_dnep = FlexPlan.stoch_flex_tnep(data, FlexPlan.BFA8PowerModel, solver; setting)
 ```

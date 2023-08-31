@@ -28,7 +28,7 @@ number_of_hours = 4
 number_of_scenarios = 2
 number_of_years = 1
 t_model_type = _PM.DCPPowerModel
-d_model_type = _FP.BFARadPowerModel
+d_model_type = _FP.BFA8PowerModel
 t_setting = Dict("conv_losses_mp" => false)
 d_setting = Dict{String,Any}()
 

@@ -27,7 +27,7 @@ milp_optimizer = _FP.optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>f
     include("io.jl")
 
     # Models
-    include("bfarad.jl")
+    include("bfa8.jl")
 
     # Network components
     include("gen.jl")

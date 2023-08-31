@@ -6,20 +6,20 @@
 ## Variables
 
 ""
-function _PM.variable_bus_voltage(pm::BFARadPowerModel; kwargs...)
+function _PM.variable_bus_voltage(pm::BFA8PowerModel; kwargs...)
     _PM.variable_bus_voltage_magnitude_sqr(pm; kwargs...)
     _PM.variable_bus_voltage_angle(pm; kwargs...)
 end
 
 "Voltage angle of all buses is that of the reference bus"
-function _PM.variable_bus_voltage_angle(pm::BFARadPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
+function _PM.variable_bus_voltage_angle(pm::BFA8PowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     report && _PM.sol_component_fixed(pm, nw, :bus, :va, _PM.ids(pm, nw, :bus), last(first(_PM.ref(pm,nw,:ref_buses)))["va"])
 end
 
 # Copied from _PM.variable_branch_power_real(pm::AbstractAPLossLessModels; nw::Int, bounded::Bool, report::Bool)
 # Since this model is lossless, active power variables are 1 per branch instead of 2.
 ""
-function _PM.variable_branch_power_real(pm::BFARadPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
+function _PM.variable_branch_power_real(pm::BFA8PowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     p = _PM.var(pm, nw)[:p] = JuMP.@variable(pm.model,
         [(l,i,j) in _PM.ref(pm, nw, :arcs_from)], base_name="$(nw)_p",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :branch, l), "p_start")
@@ -58,7 +58,7 @@ end
 # and improved by comparing with _PM.variable_branch_power_real(pm::AbstractAPLossLessModels; nw::Int, bounded::Bool, report::Bool).
 # Since this model is lossless, active power variables are 1 per branch instead of 2.
 ""
-function _PM.variable_ne_branch_power_real(pm::BFARadPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
+function _PM.variable_ne_branch_power_real(pm::BFA8PowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     p_ne = _PM.var(pm, nw)[:p_ne] = JuMP.@variable(pm.model,
         [(l,i,j) in _PM.ref(pm, nw, :ne_arcs_from)], base_name="$(nw)_p_ne",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :ne_branch, l), "p_start")
@@ -86,9 +86,9 @@ function _PM.variable_ne_branch_power_real(pm::BFARadPowerModel; nw::Int=_PM.nw_
     report && _PM.sol_component_value_edge(pm, nw, :ne_branch, :pf, :pt, _PM.ref(pm, nw, :ne_arcs_from), _PM.ref(pm, nw, :ne_arcs_to), p_ne_expr)
 end
 
-# Adapted from variable_branch_power_real(pm::BFARadPowerModel; nw::Int, bounded::Bool, report::Bool)
+# Adapted from variable_branch_power_real(pm::BFA8PowerModel; nw::Int, bounded::Bool, report::Bool)
 ""
-function _PM.variable_branch_power_imaginary(pm::BFARadPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
+function _PM.variable_branch_power_imaginary(pm::BFA8PowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     q = _PM.var(pm, nw)[:q] = JuMP.@variable(pm.model,
         [(l,i,j) in _PM.ref(pm, nw, :arcs_from)], base_name="$(nw)_q",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :branch, l), "q_start")
@@ -123,9 +123,9 @@ function _PM.variable_branch_power_imaginary(pm::BFARadPowerModel; nw::Int=_PM.n
     report && _PM.sol_component_value_edge(pm, nw, :branch, :qf, :qt, _PM.ref(pm, nw, :arcs_from), _PM.ref(pm, nw, :arcs_to), q_expr)
 end
 
-# Adapted from variable_ne_branch_power_real(pm::BFARadPowerModel; nw::Int, bounded::Bool, report::Bool)
+# Adapted from variable_ne_branch_power_real(pm::BFA8PowerModel; nw::Int, bounded::Bool, report::Bool)
 ""
-function _PM.variable_ne_branch_power_imaginary(pm::BFARadPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
+function _PM.variable_ne_branch_power_imaginary(pm::BFA8PowerModel; nw::Int=_PM.nw_id_default, bounded::Bool=true, report::Bool=true)
     q_ne = _PM.var(pm, nw)[:q_ne] = JuMP.@variable(pm.model,
         [(l,i,j) in _PM.ref(pm, nw, :ne_arcs_from)], base_name="$(nw)_q_ne",
         start = _PM.comp_start_value(_PM.ref(pm, nw, :ne_branch, l), "q_start")
@@ -158,63 +158,63 @@ end
 ## Constraints
 
 "Nothing to do, this model is lossless"
-function _PM.constraint_power_losses(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm)
+function _PM.constraint_power_losses(pm::BFA8PowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm)
 end
 
 "Nothing to do, this model is lossless"
-function constraint_power_losses_on_off(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
+function constraint_power_losses_on_off(pm::BFA8PowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
 end
 
 "Nothing to do, this model is lossless"
-function constraint_power_losses_frb(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm)
+function constraint_power_losses_frb(pm::BFA8PowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm)
 end
 
 "Nothing to do, this model is lossless"
-function constraint_power_losses_frb_on_off(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
+function constraint_power_losses_frb_on_off(pm::BFA8PowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
 end
 
 "Nothing to do, this model is lossless"
-function constraint_power_losses_oltc(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to)
+function constraint_power_losses_oltc(pm::BFA8PowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to)
 end
 
 "Nothing to do, this model is lossless"
-function constraint_power_losses_oltc_on_off(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, vad_min, vad_max)
+function constraint_power_losses_oltc_on_off(pm::BFA8PowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, vad_min, vad_max)
 end
 
 "Nothing to do, this model is lossless"
-function constraint_ne_power_losses(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
+function constraint_ne_power_losses(pm::BFA8PowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
 end
 
 "Nothing to do, this model is lossless"
-function constraint_ne_power_losses_parallel(pm::BFARadPowerModel, n::Int, br_idx_e, br_idx_c, f_bus, t_bus, f_idx_c, t_idx_c, r_e, x_e, g_sh_fr_e, g_sh_to_e, b_sh_fr_e, b_sh_to_e, r_c, x_c, g_sh_fr_c, g_sh_to_c, b_sh_fr_c, b_sh_to_c, tm, vad_min, vad_max)
+function constraint_ne_power_losses_parallel(pm::BFA8PowerModel, n::Int, br_idx_e, br_idx_c, f_bus, t_bus, f_idx_c, t_idx_c, r_e, x_e, g_sh_fr_e, g_sh_to_e, b_sh_fr_e, b_sh_to_e, r_c, x_c, g_sh_fr_c, g_sh_to_c, b_sh_fr_c, b_sh_to_c, tm, vad_min, vad_max)
 end
 
 "Nothing to do, this model is lossless"
-function constraint_ne_power_losses_frb(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
+function constraint_ne_power_losses_frb(pm::BFA8PowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, tm, vad_min, vad_max)
 end
 
 "Nothing to do, this model is lossless"
-function constraint_ne_power_losses_frb_parallel(pm::BFARadPowerModel, n::Int, br_idx_e, br_idx_c, f_bus, t_bus, f_idx_c, t_idx_c, r_e, x_e, g_sh_fr_e, g_sh_to_e, b_sh_fr_e, b_sh_to_e, r_c, x_c, g_sh_fr_c, g_sh_to_c, b_sh_fr_c, b_sh_to_c, tm, vad_min, vad_max)
+function constraint_ne_power_losses_frb_parallel(pm::BFA8PowerModel, n::Int, br_idx_e, br_idx_c, f_bus, t_bus, f_idx_c, t_idx_c, r_e, x_e, g_sh_fr_e, g_sh_to_e, b_sh_fr_e, b_sh_to_e, r_c, x_c, g_sh_fr_c, g_sh_to_c, b_sh_fr_c, b_sh_to_c, tm, vad_min, vad_max)
 end
 
 "Nothing to do, this model is lossless"
-function constraint_ne_power_losses_oltc(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, vad_min, vad_max)
+function constraint_ne_power_losses_oltc(pm::BFA8PowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, g_sh_to, b_sh_fr, b_sh_to, vad_min, vad_max)
 end
 
 "Nothing to do, no voltage angle variables"
-function _PM.constraint_voltage_angle_difference(pm::BFARadPowerModel, n::Int, f_idx, angmin, angmax)
+function _PM.constraint_voltage_angle_difference(pm::BFA8PowerModel, n::Int, f_idx, angmin, angmax)
 end
 
 "Nothing to do, no voltage angle variables"
-function _PM.constraint_voltage_angle_difference_on_off(pm::BFARadPowerModel, n::Int, f_idx, angmin, angmax, vad_min, vad_max)
+function _PM.constraint_voltage_angle_difference_on_off(pm::BFA8PowerModel, n::Int, f_idx, angmin, angmax, vad_min, vad_max)
 end
 
 "Nothing to do, no voltage angle variables"
-function _PM.constraint_ne_voltage_angle_difference(pm::BFARadPowerModel, n::Int, f_idx, angmin, angmax, vad_min, vad_max)
+function _PM.constraint_ne_voltage_angle_difference(pm::BFA8PowerModel, n::Int, f_idx, angmin, angmax, vad_min, vad_max)
 end
 
 "Defines voltage drop over a branch whose `f_bus` is the reference bus"
-function constraint_voltage_magnitude_difference_frb(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr, tm)
+function constraint_voltage_magnitude_difference_frb(pm::BFA8PowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr, tm)
     p_fr = _PM.var(pm, n, :p, f_idx)
     q_fr = _PM.var(pm, n, :q, f_idx)
     w_to = _PM.var(pm, n, :w, t_bus)
@@ -224,7 +224,7 @@ function constraint_voltage_magnitude_difference_frb(pm::BFARadPowerModel, n::In
 end
 
 "Defines voltage drop over a transformer branch that has an OLTC"
-function constraint_voltage_magnitude_difference_oltc(pm::BFARadPowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr)
+function constraint_voltage_magnitude_difference_oltc(pm::BFA8PowerModel, n::Int, i, f_bus, t_bus, f_idx, t_idx, r, x, g_sh_fr, b_sh_fr)
     p_fr = _PM.var(pm, n, :p, f_idx)
     q_fr = _PM.var(pm, n, :q, f_idx)
     ttmi = _PM.var(pm, n, :ttmi, i)
@@ -235,7 +235,7 @@ function constraint_voltage_magnitude_difference_oltc(pm::BFARadPowerModel, n::I
 end
 
 "Complex power is limited by an octagon instead of a circle, so as to keep the model linear"
-function _PM.constraint_thermal_limit_from(pm::BFARadPowerModel, n::Int, f_idx, rate_a)
+function _PM.constraint_thermal_limit_from(pm::BFA8PowerModel, n::Int, f_idx, rate_a)
     p_fr = _PM.var(pm, n, :p, f_idx)
     q_fr = _PM.var(pm, n, :q, f_idx)
     c_perp = cos(π/8) # ~0.92
@@ -252,7 +252,7 @@ function _PM.constraint_thermal_limit_from(pm::BFARadPowerModel, n::Int, f_idx, 
 end
 
 "Complex power is limited by an octagon instead of a circle, so as to keep the model linear"
-function _PM.constraint_thermal_limit_from_on_off(pm::BFARadPowerModel, n::Int, i, f_idx, rate_a)
+function _PM.constraint_thermal_limit_from_on_off(pm::BFA8PowerModel, n::Int, i, f_idx, rate_a)
     p_fr = _PM.var(pm, n, :p, f_idx)
     q_fr = _PM.var(pm, n, :q, f_idx)
     z    = _PM.var(pm, n, :z_branch, i)
@@ -270,7 +270,7 @@ function _PM.constraint_thermal_limit_from_on_off(pm::BFARadPowerModel, n::Int, 
 end
 
 "Complex power is limited by an octagon instead of a circle, so as to keep the model linear"
-function _PM.constraint_ne_thermal_limit_from(pm::BFARadPowerModel, n::Int, i, f_idx, rate_a)
+function _PM.constraint_ne_thermal_limit_from(pm::BFA8PowerModel, n::Int, i, f_idx, rate_a)
     p_fr = _PM.var(pm, n, :p_ne, f_idx)
     q_fr = _PM.var(pm, n, :q_ne, f_idx)
     z    = _PM.var(pm, n, :branch_ne, i)
@@ -288,7 +288,7 @@ function _PM.constraint_ne_thermal_limit_from(pm::BFARadPowerModel, n::Int, i, f
 end
 
 ""
-function constraint_ne_thermal_limit_from_parallel(pm::BFARadPowerModel, n::Int, br_idx_e, br_idx_c, f_idx_c, rate_a_e, rate_a_c)
+function constraint_ne_thermal_limit_from_parallel(pm::BFA8PowerModel, n::Int, br_idx_e, br_idx_c, f_idx_c, rate_a_e, rate_a_c)
     # Suffixes: _e: existing branch; _c: candidate branch; _p: parallel equivalent
     branch_e = _PM.ref(pm, n, :branch, br_idx_e)
     branch_c = _PM.ref(pm, n, :ne_branch, br_idx_c)
@@ -305,19 +305,19 @@ function constraint_ne_thermal_limit_from_parallel(pm::BFARadPowerModel, n::Int,
 end
 
 "Nothing to do, this model is symmetric"
-function _PM.constraint_thermal_limit_to(pm::BFARadPowerModel, n::Int, t_idx, rate_a)
+function _PM.constraint_thermal_limit_to(pm::BFA8PowerModel, n::Int, t_idx, rate_a)
 end
 
 "Nothing to do, this model is symmetric"
-function _PM.constraint_thermal_limit_to_on_off(pm::BFARadPowerModel, n::Int, i, t_idx, rate_a)
+function _PM.constraint_thermal_limit_to_on_off(pm::BFA8PowerModel, n::Int, i, t_idx, rate_a)
 end
 
 "Nothing to do, this model is symmetric"
-function _PM.constraint_ne_thermal_limit_to(pm::BFARadPowerModel, n::Int, i, t_idx, rate_a)
+function _PM.constraint_ne_thermal_limit_to(pm::BFA8PowerModel, n::Int, i, t_idx, rate_a)
 end
 
 "Nothing to do, this model is symmetric"
-function constraint_ne_thermal_limit_to_parallel(pm::BFARadPowerModel, n::Int, br_idx_e, br_idx_c, f_idx_c, rate_a_e, rate_a_c)
+function constraint_ne_thermal_limit_to_parallel(pm::BFA8PowerModel, n::Int, br_idx_e, br_idx_c, f_idx_c, rate_a_e, rate_a_c)
 end
 
 
@@ -330,7 +330,7 @@ Bus voltage magnitude `vm` is the square root of `w`.
 Voltage magnitude of the reference bus is 1.0 p.u.
 Branch OLTC tap ratio `tm` (if applies) is the square root of the inverse of `ttmi`.
 """
-function _PM.sol_data_model!(pm::BFARadPowerModel, solution::Dict)
+function _PM.sol_data_model!(pm::BFA8PowerModel, solution::Dict)
     if haskey(solution["it"]["pm"], "nw")
         nws_sol = solution["it"]["pm"]["nw"]
     else

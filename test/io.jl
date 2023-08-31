@@ -12,7 +12,7 @@
     # - investments: AC branches, storage, flexible loads;
     # - flexible loads: shift up, shift down, voluntary reduction, curtailment.
     ieee_33_data = load_ieee_33(number_of_hours=4, number_of_scenarios=1, number_of_years=1, scale_load=1.52, share_data=false)
-    ieee_33_result = _FP.simple_stoch_flex_tnep(ieee_33_data, _FP.BFARadPowerModel, milp_optimizer)
+    ieee_33_result = _FP.simple_stoch_flex_tnep(ieee_33_data, _FP.BFA8PowerModel, milp_optimizer)
 
     @testset "scale_data!" begin
 
@@ -24,7 +24,7 @@
             @test result_scaled["objective"] ≈ scale_factor*case6_result["objective"] rtol=1e-5
 
             data = load_ieee_33(number_of_hours=4, number_of_scenarios=1, number_of_years=1, scale_load=1.52, cost_scale_factor=scale_factor)
-            result_scaled = _FP.simple_stoch_flex_tnep(data, _FP.BFARadPowerModel, milp_optimizer)
+            result_scaled = _FP.simple_stoch_flex_tnep(data, _FP.BFA8PowerModel, milp_optimizer)
             @test result_scaled["objective"] ≈ scale_factor*ieee_33_result["objective"] rtol=1e-5
         end
     end
@@ -40,7 +40,7 @@
             data = deepcopy(ieee_33_data)
             mva_base = data["nw"]["1"]["baseMVA"] * mva_base_ratio
             _FP.convert_mva_base!(data, mva_base)
-            result = _FP.simple_stoch_flex_tnep(data, _FP.BFARadPowerModel, milp_optimizer)
+            result = _FP.simple_stoch_flex_tnep(data, _FP.BFA8PowerModel, milp_optimizer)
             @test result["objective"] ≈ ieee_33_result["objective"] rtol=1e-5
         end
     end

@@ -1,6 +1,6 @@
 # Test generator models using a multiperiod optimization
 
-# - Model: `_FP.BFARadPowerModel` is used to be able to test generators in both active and
+# - Model: `_FP.BFA8PowerModel` is used to be able to test generators in both active and
 #   reactive power, while keeping the model linear. It requires a distribution network.
 # - Problem: `flex_tnep`.
 
@@ -75,7 +75,7 @@ end
     genprofile = hcat(1.5.*ones(number_of_hours), reverse(loadprofile; dims=1)) # Generator 1: 2 times the rated value; generator 2: ramp from 2 times the rated value to 0
     time_series = _FP.make_time_series(data; loadprofile, genprofile) # Compute time series by multiplying the rated value by the profile
     mn_data = _FP.make_multinetwork(data, time_series)
-    result = _FP.flex_tnep(mn_data, _FP.BFARadPowerModel, milp_optimizer)
+    result = _FP.flex_tnep(mn_data, _FP.BFA8PowerModel, milp_optimizer)
     #plot_bus(mn_data, result)
 
     @testset "Dispatchable generator" begin

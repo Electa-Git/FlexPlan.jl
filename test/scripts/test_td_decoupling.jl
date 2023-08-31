@@ -28,7 +28,7 @@ number_of_scenarios = 1
 number_of_years = 1
 number_of_distribution_networks = 4
 t_model_type = _PM.DCPPowerModel
-d_model_type = _FP.BFARadPowerModel
+d_model_type = _FP.BFA8PowerModel
 build_method = _FP.build_simple_stoch_flex_tnep
 t_ref_extensions = [_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!]
 d_ref_extensions = [_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!]
@@ -141,7 +141,7 @@ if report_intermediate_results
         subdir = mkpath(joinpath(intermediate_results_dir, name))
         sol_report_cost_summary(sol, d_data_intermediate; out_dir=subdir, table="t_cost.csv", plot="cost.pdf")
         sol_report_power_summary(sol, d_data_intermediate; td_coupling=true, out_dir=subdir, table="t_power.csv", plot="power.pdf")
-        sol_report_branch(sol, d_data_intermediate; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFARadPowerModel`
+        sol_report_branch(sol, d_data_intermediate; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFA8PowerModel`
         sol_report_bus_voltage_magnitude(sol, d_data_intermediate; out_dir=subdir, table="t_bus.csv", plot="bus.pdf")
         sol_report_gen(sol, d_data_intermediate; out_dir=subdir, table="t_gen.csv", plot="gen.pdf")
         sol_report_load(sol, d_data_intermediate; out_dir=subdir, table="t_load.csv", plot="load.pdf")
@@ -193,7 +193,7 @@ if report_result
         subdir = mkpath(joinpath(result_dir, "distribution_$s"))
         sol_report_cost_summary(sol, d_data[s]; td_coupling=false, out_dir=subdir, table="t_cost.csv", plot="cost.pdf") # `td_coupling=false` because even if data dictionary specifies a positive cost it must not be considered.
         sol_report_power_summary(sol, d_data[s]; td_coupling=true, out_dir=subdir, table="t_power.csv", plot="power.pdf")
-        sol_report_branch(sol, d_data[s]; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFARadPowerModel`
+        sol_report_branch(sol, d_data[s]; rated_power_scale_factor=cos(π/8), out_dir=subdir, table="t_branch.csv", plot="branch.pdf") # `cos(π/8)` is due to octagonal approximation of apparent power in `_FP.BFA8PowerModel`
         sol_report_bus_voltage_magnitude(sol, d_data[s]; out_dir=subdir, table="t_bus.csv", plot="bus.pdf")
         sol_report_gen(sol, d_data[s]; out_dir=subdir, table="t_gen.csv", plot="gen.pdf")
         sol_report_load(sol, d_data[s]; out_dir=subdir, table="t_load.csv", plot="load.pdf")

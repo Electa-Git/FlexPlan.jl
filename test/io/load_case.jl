@@ -304,7 +304,7 @@ function load_params_defaults_transmission()
 end
 
 function load_params_defaults_distribution()
-    model_type = _FP.BFARadPowerModel
+    model_type = _FP.BFA8PowerModel
     ref_extensions = Function[_FP.ref_add_gen!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _FP.ref_add_ne_branch_allbranches!, _FP.ref_add_frb_branch!, _FP.ref_add_oltc_branch!]
     solution_processors = Function[_PM.sol_data_model!]
     setting = Dict{String,Any}()

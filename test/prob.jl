@@ -31,7 +31,7 @@
             @test result["objective"] ≈ 7504.2 rtol=1e-3
         end
         @testset "Distribution" begin
-            result = _FP.strg_tnep(d_data, _FP.BFARadPowerModel, milp_optimizer)
+            result = _FP.strg_tnep(d_data, _FP.BFA8PowerModel, milp_optimizer)
             @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 355.0 rtol=1e-3
         end
@@ -44,7 +44,7 @@
             @test result["objective"] ≈ 7503.0 rtol=1e-3
         end
         @testset "Distribution" begin
-            result = _FP.flex_tnep(d_data, _FP.BFARadPowerModel, milp_optimizer)
+            result = _FP.flex_tnep(d_data, _FP.BFA8PowerModel, milp_optimizer)
             @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 354.6 rtol=1e-3
         end
@@ -57,7 +57,7 @@
             @test result["objective"] ≈ 7715.4 rtol=1e-3
         end
         @testset "Distribution" begin
-            result = _FP.stoch_flex_tnep(d_data, _FP.BFARadPowerModel, milp_optimizer)
+            result = _FP.stoch_flex_tnep(d_data, _FP.BFA8PowerModel, milp_optimizer)
             @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 354.6 rtol=1e-3
         end
@@ -70,7 +70,7 @@
             @test result["objective"] ≈ 7630.4 rtol=1e-3
         end
         @testset "Distribution" begin
-            result = _FP.simple_stoch_flex_tnep(d_data, _FP.BFARadPowerModel, milp_optimizer)
+            result = _FP.simple_stoch_flex_tnep(d_data, _FP.BFA8PowerModel, milp_optimizer)
             @test result["termination_status"] == OPTIMAL
             @test result["objective"] ≈ 354.6 rtol=1e-3
         end

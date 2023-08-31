@@ -23,4 +23,4 @@ Differences with respect to `BFAPowerModel`:
 # Using `@im_fields` instead of `@pm_fields` because the latter requires to be explicitly
 # qualified (i.e. prepend `PowerModels.` instead of `_PM.`). The two macros are equal at the
 # moment, but this may need to be changed if they will differ at some point.
-mutable struct BFARadPowerModel <: _PM.AbstractBFAModel _PM.@im_fields end
+mutable struct BFA8PowerModel <: _PM.AbstractBFAModel _PM.@im_fields end
