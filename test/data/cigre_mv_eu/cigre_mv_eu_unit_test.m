@@ -1,16 +1,16 @@
-function mpc = cigre_mv_eu
-% cigre_mv_eu Returns MATPOWER case for the CIGRE medium-voltage benchmark network with edits
+function mpc = cigre_mv_eu_unit_test
+% cigre_mv_eu_unit_test Returns MATPOWER case for the CIGRE medium-voltage benchmark network with edits
 %
 % References:
-% [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and Distributed
-% Energy Resources", CIGRE, Technical Brochure 575, 2014.
+% [1] CIGRE TF C6.04.02, "Benchmark Systems for Network Integration of Renewable and
+% Distributed Energy Resources", CIGRE, Technical Brochure 575, 2014.
 %
 % EDITS:
-% - branch: angmin and angmax set to -60 and 60 degrees respectively to comply with PowerModels'
-%   requirements;
+% - branch: angmin and angmax set to -60 and 60 degrees respectively to comply with
+%   PowerModels' requirements;
 % - generator: batteries are not considered;
-% - added generator cost data: linear in active power, zero-cost reactive power, equal prices for
-%   distributed generators, grid exchanges cost twice;
+% - added generator cost data: linear in active power, zero-cost reactive power, equal
+%   prices for distributed generators, grid exchanges cost twice;
 % - a fixed 1.0 tap ratio is assigned to the transformer of branch 17;
 % - added candidate branches:
 %   | id |  buses  | branch type |    investment type   |
@@ -20,6 +20,12 @@ function mpc = cigre_mv_eu
 %   |  3 | (12,13) |     line    |      replacement     |
 %   |  4 | (12,13) |     line    |      replacement     |
 %   |  5 | (13,14) |     line    | addition in parallel |
+% - 2 MVDC converters are attached to bus 1 and 12, respectively, and connected through a DC
+%   branch using a symmetric monopolar configuration;
+% - 1 candidate MVDC converter is placed at bus 12 and connected to the converter at bus 1
+%   through a candidate DC branch using a symmetric monopolar configuration;
+% - the investment costs are scaled down to represent a single hour for the purpose of using
+%   this test case in a single-period optimization.
 
 %% MATPOWER Case Format : Version 2
 mpc.version = '2';
@@ -36,15 +42,15 @@ mpc.time_elapsed = 1.0
 mpc.bus = [
      1    1   19.839    4.637    0    0        1    1    0      20    1    1.05    0.95;
      2    1    0.000    0.000    0    0        1    1    0      20    1    1.05    0.95;
-     3    1    0.502    0.209    0    0        1    1    0      20    1    1.05    0.95;
-     4    1    0.432    0.108    0    0        1    1    0      20    1    1.05    0.95;
-     5    1    0.728    0.182    0    0        1    1    0      20    1    1.05    0.95;
-     6    1    0.548    0.137    0    0        1    1    0      20    1    1.05    0.95;
-     7    1    0.077    0.047    0    0        1    1    0      20    1    1.05    0.95;
-     8    1    0.587    0.147    0    0        1    1    0      20    1    1.05    0.95;
-     9    1    0.574    0.356    0    0        1    1    0      20    1    1.05    0.95;
-    10    1    0.543    0.161    0    0        1    1    0      20    1    1.05    0.95;
-    11    1    0.330    0.083    0    0        1    1    0      20    1    1.05    0.95;
+     3    2    0.502    0.209    0    0        1    1    0      20    1    1.05    0.95;
+     4    2    0.432    0.108    0    0        1    1    0      20    1    1.05    0.95;
+     5    2    0.728    0.182    0    0        1    1    0      20    1    1.05    0.95;
+     6    2    0.548    0.137    0    0        1    1    0      20    1    1.05    0.95;
+     7    2    0.077    0.047    0    0        1    1    0      20    1    1.05    0.95;
+     8    2    0.587    0.147    0    0        1    1    0      20    1    1.05    0.95;
+     9    2    0.574    0.356    0    0        1    1    0      20    1    1.05    0.95;
+    10    2    0.543    0.161    0    0        1    1    0      20    1    1.05    0.95;
+    11    2    0.330    0.083    0    0        1    1    0      20    1    1.05    0.95;
     12    1   20.010    4.693    0    0        1    1    0      20    1    1.05    0.95;
     13    1    0.034    0.021    0    0        1    1    0      20    1    1.05    0.95;
     14    1    0.540    0.258    0    0        1    1    0      20    1    1.05    0.95;
@@ -142,6 +148,44 @@ mpc.ne_branch = [
                   12    13  0.003062363 0.002237175 0.003102216  15     15     15     0     0         1    -60     60              0.73       1    0.0    0.0       60;
                   12    13  0.003062363 0.002237175 0.003102216  15     15     15     0     0         1    -60     60              0.78       1    0.0    0.0       60;
                   13    14  0.003744975 0.00273585  0.003793712   7.5    7.5    7.5   0     0         1    -60     60              0.45       0    0.0    0.0       60;
+];
+
+%% existing DC buses
+%column_names% busdc_i grid Pdc Vdc basekVdc Vdcmax Vdcmin Cdc
+mpc.busdc = [
+                     1    1   0   1       15    1.1    0.9   0;
+                     2    1   0   1       15    1.1    0.9   0;
+];
+
+%% candidate DC buses
+%column_names% busdc_i grid Pdc Vdc basekVdc Vdcmax Vdcmin Cdc
+mpc.busdc_ne = [
+                     3    1   0   1       15    1.1    0.9   0;
+];
+
+%% existing DC branches
+%column_names% fbusdc tbusdc      r     l     c  rateA rateB rateC status
+mpc.branchdc = [
+                    1      2  0.015  0.00  0.00   25.0   0.0   0.0      1;
+];
+
+%% candidate DC branches
+%column_names% fbusdc tbusdc      r     l     c  rateA rateB rateC status    cost co2_cost lifetime
+mpc.branchdc_ne = [
+                    1      3   0.01  0.00  0.00   25.0   0.0   0.0      1    1.43      0.0       40; % Cost: 50 k€/km, 10 km length
+];
+
+%% existing converters
+%column_names% busdc_i busac_i type_dc type_ac  P_g  Q_g islcc Vtar    rtf   xtf transformer tm    bf filter     rc    xc reactor basekVac Vmmax Vmmin  Imax status  LossA LossB LossCrec LossCinv  droop Pdcset Vdcset dVdcset Pacmax Pacmin Qacmax Qacmin
+mpc.convdc = [
+                     1       1       2       1  0.0  0.0     0  1.0  0.001  0.02           1  1  0.05      1  0.001  0.02       1       15   1.1   0.9  70.8      1  0.05    0.1     0.04     0.04  0.005    0.0    1.0     0.0     50    -50     50    -50;
+                     2      12       3       1  0.0  0.0     0  1.0  0.001  0.02           1  1  0.05      1  0.001  0.02       1       15   1.1   0.9  35.4      1  0.025   0.1     0.08     0.08  0.005    0.0    1.0     0.0     25    -25     25    -25;
+];
+
+%% candidate converters
+%column_names% busdc_i busac_i type_dc type_ac  P_g  Q_g islcc Vtar    rtf   xtf transformer tm    bf filter     rc    xc reactor basekVac Vmmax Vmmin  Imax status  LossA LossB LossCrec LossCinv  droop Pdcset Vdcset dVdcset Pacmax Pacmin Qacmax Qacmin   cost co2_cost lifetime
+mpc.convdc_ne = [
+                     3      12       3       1  0.0  0.0     0  1.0  0.001  0.02           1  1  0.05      1  0.001  0.02       1       15   1.1   0.9  35.4      1  0.025   0.1     0.08     0.08  0.005    0.0    1.0     0.0     25    -25     25    -25  28.54        0       20; % Cost: 100 k€/MW
 ];
 
 %% flexible load data
