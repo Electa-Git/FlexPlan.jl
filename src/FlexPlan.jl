@@ -51,6 +51,7 @@ include("core/td_coupling.jl")
 include("core/solution.jl")
 
 include("form/bf.jl")
+include("form/bfa.jl")
 include("form/bfa8.jl")
 include("formconv/dcp.jl")
 

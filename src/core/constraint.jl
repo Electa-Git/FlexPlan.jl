@@ -19,6 +19,27 @@ function constraint_power_balance_acne_dcne_strg(pm::_PM.AbstractDCPModel, n::In
     JuMP.@constraint(pm.model, sum(p[a] for a in bus_arcs) + sum(p_ne[a] for a in bus_arcs_ne) + sum(pconv_grid_ac[c] for c in bus_convs_ac) + sum(pconv_grid_ac_ne[c] for c in bus_convs_ac_ne)  == sum(pg[g] for g in bus_gens) - sum(ps[s] for s in bus_storage) -sum(ps_ne[s] for s in bus_storage_ne) - sum(pd[d] for d in bus_loads) - sum(gs[s] for s in bus_shunts)*v^2)
 end
 
+function constraint_power_balance_acne_dcne_strg(pm::_PM.AbstractWModels, n::Int, i::Int, bus_arcs, bus_arcs_ne, bus_arcs_dc, bus_gens, bus_convs_ac, bus_convs_ac_ne, bus_loads, bus_shunts, bus_storage, bus_storage_ne, pd, qd, gs, bs)
+    p                = _PM.var(pm, n, :p)
+    q                = _PM.var(pm, n, :q)
+    pg               = _PM.var(pm, n, :pg)
+    qg               = _PM.var(pm, n, :qg)
+    pconv_grid_ac    = _PM.var(pm, n, :pconv_tf_fr)
+    qconv_grid_ac    = _PM.var(pm, n, :qconv_tf_fr)
+    pconv_grid_ac_ne = _PM.var(pm, n, :pconv_tf_fr_ne)
+    qconv_grid_ac_ne = _PM.var(pm, n, :qconv_tf_fr_ne)
+    p_ne             = _PM.var(pm, n, :p_ne)
+    q_ne             = _PM.var(pm, n, :q_ne)
+    ps               = _PM.var(pm, n, :ps)
+    qs               = _PM.var(pm, n, :qs)
+    ps_ne            = _PM.var(pm, n, :ps_ne)
+    qs_ne            = _PM.var(pm, n, :qs_ne)
+    w                = _PM.var(pm, n, :w, i)
+
+    JuMP.@constraint(pm.model, sum(p[a] for a in bus_arcs) + sum(p_ne[a] for a in bus_arcs_ne) + sum(pconv_grid_ac[c] for c in bus_convs_ac) + sum(pconv_grid_ac_ne[c] for c in bus_convs_ac_ne) == sum(pg[g] for g in bus_gens) - sum(ps[s] for s in bus_storage) - sum(ps_ne[s] for s in bus_storage_ne) - sum(pd[d] for d in bus_loads) - sum(gs[s] for s in bus_shunts)*w)
+    JuMP.@constraint(pm.model, sum(q[a] for a in bus_arcs) + sum(q_ne[a] for a in bus_arcs_ne) + sum(qconv_grid_ac[c] for c in bus_convs_ac) + sum(qconv_grid_ac_ne[c] for c in bus_convs_ac_ne) == sum(qg[g] for g in bus_gens) - sum(qs[s] for s in bus_storage) - sum(qs_ne[s] for s in bus_storage_ne) - sum(qd[d] for d in bus_loads) + sum(bs[s] for s in bus_shunts)*w)
+end
+
 # Power balance (without DC equipment) including candidate storage
 function constraint_power_balance_acne_strg(pm::_PM.AbstractWModels, n::Int, i::Int, bus_arcs, bus_arcs_ne, bus_gens, bus_loads, bus_shunts, bus_storage, bus_storage_ne, pd, qd, gs, bs)
     p     = _PM.var(pm, n, :p)
@@ -52,6 +73,29 @@ function constraint_power_balance_acne_dcne_flex(pm::_PM.AbstractDCPModel, n::In
     v                = 1
 
     JuMP.@constraint(pm.model, sum(p[a] for a in bus_arcs) + sum(p_ne[a] for a in bus_arcs_ne) + sum(pconv_grid_ac[c] for c in bus_convs_ac) + sum(pconv_grid_ac_ne[c] for c in bus_convs_ac_ne)  == sum(pg[g] for g in bus_gens) - sum(ps[s] for s in bus_storage) -sum(ps_ne[s] for s in bus_storage_ne) - sum(pflex[d] for d in bus_loads) - sum(gs[s] for s in bus_shunts)*v^2)
+end
+
+function constraint_power_balance_acne_dcne_flex(pm::_PM.AbstractWModels, n::Int, i::Int, bus_arcs, bus_arcs_ne, bus_arcs_dc, bus_gens, bus_convs_ac, bus_convs_ac_ne, bus_loads, bus_shunts, bus_storage, bus_storage_ne, gs, bs)
+    p                = _PM.var(pm, n, :p)
+    q                = _PM.var(pm, n, :q)
+    pg               = _PM.var(pm, n, :pg)
+    qg               = _PM.var(pm, n, :qg)
+    pconv_grid_ac    = _PM.var(pm, n, :pconv_tf_fr)
+    qconv_grid_ac    = _PM.var(pm, n, :qconv_tf_fr)
+    pconv_grid_ac_ne = _PM.var(pm, n, :pconv_tf_fr_ne)
+    qconv_grid_ac_ne = _PM.var(pm, n, :qconv_tf_fr_ne)
+    p_ne             = _PM.var(pm, n, :p_ne)
+    q_ne             = _PM.var(pm, n, :q_ne)
+    ps               = _PM.var(pm, n, :ps)
+    qs               = _PM.var(pm, n, :qs)
+    ps_ne            = _PM.var(pm, n, :ps_ne)
+    qs_ne            = _PM.var(pm, n, :qs_ne)
+    pflex            = _PM.var(pm, n, :pflex)
+    qflex            = _PM.var(pm, n, :qflex)
+    w                = _PM.var(pm, n, :w, i)
+
+    JuMP.@constraint(pm.model, sum(p[a] for a in bus_arcs) + sum(p_ne[a] for a in bus_arcs_ne) + sum(pconv_grid_ac[c] for c in bus_convs_ac) + sum(pconv_grid_ac_ne[c] for c in bus_convs_ac_ne) == sum(pg[g] for g in bus_gens) - sum(ps[s] for s in bus_storage) - sum(ps_ne[s] for s in bus_storage_ne) - sum(pflex[d] for d in bus_loads) - sum(gs[s] for s in bus_shunts)*w)
+    JuMP.@constraint(pm.model, sum(q[a] for a in bus_arcs) + sum(q_ne[a] for a in bus_arcs_ne) + sum(qconv_grid_ac[c] for c in bus_convs_ac) + sum(qconv_grid_ac_ne[c] for c in bus_convs_ac_ne) == sum(qg[g] for g in bus_gens) - sum(qs[s] for s in bus_storage) - sum(qs_ne[s] for s in bus_storage_ne) - sum(qflex[d] for d in bus_loads) + sum(bs[s] for s in bus_shunts)*w)
 end
 
 # Power balance (without DC equipment) including candidate storage & flexible demand

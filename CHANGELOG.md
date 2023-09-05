@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename `BFARadPowerModel` to `BFA8PowerModel`
 - In `BFA8PowerModel`, rotate the octagon approximating SOC constraints so that the maximum
   active and reactive power values can be reached
+- Extend `BFA8PowerModel` to DC grids
+- Extend all problems so that DC components can be used in distribution networks
 
 ## [0.3.1] - 2023-06-14
 

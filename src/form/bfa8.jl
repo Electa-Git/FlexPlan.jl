@@ -1,4 +1,4 @@
-# Linearized AC branch flow model for radial networks.
+# Branch Flow Affine (BFA) model using a regular octagon for approximating SOC constraints.
 # Variables: squared voltage magnitude, active power, reactive power.
 
 
@@ -317,6 +317,51 @@ end
 function constraint_ne_thermal_limit_to_parallel(pm::BFA8PowerModel, n::Int, br_idx_e, br_idx_c, f_idx_c, rate_a_e, rate_a_c)
 end
 
+function _PMACDC.constraint_converter_losses(pm::_PM.AbstractBFAModel, n::Int, i::Int, a, b, c, plmax)
+    pconv_ac = _PM.var(pm, n, :pconv_ac, i)
+    qconv_ac = _PM.var(pm, n, :qconv_ac, i)
+    pconv_dc = _PM.var(pm, n, :pconv_dc, i)
+
+    w_nom = 1 # pu, assumption to approximate current
+    k     = sqrt(2) - 1 # == tan(π/8), ~0.414
+
+    # The converter AC current magnitude `iconv_ac = √(pconv_ac² + qconv_ac²) / √w ≥ 0` is
+    # approximated here by using a regular octagon. The approximation overestimates the
+    # linear loss term `b*iconv_ac`. The quadratic term `c*iconv_ac²` is neglected.
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a + b * (   pconv_ac+k*qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a + b * ( k*pconv_ac+  qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a + b * (-k*pconv_ac+  qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a + b * (  -pconv_ac+k*qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a + b * (  -pconv_ac-k*qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a + b * (-k*pconv_ac-  qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a + b * ( k*pconv_ac-  qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a + b * (   pconv_ac-k*qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc <= plmax)
+end
+
+function _PMACDC.constraint_converter_losses_ne(pm::_PM.AbstractBFAModel, n::Int, i::Int, a, b, c, plmax)
+    pconv_ac = _PM.var(pm, n, :pconv_ac_ne, i)
+    qconv_ac = _PM.var(pm, n, :qconv_ac_ne, i)
+    pconv_dc = _PM.var(pm, n, :pconv_dc_ne, i)
+    z        = _PM.var(pm, n, :conv_ne, i)
+
+    w_nom = 1 # pu, assumption to approximate current
+    k     = sqrt(2) - 1 # == tan(π/8), ~0.414
+
+    # The converter AC current magnitude `iconv_ac = √(pconv_ac² + qconv_ac²) / √w ≥ 0` is
+    # approximated here by using a regular octagon. The approximation overestimates the
+    # linear loss term `b*iconv_ac`. The quadratic term `c*iconv_ac²` is neglected.
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a*z + b * (   pconv_ac+k*qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a*z + b * ( k*pconv_ac+  qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a*z + b * (-k*pconv_ac+  qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a*z + b * (  -pconv_ac+k*qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a*z + b * (  -pconv_ac-k*qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a*z + b * (-k*pconv_ac-  qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a*z + b * ( k*pconv_ac-  qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc >= a*z + b * (   pconv_ac-k*qconv_ac)/sqrt(w_nom))
+    JuMP.@constraint(pm.model, pconv_ac + pconv_dc <= plmax)
+end
+
 
 ## Other functions
 
@@ -381,6 +426,50 @@ function _PM.sol_data_model!(pm::BFA8PowerModel, solution::Dict)
                         br["tm"] = sqrt(1.0/br["ttmi"])
                     end
                     delete!(br, "ttmi")
+                end
+            end
+        end
+
+        # DC bus voltage magnitude `vdc` is the square root of `wdc`
+        if haskey(nw_sol,"busdc")
+            for (b,bus) in nw_sol["busdc"]
+                if haskey(bus, "wdc")
+                    bus["vdc"] = sqrt(bus["wdc"])
+                    delete!(bus, "wdc")
+                end
+            end
+        end
+        if haskey(nw_sol,"busdc_ne")
+            for (b,bus) in nw_sol["busdc_ne"]
+                if haskey(bus, "wdc_ne")
+                    bus["vdc_ne"] = sqrt(bus["wdc_ne"])
+                    delete!(bus, "wdc_ne")
+                end
+            end
+        end
+
+        # AC voltage magnitude variables `v*` of converters are the square root of corresponding `w*`
+        if haskey(nw_sol,"convdc")
+            for (c,conv) in nw_sol["convdc"]
+                if haskey(conv, "wfilt")
+                    conv["vfilt"] = sqrt(conv["wfilt"])
+                    delete!(conv, "wfilt")
+                end
+                if haskey(conv, "wconv")
+                    conv["vconv"] = sqrt(conv["wconv"])
+                    delete!(conv, "wconv")
+                end
+            end
+        end
+        if haskey(nw_sol,"convdc_ne")
+            for (c,conv) in nw_sol["convdc_ne"]
+                if haskey(conv, "wfilt")
+                    conv["vfilt"] = sqrt(conv["wfilt"])
+                    delete!(conv, "wfilt")
+                end
+                if haskey(conv, "wconv")
+                    conv["vconv"] = sqrt(conv["wconv"])
+                    delete!(conv, "wconv")
                 end
             end
         end
