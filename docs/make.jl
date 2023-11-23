@@ -3,6 +3,7 @@ using Documenter, FlexPlan
 makedocs(
     modules = [FlexPlan],
     sitename = "FlexPlan",
+    warnonly = :missing_docs,
     pages = [
         "Home" => "index.md"
         "Manual" => [
