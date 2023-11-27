@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Upgrade dependency: PowerModelsACDC v0.7 (v0.6 still allowed)
+
 ## [0.3.1] - 2023-06-14
 
 ### Added
