@@ -2,7 +2,7 @@ name = "FlexPlan"
 uuid = "4dc3fedf-fcb4-4327-bce2-523fd266e8c9"
 authors = ["Hakan Ergun", "Matteo Rossini", "Marco Rossi", "Damien Lepage", "Iver Bakken Sperstad", "Espen Flo Bødal", "Merkebu Zenebe Degefa", "Reinhilde D'Hulst"]
 repo = "https://github.com/electa-git/FlexPlan.jl"
-version = "0.3.1"
+version = "0.4.0"
 
 [deps]
 InfrastructureModels = "2030c09a-7f63-5d83-885d-db604e0e9cc0"
@@ -16,14 +16,14 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 [compat]
 CSV = "0.10"
 DataFrames = "1"
-HiGHS = "0.3.2, 1"
+HiGHS = "1"
 InfrastructureModels = "0.6, 0.7"
-JSON = "0.21.1"
+JSON = "0.21"
 JuMP = "0.22, 0.23, 1"
 Memento = "1"
-PowerModels = "0.19.6"
-PowerModelsACDC = "0.7"
-julia = "1.6"
+PowerModels = "~0.21"
+PowerModelsACDC = "~0.7, ~0.8"
+julia = "^1"
 
 [extras]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
