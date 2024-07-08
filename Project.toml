@@ -22,7 +22,7 @@ JSON = "0.21"
 JuMP = "0.22, 0.23, 1"
 Memento = "1"
 PowerModels = "~0.21"
-PowerModelsACDC = "~0.7, ~0.8"
+PowerModelsACDC = "~0.8"
 julia = "^1"
 
 [extras]
