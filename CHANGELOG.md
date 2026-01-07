@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2024-07-08
+
 ### Changed
 
-- Upgrade dependency: PowerModelsACDC v0.7 (v0.6 still allowed)
+- Dependencies: update PowerModels to 0.21
+- Dependencies: update PowerModelsACDC to 0.8
+
+## Notes
+
+No API changes; it should have been a patch release.
 
 ## [0.3.1] - 2023-06-14
 
@@ -23,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 For changes up to 0.3.0 refer to
 [GitHub Releases page](https://github.com/Electa-Git/FlexPlan.jl/releases/).
 
-[unreleased]: https://github.com/Electa-Git/FlexPlan.jl/compare/v0.3.1...HEAD
+[unreleased]: https://github.com/Electa-Git/FlexPlan.jl/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Electa-Git/FlexPlan.jl/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Electa-Git/FlexPlan.jl/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Electa-Git/FlexPlan.jl/releases/tag/v0.3.0
