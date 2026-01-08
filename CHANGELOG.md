@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Dependencies: update PowerModelsACDC to 0.9.1
+
 ## [0.4.0] - 2024-07-08
 
 ### Changed
@@ -14,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependencies: update PowerModels to 0.21
 - Dependencies: update PowerModelsACDC to 0.8
 
-## Notes
+### Notes
 
 No API changes; it should have been a patch release.
 
