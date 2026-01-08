@@ -33,7 +33,7 @@ mn_data = _FP.convert_JSON(file; year_scale_factor=10) # Conversion caveats and 
 setting = Dict("conv_losses_mp" => true)
 result = _FP.simple_stoch_flex_tnep(mn_data, _PM.DCPPowerModel, optimizer; setting)
 # Two-step alternative: exposes `pm`
-#pm = _PM.instantiate_model(mn_data, _PM.DCPPowerModel, _FP.build_simple_stoch_flex_tnep; setting, ref_extensions=[_FP.ref_add_gen!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!])
+#pm = _PM.instantiate_model(mn_data, _PM.DCPPowerModel, _FP.build_simple_stoch_flex_tnep; setting, ref_extensions=[_FP.ref_add_gen!, _PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PMACDC.ref_add_gendc!, _FP.ref_add_storage!, _FP.ref_add_ne_storage!, _FP.ref_add_flex_load!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!])
 #result = _PM.optimize_model!(pm; optimizer=optimizer)
 
 # Distribution network

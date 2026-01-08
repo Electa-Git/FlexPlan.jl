@@ -3,7 +3,7 @@ function strg_tnep(data::Dict{String,Any}, model_type::Type, optimizer; kwargs..
     require_dim(data, :hour, :year)
     return _PM.solve_model(
         data, model_type, optimizer, build_strg_tnep;
-        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!],
+        ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PMACDC.ref_add_gendc!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!],
         solution_processors = [_PM.sol_data_model!],
         multinetwork = true,
         kwargs...
@@ -30,7 +30,7 @@ function strg_tnep(t_data::Dict{String,Any}, d_data::Vector{Dict{String,Any}}, t
     end
     return solve_model(
         t_data, d_data, t_model_type, d_model_type, optimizer, build_strg_tnep;
-        t_ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!],
+        t_ref_extensions = [_PMACDC.add_ref_dcgrid!, _PMACDC.add_candidate_dcgrid!, _PMACDC.ref_add_gendc!, _PM.ref_add_on_off_va_bounds!, _PM.ref_add_ne_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!],
         d_ref_extensions = [_PM.ref_add_on_off_va_bounds!, ref_add_ne_branch_allbranches!, ref_add_frb_branch!, ref_add_oltc_branch!, ref_add_gen!, ref_add_storage!, ref_add_ne_storage!],
         t_solution_processors = [_PM.sol_data_model!],
         d_solution_processors = [_PM.sol_data_model!, sol_td_coupling!],
@@ -62,7 +62,10 @@ function build_strg_tnep(pm::_PM.AbstractPowerModel; objective::Bool=true)
         # AC-DC converter
         _PMACDC.variable_dc_converter(pm; nw = n)
 
-        # Generator
+        # DC generator
+        _PMACDC.variable_dcgenerator_power(pm; nw = n)
+
+        # AC generator
         _PM.variable_gen_power(pm; nw = n)
         expression_gen_curtailment(pm; nw = n)
 
@@ -260,7 +263,7 @@ function build_strg_tnep(pm::_PM.AbstractBFModel; objective::Bool=true, intertem
         _PM.variable_branch_current(pm; nw = n)
         variable_oltc_branch_transform(pm; nw = n)
 
-        # Generator
+        # AC generator
         _PM.variable_gen_power(pm; nw = n)
         expression_gen_curtailment(pm; nw = n)
 
