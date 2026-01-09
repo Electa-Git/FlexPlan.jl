@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Dependencies: update PowerModelsACDC to 0.9.1
+- Dependencies: update JSON to 0.21, 1
 
 ## [0.4.0] - 2024-07-08
 
