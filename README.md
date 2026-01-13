@@ -71,14 +71,13 @@ If you find FlexPlan.jl useful in your work, we kindly request that you cite the
 
 ```bibtex
 @inproceedings{FlexPlan.jl,
-    author = {Matteo Rossini and Hakan Ergun and Marco Rossi},
-    title = {{FlexPlan}.jl – An open-source {Julia} tool for holistic transmission and distribution grid planning},
+    author    = {Matteo Rossini and Hakan Ergun and Marco Rossi},
+    title     = {{FlexPlan}.jl – An open-source {Julia} tool for holistic transmission and distribution grid planning},
     booktitle = {2023 Open Source Modelling and Simulation of Energy Systems ({OSMSES})},
-    year = {2023},
-    month = {mar},
+    year      = {2023},
     publisher = {{IEEE}},
-    doi = {10.1109/osmses58477.2023.10089624},
-    url = {https://doi.org/10.1109/osmses58477.2023.10089624}
+    doi       = {10.1109/osmses58477.2023.10089624},
+    url       = {https://doi.org/10.1109/osmses58477.2023.10089624}
 }
 ```
 
