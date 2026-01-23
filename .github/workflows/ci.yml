@@ -9,27 +9,27 @@ permissions:
   contents: read
 jobs:
   test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.downgrade-compat }} - ${{ github.event_name }}
+    name: Julia ${{ matrix.version }}${{ matrix.downgrade-compat && ' downgrade-compat' }} - ${{ matrix.os }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - version: '1' # latest Julia v1
-            os: ubuntu-latest
             downgrade-compat: false
+            os: ubuntu-latest
           - version: '1' # latest Julia v1
+            downgrade-compat: false
             os: macos-latest
-            downgrade-compat: false
           - version: '1' # latest Julia v1
+            downgrade-compat: false
             os: windows-latest
-            downgrade-compat: false
           - version: 'lts' # latest Julia LTS
-            os: ubuntu-latest
             downgrade-compat: false
-          - version: 'lts' # latest Julia LTS
             os: ubuntu-latest
+          - version: 'lts' # latest Julia LTS
             downgrade-compat: true
+            os: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
