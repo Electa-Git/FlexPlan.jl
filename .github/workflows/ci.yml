@@ -9,7 +9,7 @@ permissions:
   contents: read
 jobs:
   test:
-    name: Julia ${{ matrix.version }}${{ matrix.downgrade-compat && ' downgrade-compat' }} - ${{ matrix.os }} - ${{ github.event_name }}
+    name: Julia ${{ matrix.version }}${{ matrix.downgrade-compat && ' downgrade-compat' || ''}} - ${{ matrix.os }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
